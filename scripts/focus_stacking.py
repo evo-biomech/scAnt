@@ -26,7 +26,9 @@ def variance_of_laplacian(image):
     as recommenden by Pech-Pacheco et al. in their 2000 ICPR paper,
     Diatom autofocusing in brightfield microscopy: a comparative study.
     """
-    return cv2.Laplacian(image, cv2.CV_64F).var()
+    # apply median blur to image to suppress noise in RAW files
+    blurred_image = cv2.medianBlur(image, 3)
+    return cv2.Laplacian(blurred_image, cv2.CV_64F).var()
 
 
 # construct the argument parse and parse the arguments
@@ -96,8 +98,9 @@ if len(usable_images) > 1:
         print(path)
 else:
     print("No images suitable for focus stacking found!")
+    exit()
 
-path_to_hugin = 'C:\\Programme\\Hugin\\bin\\'
+path_to_external = os.path.dirname(os.getcwd()) + "\\external\\"
 
 pics = len(usable_images)
 
@@ -127,7 +130,7 @@ for i in range(pics):
 
     del usable_images[0:path_num]
 
-    os.system(path_to_hugin + "align_image_stack -m -x -c 100 -a" + output_folder + "\\OUT" + image_str_align)
+    os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\OUT" + image_str_align)
 
     image_str_focus = ""
     temp_files = []
@@ -146,12 +149,12 @@ for i in range(pics):
         temp_files.append(path)
         image_str_focus += " " + path
 
-    output_path = output_folder + "\\" + current_stack_name.split('\\')[1] + ".tif"
+    output_path = output_folder + "\\" + current_stack_name.split('\\')[-1] + ".tif"
     print(output_path)
 
     # --save-masks     to save soft and hard masks
     # --gray-projector=l-star alternative stacking method
-    os.system(path_to_hugin + "enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+    os.system(path_to_external + "enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
               "--hard-mask --contrast-edge-scale=1 --output=" +
               output_path + image_str_focus)
 
