@@ -151,10 +151,11 @@ def createAlphaMask(source, create_cutout=False):
 
 
 if __name__ == '__main__':
-    source = 'E:\\3D_Scanner\\Focus_stacking\\queen_0.150mg_stacked\\'
+    # pip install opencv-contrib-python==3.4.5.20
+    source = 'I:\\3D_Scanner\\images'
 
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder
-        if imagePath[-3::] == "tif":
+        if imagePath[-3::] == "png":
             createAlphaMask(imagePath)
     exit()
