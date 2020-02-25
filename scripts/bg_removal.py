@@ -156,6 +156,6 @@ if __name__ == '__main__':
 
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder
-        if imagePath[-3::] == "png":
+        if imagePath[-3::] == "tif":
             createAlphaMask(imagePath)
     exit()

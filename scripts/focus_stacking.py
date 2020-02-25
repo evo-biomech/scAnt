@@ -10,7 +10,6 @@ from imutils import paths
 import argparse
 import cv2
 import os
-import numpy as np
 from PIL import Image, ImageEnhance
 
 
@@ -37,6 +36,8 @@ ap.add_argument("-i", "--images", required=True,
                 help="path to input directory of images")
 ap.add_argument("-t", "--threshold", type=float, default=3.0,
                 help="focus measures that fall below this value will be considered 'blurry'")
+ap.add_argument("-s", "--sharpen", type=float, default=False,
+                help="apply sharpening to final result")
 args = vars(ap.parse_args())
 
 usable_images = []
@@ -161,13 +162,13 @@ for i in range(pics):
     print("Stacked image saved as", output_path)
 
     stacked = Image.open(output_path)
-    enhancer = ImageEnhance.Sharpness(stacked)
-    sharpened = enhancer.enhance(1.5)
-    sharpened.save(output_path)
+    if args["sharpen"]:
+        enhancer = ImageEnhance.Sharpness(stacked)
+        sharpened = enhancer.enhance(1.5)
+        sharpened.save(output_path)
 
     print("Sharpened", output_path)
 
-    ######################
     for temp_img in temp_files:
         os.system("del " + str(temp_img))
 
