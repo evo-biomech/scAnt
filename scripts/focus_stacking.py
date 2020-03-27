@@ -1,4 +1,4 @@
-# approach implemented based on
+# blur detection approach implemented based on
 # pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
 
 # Use in the console with
