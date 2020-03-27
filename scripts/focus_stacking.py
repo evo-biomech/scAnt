@@ -111,6 +111,9 @@ if not os.path.exists(output_folder):
     os.makedirs(output_folder)
     print("made folder!")
 
+# revert the order of images to begin with the image furthest away (maximise field of view during alignment))
+usable_images.reverse()
+
 for i in range(pics):
 
     # Align all images using Hugin's align_image_stack function

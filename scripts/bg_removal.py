@@ -135,7 +135,7 @@ def createAlphaMask(source, create_cutout=False):
     os.system("del " + source[:-4] + '_cutout.jpg')
 
     gray = cv2.cvtColor(cutout, cv2.COLOR_BGR2GRAY)
-    th, threshed = cv2.threshold(gray, 248, 255, cv2.THRESH_BINARY_INV)
+    th, threshed = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
 
     threshed = cv2.GaussianBlur(threshed, (5, 5), 0)
 
@@ -152,7 +152,7 @@ def createAlphaMask(source, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = 'I:\\3D_Scanner\\images'
+    source ='I:\\3D_Scanner\\images\\Leaffooted_scanner_single_stack_stacked' #'I:\\3D_Scanner\\images'
 
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder

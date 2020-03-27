@@ -74,7 +74,7 @@ def configure_exposure(cam):
             return False
 
         # Ensure desired exposure time does not exceed the maximum
-        exposure_time_to_set = 183290  # 72990  # 8233
+        exposure_time_to_set = 29274  # 72990  # 8233
         exposure_time_to_set = min(cam.ExposureTime.GetMax(), exposure_time_to_set)
         cam.ExposureTime.SetValue(exposure_time_to_set)
         print('Shutter time set to %s us...\n' % exposure_time_to_set)
@@ -167,9 +167,10 @@ def print_device_info(cam):
             features = node_device_information.GetFeatures()
             for feature in features:
                 node_feature = PySpin.CValuePtr(feature)
+                """
                 print('%s: %s' % (node_feature.GetName(),
                                   node_feature.ToString() if PySpin.IsReadable(node_feature) else 'Node not readable'))
-
+                """
         else:
             print('Device control information not available.')
 
@@ -203,7 +204,7 @@ def acquire_images(cam, img_name):
             return False
 
         cam.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
-        print('Acquisition mode set to continuous...')
+        # print('Acquisition mode set to continuous...')
 
         # Begin acquiring images
         cam.BeginAcquisition()
@@ -215,7 +216,7 @@ def acquire_images(cam, img_name):
         if cam.TLDevice.DeviceSerialNumber is not None and cam.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
             device_serial_number = cam.TLDevice.DeviceSerialNumber.GetValue()
 
-            print('Device serial number retrieved as %s...' % device_serial_number)
+            # print('Device serial number retrieved as %s...' % device_serial_number)
 
         # Retrieve, convert, and save images
         for i in range(NUM_IMAGES):
@@ -238,15 +239,6 @@ def acquire_images(cam, img_name):
                     img += 1
                     # Save RAW image
                     image_result.Save(filename)
-
-                    # Convert image to Mono8
-                    # image_converted = image_result.Convert(PySpin.PixelFormat_Mono8)
-
-                    # Create a unique filename
-                    # filename = 'ExposureQS-%s-%d.jpg' % (device_serial_number, i)
-
-                    # Save image
-                    # image_converted.Save(filename)
 
                     print('Image saved at %s' % filename)
 
@@ -310,10 +302,12 @@ def correctName(val):
     :return: str of corrected name
     """
     if abs(val) < 10:
-        step_name = "000" + str(abs(val))
+        step_name = "0000" + str(abs(val))
     elif abs(val) < 100:
-        step_name = "00" + str(abs(val))
+        step_name = "000" + str(abs(val))
     elif abs(val) < 1000:
+        step_name = "00" + str(abs(val))
+    elif abs(val) < 10000:
         step_name = "0" + str(abs(val))
     else:
         step_name = str(abs(val))
@@ -358,42 +352,56 @@ def main():
         return False
 
     # - Initialization -------------------------------------------
-    print("Preparing and Homing!")
-    # has to be send repeatedly as otherwise the stepper driver times out after 1 second
-    for i in range(10):
-        os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
-        os.system('ticcmd --resume --position ' + str(4000) + ' --reset-command-timeout -d 00281480')
-        os.system('ticcmd --resume --position ' + str(4000) + ' --reset-command-timeout -d 00282144')
-        sleep(0.5)
-
+    print("Initialising steppers...")
     os.system('ticcmd --deenergize -d 00281470')
     os.system('ticcmd --deenergize -d 00281480')
     os.system('ticcmd --deenergize -d 00282144')
 
-    os.system('ticcmd --reset -d 00281470')
-    os.system('ticcmd --reset -d 00281480')
-    os.system('ticcmd --reset -d 00282144')
+    os.system('ticcmd --step-mode 8 -d 00281470')
+    os.system('ticcmd --step-mode 8 -d 00281480')
+    os.system('ticcmd --step-mode 8 -d 00282144')
 
-    os.system('ticcmd --current 343 -d 00281470')
-    os.system('ticcmd --current 343 -d 00281480')
+    os.system('ticcmd --current 174 -d 00281470')
+    os.system('ticcmd --current 174 -d 00281480')
     os.system('ticcmd --current 343 -d 00282144')
 
-    os.system('ticcmd --step-mode 4 -d 00281470')
-    os.system('ticcmd --step-mode 8 -d 00281480')
-    os.system('ticcmd --step-mode full -d 00282144')
-
-    os.system('ticcmd --max-accel 10000 -d 00281470')
-    os.system('ticcmd --max-accel 40000 -d 00281480')
+    os.system('ticcmd --max-accel 20000 -d 00281470')
+    os.system('ticcmd --max-accel 10000 -d 00281480')
     os.system('ticcmd --max-accel 100000 -d 00282144')
 
-    os.system('ticcmd --max-speed 2000000 -d 00281470')
-    os.system('ticcmd --max-speed 4000000 -d 00281480')
-    os.system('ticcmd --max-speed 4000000 -d 00282144')
+    os.system('ticcmd --max-speed 1000000 -d 00281470')
+    os.system('ticcmd --max-speed 800000 -d 00281480')
+    os.system('ticcmd --max-speed 40000000 -d 00282144')
+
+    sleep(2)
+
+    print("Preparing and Homing!")
+    # has to be send repeatedly as otherwise the stepper driver times out after 1 second
+    os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
+    os.system('ticcmd --resume --position ' + str(-1000) + ' --reset-command-timeout -d 00281480')
+    os.system('ticcmd --resume --position ' + str(100000) + ' --reset-command-timeout -d 00282144')
+    for i in range(15):
+        os.system('ticcmd --resume --reset-command-timeout -d 00281470')
+        os.system('ticcmd --resume --reset-command-timeout -d 00281480')
+        os.system('ticcmd --resume --reset-command-timeout -d 00282144')
+        sleep(0.5)
+
+    os.system('ticcmd --halt-and-set-position 0 -d 00281470')
+    os.system('ticcmd --halt-and-set-position 0 -d 00281480')
+    os.system('ticcmd --halt-and-set-position 0 -d 00282144')
+
+    print("Homed! Actuators moving to default positions!")
+
+    for i in range(20):
+        os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
+        os.system('ticcmd --resume --position ' + str(190) + ' --reset-command-timeout -d 00281480')
+        os.system('ticcmd --resume --position ' + str(-14000) + ' --reset-command-timeout -d 00282144')
+        sleep(0.5)
 
     # Move to listed positions
-    positionsY = np.arange(-100, -400, -200)
-    positionsZ = np.arange(0, 800, 40)
-    focus_stack = np.arange(0, -2650, -150)
+    positionsY = np.arange(0, 450, 50)
+    positionsZ = np.arange(0, 1600, 80)
+    focus_stack = np.arange(-14000, -2000, 500)
 
     images_taken = 0
     images_to_take = len(positionsY) * len(positionsZ) * len(focus_stack)
@@ -452,8 +460,10 @@ def main():
 
                     # reset focus ring
                     print("resetting focus!")
-                    for i in range(13):
-                        os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00282144')
+                    os.system(
+                        'ticcmd --resume --position ' + str(focus_stack[0]) + ' --reset-command-timeout -d 00282144')
+                    for i in range(15):
+                        os.system('ticcmd --resume --reset-command-timeout -d 00282144')
                         sleep(0.5)
                     print("focus reset! Continue capture")
 
@@ -476,8 +486,11 @@ def main():
 
     # Return to home position
     print("Scanning complete")
-    os.system('ticcmd --resume --position ' + str(0) + ' --pause-on-error -d 00281480')
-    sleep(4)
+    for i in range(20):
+        os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
+        os.system('ticcmd --resume --position ' + str(190) + ' --reset-command-timeout -d 00281480')
+        os.system('ticcmd --resume --position ' + str(-14000) + ' --reset-command-timeout -d 00282144')
+        sleep(0.5)
 
     # Release reference to camera
     # NOTE: Unlike the C++ examples, we cannot rely on pointer objects being automatically
@@ -495,9 +508,6 @@ def main():
     os.system('ticcmd --deenergize -d 00281480')
     os.system('ticcmd --deenergize -d 00282144')
     print("De-energizing steppers")
-
-    # input('Done! Press Enter to exit...')
-    # return result
 
 
 if __name__ == '__main__':
