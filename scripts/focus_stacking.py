@@ -11,6 +11,52 @@ import argparse
 import cv2
 import os
 from PIL import Image, ImageEnhance
+import queue
+import threading
+import time
+import sys
+import numpy as np
+
+
+class myThread(threading.Thread):
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print("Starting " + self.name)
+        process_data(self.name, self.q)
+        print("Exiting " + self.name)
+
+
+def process_data(threadName, q):
+    while not exitFlag:
+        queueLock.acquire()
+        if not workQueue.empty():
+            data = q.get()
+            queueLock.release()
+            print("%s processing %s" % (threadName, data))
+            checkFocus(args["images"] + "\\" + data)
+        else:
+            queueLock.release()
+
+
+def getThreads():
+    """ Returns the number of available threads on a posix/win based system """
+    if sys.platform == 'win32':
+        return int(os.environ['NUMBER_OF_PROCESSORS'])
+    else:
+        return int(os.popen('grep -c cores /proc/cpuinfo').read())
+
+
+def createThreadList(num_threads):
+    threadNames = []
+    for t in range(num_threads):
+        threadNames.append("Thread_" + str(t))
+
+    return threadNames
 
 
 def variance_of_laplacian(image):
@@ -30,10 +76,48 @@ def variance_of_laplacian(image):
     lap_image = cv2.Laplacian(blurred_image, cv2.CV_64F)
     lap_var = lap_image.var()
 
-    cv2.imshow("Laplacian of Image", lap_image)
+    if args["display"]:
+        cv2.imshow("Laplacian of Image", lap_image)
 
-    cv2.waitKey(1)
+        cv2.waitKey(1)
     return lap_var
+
+
+def checkFocus(image_path):
+    image = cv2.imread(image_path)
+
+    # original window size (due to input image)
+    # = 2448 x 2048 -> time to size it down!
+    scale_percent = 15  # percent of original size
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    # resize image
+    resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    fm = variance_of_laplacian(gray)
+
+    # if the focus measure is less than the supplied threshold,
+    # then the image should be considered "blurry"
+    if fm < args["threshold"]:
+        text = "BLURRY"
+        color_text = (0, 0, 255)
+        rejected_images.append(image_path)
+    else:
+        text = "NOT Blurry"
+        color_text = (255, 0, 0)
+        usable_images.append(image_path)
+
+    print(image_path, "is", text)
+
+    if args["display"]:
+        # show the image
+        cv2.putText(resized, "{}: {:.2f}".format(text, fm), (10, 30),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.8, color_text, 3)
+        cv2.imshow("Image", resized)
+
+        cv2.waitKey(1)
 
 
 # construct the argument parse and parse the arguments
@@ -59,14 +143,55 @@ if args["sharpen"] == "True":
 else:
     args["sharpen"] = False
 
+blurry_removed = input("Have you removed blurry images already? [y/n] default n")
+
+# setup as many threads as there are (virtual) CPUs
+exitFlag = 0
+num_virtual_cores = getThreads()
+threadList = createThreadList(num_virtual_cores)
+print("Found", num_virtual_cores, "(virtual) cores...")
+queueLock = threading.Lock()
+
+# define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+all_image_paths = os.listdir(args["images"])  # dir is your directory path
+workQueue = queue.Queue(len(all_image_paths))
+threads = []
+threadID = 1
+
+# Create new threads
+for tName in threadList:
+    thread = myThread(threadID, tName, workQueue)
+    thread.start()
+    threads.append(thread)
+    threadID += 1
+
 usable_images = []
 rejected_images = []
 
-blurry_removed = input("Have you removed blurry images already? [y/n] default n")
-
 cv2.ocl.setUseOpenCL(True)
 
-# loop over the input images
+# Fill the queue
+queueLock.acquire()
+for path in all_image_paths:
+    workQueue.put(path)
+queueLock.release()
+
+# Wait for queue to empty
+while not workQueue.empty():
+    pass
+
+# Notify threads it's time to exit
+exitFlag = 1
+
+# Wait for all threads to complete
+for t in threads:
+    t.join()
+print("Exiting Main Thread")
+
+cv2.destroyAllWindows()
+
+
+"""# loop over the input images
 for imagePath in sorted(paths.list_images(args["images"])):
     # load the image, convert it to grayscale, and compute the
     # focus measure of the image using the Variance of Laplacian
@@ -111,8 +236,10 @@ for imagePath in sorted(paths.list_images(args["images"])):
     else:
         # simply include all images if blurry images have already been removed
         usable_images.append(imagePath)
+"""
 
-cv2.destroyAllWindows()
+# as threads may terminate at different times the file list needs to be sorted
+usable_images.sort()
 
 if len(usable_images) > 1:
     print("\nThe following images are sharp enough for focus stacking:\n")
@@ -132,8 +259,11 @@ if not os.path.exists(output_folder):
     os.makedirs(output_folder)
     print("made folder!")
 
-# revert the order of images to begin with the image furthest away (maximise field of view during alignment))
+"""
+# revert the order of images to begin with the image furthest away 
+# (maximise field of view during alignment but causes black borders)
 usable_images.reverse()
+"""
 
 for i in range(pics):
 
@@ -155,7 +285,8 @@ for i in range(pics):
 
     del usable_images[0:path_num]
 
-    os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\OUT" + image_str_align)
+    os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\"
+              + str(current_stack_name.split('\\')[-1]) + "OUT" + image_str_align)
 
     image_str_focus = ""
     temp_files = []
@@ -163,13 +294,13 @@ for i in range(pics):
     # go through list in reverse order (better results of focus stacking)
     for img in range(path_num):
         if img < 10:
-            path = output_folder + "\\OUT000" + str(img) + ".tif"
+            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT000" + str(img) + ".tif"
         elif img < 100:
-            path = output_folder + "\\OUT00" + str(img) + ".tif"
+            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT00" + str(img) + ".tif"
         elif img < 1000:
-            path = output_folder + "\\OUT0" + str(img) + ".tif"
+            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT0" + str(img) + ".tif"
         else:
-            path = output_folder + "\\OUT" + str(img) + ".tif"
+            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT" + str(img) + ".tif"
 
         temp_files.append(path)
         image_str_focus += " " + path
