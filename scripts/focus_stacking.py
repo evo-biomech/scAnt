@@ -27,18 +27,37 @@ def variance_of_laplacian(image):
     """
     # apply median blur to image to suppress noise in RAW files
     blurred_image = cv2.medianBlur(image, 3)
-    return cv2.Laplacian(blurred_image, cv2.CV_64F).var()
+    lap_image = cv2.Laplacian(blurred_image, cv2.CV_64F)
+    lap_var = lap_image.var()
+
+    cv2.imshow("Laplacian of Image", lap_image)
+
+    cv2.waitKey(1)
+    return lap_var
 
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--images", required=True,
                 help="path to input directory of images")
-ap.add_argument("-t", "--threshold", type=float, default=3.0,
+ap.add_argument("-t", "--threshold", type=float, default=10.0,
                 help="focus measures that fall below this value will be considered 'blurry'")
-ap.add_argument("-s", "--sharpen", type=float, default=False,
-                help="apply sharpening to final result")
+ap.add_argument("-s", "--sharpen", type=bool, default=False,
+                help="apply sharpening to final result [True / False]")
+ap.add_argument("-d", "--display", type=bool, default=True,
+                help="show images with displayed focus score [True / False]")
 args = vars(ap.parse_args())
+
+# parsing in boolean arguments
+if args["display"] == "False":
+    args["display"] = False
+else:
+    args["display"] = True
+
+if args["sharpen"] == "True":
+    args["sharpen"] = True
+else:
+    args["sharpen"] = False
 
 usable_images = []
 rejected_images = []
@@ -55,7 +74,17 @@ for imagePath in sorted(paths.list_images(args["images"])):
 
     if blurry_removed != "y":
         image = cv2.imread(imagePath)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # original window size (due to input image)
+        # = 2448 x 2048 -> time to size it down!
+        scale_percent = 15  # percent of original size
+        width = int(image.shape[1] * scale_percent / 100)
+        height = int(image.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        # resize image
+        resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
         fm = variance_of_laplacian(gray)
 
         # if the focus measure is less than the supplied threshold,
@@ -71,21 +100,13 @@ for imagePath in sorted(paths.list_images(args["images"])):
 
         print(imagePath, "is", text)
 
-        # original window size (due to input image)
-        # = 2448 x 2048 -> time to size it down!
-        scale_percent = 30  # percent of original size
-        width = int(image.shape[1] * scale_percent / 100)
-        height = int(image.shape[0] * scale_percent / 100)
-        dim = (width, height)
-        # resize image
-        resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+        if args["display"]:
+            # show the image
+            cv2.putText(resized, "{}: {:.2f}".format(text, fm), (10, 30),
+                        cv2.FONT_HERSHEY_DUPLEX, 0.8, color_text, 3)
+            cv2.imshow("Image", resized)
 
-        # show the image
-        cv2.putText(resized, "{}: {:.2f}".format(text, fm), (10, 30),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.8, color_text, 3)
-        cv2.imshow("Image", resized)
-
-        cv2.waitKey(10)
+            cv2.waitKey(1)
 
     else:
         # simply include all images if blurry images have already been removed
