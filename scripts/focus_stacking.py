@@ -158,85 +158,44 @@ workQueue = queue.Queue(len(all_image_paths))
 threads = []
 threadID = 1
 
-# Create new threads
-for tName in threadList:
-    thread = myThread(threadID, tName, workQueue)
-    thread.start()
-    threads.append(thread)
-    threadID += 1
-
+# create list of image paths classified as in-focus or blurry
 usable_images = []
 rejected_images = []
 
-cv2.ocl.setUseOpenCL(True)
+if blurry_removed != "y":
 
-# Fill the queue
-queueLock.acquire()
-for path in all_image_paths:
-    workQueue.put(path)
-queueLock.release()
+    # Create new threads
+    for tName in threadList:
+        thread = myThread(threadID, tName, workQueue)
+        thread.start()
+        threads.append(thread)
+        threadID += 1
 
-# Wait for queue to empty
-while not workQueue.empty():
-    pass
+    cv2.ocl.setUseOpenCL(True)
 
-# Notify threads it's time to exit
-exitFlag = 1
+    # Fill the queue
+    queueLock.acquire()
+    for path in all_image_paths:
+        workQueue.put(path)
+    queueLock.release()
 
-# Wait for all threads to complete
-for t in threads:
-    t.join()
-print("Exiting Main Thread")
+    # Wait for queue to empty
+    while not workQueue.empty():
+        pass
 
-cv2.destroyAllWindows()
+    # Notify threads it's time to exit
+    exitFlag = 1
 
+    # Wait for all threads to complete
+    for t in threads:
+        t.join()
+    print("Exiting Main Thread")
 
-"""# loop over the input images
-for imagePath in sorted(paths.list_images(args["images"])):
-    # load the image, convert it to grayscale, and compute the
-    # focus measure of the image using the Variance of Laplacian
-    # method
-
-    if blurry_removed != "y":
-        image = cv2.imread(imagePath)
-
-        # original window size (due to input image)
-        # = 2448 x 2048 -> time to size it down!
-        scale_percent = 15  # percent of original size
-        width = int(image.shape[1] * scale_percent / 100)
-        height = int(image.shape[0] * scale_percent / 100)
-        dim = (width, height)
-        # resize image
-        resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
-
-        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-        fm = variance_of_laplacian(gray)
-
-        # if the focus measure is less than the supplied threshold,
-        # then the image should be considered "blurry"
-        if fm < args["threshold"]:
-            text = "BLURRY"
-            color_text = (0, 0, 255)
-            rejected_images.append(imagePath)
-        else:
-            text = "NOT Blurry"
-            color_text = (255, 0, 0)
-            usable_images.append(imagePath)
-
-        print(imagePath, "is", text)
-
-        if args["display"]:
-            # show the image
-            cv2.putText(resized, "{}: {:.2f}".format(text, fm), (10, 30),
-                        cv2.FONT_HERSHEY_DUPLEX, 0.8, color_text, 3)
-            cv2.imshow("Image", resized)
-
-            cv2.waitKey(1)
-
-    else:
-        # simply include all images if blurry images have already been removed
-        usable_images.append(imagePath)
-"""
+    cv2.destroyAllWindows()
+else:
+    # if blurry images have been discarded already add all paths to "usable_images"
+    for image_path in all_image_paths:
+        usable_images.append(image_path)
 
 # as threads may terminate at different times the file list needs to be sorted
 usable_images.sort()
@@ -251,8 +210,6 @@ else:
 
 path_to_external = os.path.dirname(os.getcwd()) + "\\external\\"
 
-pics = len(usable_images)
-
 output_folder = args["images"] + "_stacked"
 
 if not os.path.exists(output_folder):
@@ -264,6 +221,51 @@ if not os.path.exists(output_folder):
 # (maximise field of view during alignment but causes black borders)
 usable_images.reverse()
 """
+
+# group images of each stack together
+pics = len(usable_images)
+stacks = []
+
+print("\nSorting stacks...")
+for i in range(pics):
+
+    image_str_align = ""
+
+    current_stack_name = usable_images[0][:-15]
+    print("Created stack:", current_stack_name)
+
+    path_num = 0
+    for path in usable_images:
+        if current_stack_name == path[:-15]:
+            image_str_align += " " + path
+            path_num += 1
+        else:
+            break
+
+    del usable_images[0:path_num]
+
+    stacks.append(image_str_align)
+
+    if len(usable_images) < 2:
+        break
+
+exit()
+
+
+def process_stack(threadName, q):
+    while not exitFlag:
+        queueLock.acquire()
+        if not workQueue.empty():
+            data = q.get()
+            queueLock.release()
+            print("%s processing stack %s" % (threadName, data))
+            """
+            TODO: IMPLEMENT THREADED PROCESSING OF STACKS!
+            """
+            checkFocus(args["images"] + "\\" + data)
+        else:
+            queueLock.release()
+
 
 for i in range(pics):
 
