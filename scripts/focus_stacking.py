@@ -30,6 +30,17 @@ class myThread(threading.Thread):
         process_data(self.name, self.q)
         print("Exiting " + self.name)
 
+class myThread_Stacking(threading.Thread):
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print("Starting " + self.name)
+        process_stack(self.name, self.q)
+        print("Exiting " + self.name)
 
 def process_data(threadName, q):
     while not exitFlag:
@@ -120,6 +131,69 @@ def checkFocus(image_path):
         cv2.waitKey(1)
 
 
+def process_stack(threadName, q):
+    while not exitFlag_stacking:
+        queueLock.acquire()
+        if not workQueue_stacking.empty():
+            data = q.get()
+            queueLock.release()
+
+            print(data.split(" ")[1])
+            stack_name = data.split(" ")[1].split("\\")[-1][:-15]
+
+            print("%s processing stack %s" % (threadName, stack_name))
+
+            os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\"
+                      + str(stack_name) + "OUT" + data)
+
+            image_str_focus = ""
+            temp_files = []
+            print("\nFocus stacking...")
+            # go through list in reverse order (better results of focus stacking)
+            for img in range(path_num):
+                if img < 10:
+                    path = output_folder + "\\" + str(stack_name) + "OUT000" + str(img) + ".tif"
+                elif img < 100:
+                    path = output_folder + "\\" + str(stack_name) + "OUT00" + str(img) + ".tif"
+                elif img < 1000:
+                    path = output_folder + "\\" + str(stack_name) + "OUT0" + str(img) + ".tif"
+                else:
+                    path = output_folder + "\\" + str(stack_name) + "OUT" + str(img) + ".tif"
+
+                temp_files.append(path)
+                image_str_focus += " " + path
+
+            output_path = output_folder + "\\" + stack_name + ".tif"
+            print(output_path)
+
+            # --save-masks     to save soft and hard masks
+            # --gray-projector=l-star alternative stacking method
+            os.system(path_to_external + "enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                      "--hard-mask --contrast-edge-scale=1 --output=" +
+                      output_path + image_str_focus)
+
+            print("Stacked image saved as", output_path)
+
+            stacked = Image.open(output_path)
+            if args["sharpen"]:
+                enhancer = ImageEnhance.Sharpness(stacked)
+                sharpened = enhancer.enhance(1.5)
+                sharpened.save(output_path)
+
+            print("Sharpened", output_path)
+
+            for temp_img in temp_files:
+                os.system("del " + str(temp_img))
+
+            print("Deleted temporary files of stack", data)
+        else:
+            queueLock.release()
+
+
+"""
+### Loading image paths into queue from disk ###
+"""
+
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--images", required=True,
@@ -161,6 +235,10 @@ threadID = 1
 # create list of image paths classified as in-focus or blurry
 usable_images = []
 rejected_images = []
+
+"""
+### extracting "in-focus" images for further processing ###
+"""
 
 if blurry_removed != "y":
 
@@ -216,17 +294,15 @@ if not os.path.exists(output_folder):
     os.makedirs(output_folder)
     print("made folder!")
 
-"""
-# revert the order of images to begin with the image furthest away 
-# (maximise field of view during alignment but causes black borders)
+# revert the order of images to begin with the image furthest away
+# -> maximise field of view during alignment and leads to better blending results with less ghosting
 usable_images.reverse()
-"""
 
 # group images of each stack together
 pics = len(usable_images)
 stacks = []
 
-print("\nSorting stacks...")
+print("\nSorting in-focus images into stacks...")
 for i in range(pics):
 
     image_str_align = ""
@@ -237,7 +313,7 @@ for i in range(pics):
     path_num = 0
     for path in usable_images:
         if current_stack_name == path[:-15]:
-            image_str_align += " " + path
+            image_str_align += " " + args["images"] + "\\" + path
             path_num += 1
         else:
             break
@@ -249,24 +325,51 @@ for i in range(pics):
     if len(usable_images) < 2:
         break
 
-exit()
+# sort stacks in ascending order
+stacks.sort()
 
+"""
+### Alignment and stacking of images ###
+"""
 
-def process_stack(threadName, q):
-    while not exitFlag:
-        queueLock.acquire()
-        if not workQueue.empty():
-            data = q.get()
-            queueLock.release()
-            print("%s processing stack %s" % (threadName, data))
-            """
-            TODO: IMPLEMENT THREADED PROCESSING OF STACKS!
-            """
-            checkFocus(args["images"] + "\\" + data)
-        else:
-            queueLock.release()
+# setup as many threads as there are (virtual) CPUs
+exitFlag_stacking = 0
+# only use half the number of CPUs for stacking as the process supports multi core processing in part
+threadList_stacking = createThreadList(int(num_virtual_cores / 2))
+print("Using", len(threadList_stacking), "threads for stacking...")
+queueLock = threading.Lock()
 
+# define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+workQueue_stacking = queue.Queue(len(stacks))
+threads = []
+threadID = 1
 
+# Create new threads
+for tName in threadList_stacking:
+    thread = myThread_Stacking(threadID, tName, workQueue_stacking)
+    thread.start()
+    threads.append(thread)
+    threadID += 1
+
+# Fill the queue with stacks
+queueLock.acquire()
+for stack in stacks:
+    workQueue_stacking.put(stack)
+queueLock.release()
+
+# Wait for queue to empty
+while not workQueue_stacking.empty():
+    pass
+
+# Notify threads it's time to exit
+exitFlag_stacking = 1
+
+# Wait for all threads to complete
+for t in threads:
+    t.join()
+print("Exiting Main Stacking Thread")
+
+"""
 for i in range(pics):
 
     # Align all images using Hugin's align_image_stack function
@@ -286,7 +389,8 @@ for i in range(pics):
             break
 
     del usable_images[0:path_num]
-
+    
+    
     os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\"
               + str(current_stack_name.split('\\')[-1]) + "OUT" + image_str_align)
 
@@ -336,5 +440,6 @@ for i in range(pics):
         break
     else:
         print("Images left to stack:", len(usable_images))
+    """
 
 print("Stacking finalised!")
