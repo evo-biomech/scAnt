@@ -129,15 +129,30 @@ def createAlphaMask(source, create_cutout=False):
     background = cv2.multiply(1.0 - alpha, background)
     # Add the masked foreground and background.
     cutout = cv2.add(foreground, background)
-
+    
     cv2.imwrite(source[:-4] + '_cutout.jpg', cutout)
     cutout = cv2.imread(source[:-4] + '_cutout.jpg')
-    os.system("del " + source[:-4] + '_cutout.jpg')
+        # os.system("del " + source[:-4] + '_cutout.jpg')
 
-    gray = cv2.cvtColor(cutout, cv2.COLOR_BGR2GRAY)
-    th, threshed = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
 
-    threshed = cv2.GaussianBlur(threshed, (5, 5), 0)
+    #cutout = cv2.imread(source, 1)  # TEMPORARY
+
+    cutout_blurred = cv2.GaussianBlur(cutout, (5, 5), 0)
+
+    gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
+    # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, blockSize=501,C=2)
+
+    lower_gray = np.array([170, 170, 170])  ##[R value, G value, B value]
+    upper_gray = np.array([250, 250, 250])
+
+    mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
+
+    cv2.imwrite(source[:-4] + '_alpha_MASK.jpg', mask)
+
+    # blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    # ret3, threshed = cv2.threshold(blur, 250, 255, cv2.THRESH_OTSU)
+
+    threshed = cv2.GaussianBlur(mask, (5, 5), 0)
 
     cv2.imwrite(source[:-4] + '_alpha.jpg', threshed)
 
@@ -152,10 +167,10 @@ def createAlphaMask(source, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source ='I:\\3D_Scanner\\images\\Leaffooted_scanner_single_stack_stacked' #'I:\\3D_Scanner\\images'
+    source = 'J:\\data\\test_bg_rem'  # 'I:\\3D_Scanner\\images'
 
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder
         if imagePath[-3::] == "tif":
-            createAlphaMask(imagePath)
+            createAlphaMask(imagePath, create_cutout=True)
     exit()

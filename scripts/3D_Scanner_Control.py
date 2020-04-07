@@ -1,4 +1,6 @@
 from time import sleep
+from time import time
+import datetime
 import os
 import numpy as np
 
@@ -74,7 +76,7 @@ def configure_exposure(cam):
             return False
 
         # Ensure desired exposure time does not exceed the maximum
-        exposure_time_to_set = 29274  # 72990  # 8233
+        exposure_time_to_set = 200751  # with grey backdrop and half illumination # 29274 (with white back drop)
         exposure_time_to_set = min(cam.ExposureTime.GetMax(), exposure_time_to_set)
         cam.ExposureTime.SetValue(exposure_time_to_set)
         print('Shutter time set to %s us...\n' % exposure_time_to_set)
@@ -380,7 +382,8 @@ def main():
     os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
     os.system('ticcmd --resume --position ' + str(-1000) + ' --reset-command-timeout -d 00281480')
     os.system('ticcmd --resume --position ' + str(100000) + ' --reset-command-timeout -d 00282144')
-    for i in range(15):
+
+    for i in range(20):
         os.system('ticcmd --resume --reset-command-timeout -d 00281470')
         os.system('ticcmd --resume --reset-command-timeout -d 00281480')
         os.system('ticcmd --resume --reset-command-timeout -d 00282144')
@@ -390,18 +393,18 @@ def main():
     os.system('ticcmd --halt-and-set-position 0 -d 00281480')
     os.system('ticcmd --halt-and-set-position 0 -d 00282144')
 
+    # Move to listed positions
+    positionsY = np.arange(0, 450, 50)
+    positionsZ = np.arange(0, 1600, 80)
+    focus_stack = np.arange(-23000, -10000, 500)
+
     print("Homed! Actuators moving to default positions!")
 
     for i in range(20):
         os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
         os.system('ticcmd --resume --position ' + str(190) + ' --reset-command-timeout -d 00281480')
-        os.system('ticcmd --resume --position ' + str(-14000) + ' --reset-command-timeout -d 00282144')
+        os.system('ticcmd --resume --position ' + str(focus_stack[0]) + ' --reset-command-timeout -d 00282144')
         sleep(0.5)
-
-    # Move to listed positions
-    positionsY = np.arange(0, 450, 50)
-    positionsZ = np.arange(0, 1600, 80)
-    focus_stack = np.arange(-14000, -2000, 500)
 
     images_taken = 0
     images_to_take = len(positionsY) * len(positionsZ) * len(focus_stack)
@@ -422,6 +425,8 @@ def main():
 
     static = False
 
+    begin = time()
+
     try:
 
         if not static:
@@ -435,7 +440,7 @@ def main():
                     for i in range(4):
                         os.system(
                             'ticcmd --resume --position ' + str(
-                                z + (800 * scanned_Ys)) + ' --pause-on-error -d 00281470')
+                                z + (1600 * scanned_Ys)) + ' --pause-on-error -d 00281470')
                         sleep(0.5)
 
                     # Run example on each camera
@@ -462,12 +467,12 @@ def main():
                     print("resetting focus!")
                     os.system(
                         'ticcmd --resume --position ' + str(focus_stack[0]) + ' --reset-command-timeout -d 00282144')
-                    for i in range(15):
+                    for i in range(20):
                         os.system('ticcmd --resume --reset-command-timeout -d 00282144')
                         sleep(0.5)
                     print("focus reset! Continue capture")
 
-                print("Scanned layer: ", scanned_Ys)
+                print("Scanned Y position: ", scanned_Ys)
                 scanned_Ys += 1
                 sleep(0.3)
 
@@ -486,10 +491,12 @@ def main():
 
     # Return to home position
     print("Scanning complete")
+    print("Elapsed time:", str(datetime.timedelta(seconds=time() - begin)))
+
     for i in range(20):
         os.system('ticcmd --resume --position ' + str(0) + ' --reset-command-timeout -d 00281470')
         os.system('ticcmd --resume --position ' + str(190) + ' --reset-command-timeout -d 00281480')
-        os.system('ticcmd --resume --position ' + str(-14000) + ' --reset-command-timeout -d 00282144')
+        os.system('ticcmd --resume --position ' + str(focus_stack[0]) + ' --reset-command-timeout -d 00282144')
         sleep(0.5)
 
     # Release reference to camera
@@ -508,6 +515,8 @@ def main():
     os.system('ticcmd --deenergize -d 00281480')
     os.system('ticcmd --deenergize -d 00282144')
     print("De-energizing steppers")
+
+    print("Elapsed time:", str(datetime.timedelta(seconds=time() - begin)), "\n")
 
 
 if __name__ == '__main__':
