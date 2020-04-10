@@ -116,13 +116,13 @@ def checkFocus(image_path):
     if fm < args["threshold"]:
         text = "BLURRY"
         color_text = (0, 0, 255)
-        rejected_images.append(image_path)
+        rejected_images.append(image_path.split("\\")[-1])
     else:
         text = "NOT Blurry"
         color_text = (255, 0, 0)
-        usable_images.append(image_path)
+        usable_images.append(image_path.split("\\")[-1])
 
-    print(image_path, "is", text)
+    print(image_path.split("\\")[-1], "is", text)
 
     if args["display"]:
         # show the image
@@ -143,30 +143,37 @@ def process_stack(threadName, q):
             print(data.split(" ")[1])
             stack_name = data.split(" ")[1].split("\\")[-1][:-15]
 
+            temp_output_folder = output_folder + "\\" + str(stack_name)
+
             print("%s processing stack %s" % (threadName, stack_name))
 
-            os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\"
+            os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + temp_output_folder + "\\"
                       + str(stack_name) + "OUT" + data)
 
             image_str_focus = ""
             temp_files = []
             print("\nFocus stacking...")
+
+            num_images_in_stack = len(data.split(" ")) - 1
+
             # go through list in reverse order (better results of focus stacking)
-            for img in range(path_num):
+            for img in range(num_images_in_stack):
                 if img < 10:
-                    path = output_folder + "\\" + str(stack_name) + "OUT000" + str(img) + ".tif"
+                    path = temp_output_folder + "\\" + str(stack_name) + "OUT000" + str(img) + ".tif"
                 elif img < 100:
-                    path = output_folder + "\\" + str(stack_name) + "OUT00" + str(img) + ".tif"
+                    path = temp_output_folder + "\\" + str(stack_name) + "OUT00" + str(img) + ".tif"
                 elif img < 1000:
-                    path = output_folder + "\\" + str(stack_name) + "OUT0" + str(img) + ".tif"
+                    path = temp_output_folder + "\\" + str(stack_name) + "OUT0" + str(img) + ".tif"
                 else:
-                    path = output_folder + "\\" + str(stack_name) + "OUT" + str(img) + ".tif"
+                    path = temp_output_folder + "\\" + str(stack_name) + "OUT" + str(img) + ".tif"
 
                 temp_files.append(path)
                 image_str_focus += " " + path
 
             output_path = output_folder + "\\" + stack_name + ".tif"
             print(output_path)
+
+            print("generating:", image_str_focus + "\n")
 
             # --save-masks     to save soft and hard masks
             # --gray-projector=l-star alternative stacking method
@@ -312,13 +319,16 @@ for i in range(pics):
     current_stack_name = usable_images[0][:-15]
     print("Created stack:", current_stack_name)
 
+    if not os.path.exists(output_folder + "\\" + current_stack_name):
+        os.makedirs(output_folder + "\\" + current_stack_name)
+        print("made corresponding temporary folder!")
+    else:
+        print("corresponding temporary folder already exists!")
+
     path_num = 0
     for path in usable_images:
         if current_stack_name == path[:-15]:
-            if blurry_removed:
-                image_str_align += " " + args["images"] + "\\" + path
-            else:
-                image_str_align += " " + path
+            image_str_align += " " + args["images"] + "\\" + path
             path_num += 1
         else:
             break
@@ -373,78 +383,11 @@ exitFlag_stacking = 1
 for t in threads:
     t.join()
 print("Exiting Main Stacking Thread")
+print("Deleting temporary folders")
 
-"""
-for i in range(pics):
-
-    # Align all images using Hugin's align_image_stack function
-
-    print("\nAligning images...\n")
-    image_str_align = ""
-
-    current_stack_name = usable_images[0][:-15]
-    print("Using:", current_stack_name, "\n")
-
-    path_num = 0
-    for path in usable_images:
-        if current_stack_name == path[:-15]:
-            image_str_align += " " + path
-            path_num += 1
-        else:
-            break
-
-    del usable_images[0:path_num]
-    
-    
-    os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + output_folder + "\\"
-              + str(current_stack_name.split('\\')[-1]) + "OUT" + image_str_align)
-
-    image_str_focus = ""
-    temp_files = []
-    print("\nFocus stacking...")
-    # go through list in reverse order (better results of focus stacking)
-    for img in range(path_num):
-        if img < 10:
-            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT000" + str(img) + ".tif"
-        elif img < 100:
-            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT00" + str(img) + ".tif"
-        elif img < 1000:
-            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT0" + str(img) + ".tif"
-        else:
-            path = output_folder + "\\" + str(current_stack_name.split('\\')[-1]) + "OUT" + str(img) + ".tif"
-
-        temp_files.append(path)
-        image_str_focus += " " + path
-
-    output_path = output_folder + "\\" + current_stack_name.split('\\')[-1] + ".tif"
-    print(output_path)
-
-    # --save-masks     to save soft and hard masks
-    # --gray-projector=l-star alternative stacking method
-    os.system(path_to_external + "enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-              "--hard-mask --contrast-edge-scale=1 --output=" +
-              output_path + image_str_focus)
-
-    print("Stacked image saved as", output_path)
-
-    stacked = Image.open(output_path)
-    if args["sharpen"]:
-        enhancer = ImageEnhance.Sharpness(stacked)
-        sharpened = enhancer.enhance(1.5)
-        sharpened.save(output_path)
-
-    print("Sharpened", output_path)
-
-    for temp_img in temp_files:
-        os.system("del " + str(temp_img))
-
-    print("Deleted temporary files.")
-
-    # check if there are images left in the useable images
-    if len(usable_images) < 2:
-        break
-    else:
-        print("Images left to stack:", len(usable_images))
-    """
+for stack in stacks:
+    stack_name = stack.split(" ")[1].split("\\")[-1][:-15]
+    os.rmdir(output_folder + "\\" + stack_name)
+    print("removed  ...", stack_name)
 
 print("Stacking finalised!")
