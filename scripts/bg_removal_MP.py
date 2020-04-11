@@ -6,6 +6,8 @@ import threading
 import time
 import sys
 from imutils import paths
+from skimage import measure
+from skimage import filters
 
 
 class AlphaExtractionThread(threading.Thread):
@@ -15,7 +17,7 @@ class AlphaExtractionThread(threading.Thread):
         self.name = name
         self.q = q
 
-    def run(self, create_cutout=False):
+    def run(self, create_cutout=True):
         print("Starting " + self.name)
         createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=create_cutout)
         print("Exiting " + self.name)
@@ -55,10 +57,16 @@ def filterOutSaltPepperNoise(edgeImg):
 
 
 def findSignificantContour(edgeImg):
-    image, contours, hierarchy = cv2.findContours(
-        edgeImg,
-        cv2.RETR_TREE,
-        cv2.CHAIN_APPROX_SIMPLE)
+    try:
+        image, contours, hierarchy = cv2.findContours(
+            edgeImg,
+            cv2.RETR_TREE,
+            cv2.CHAIN_APPROX_SIMPLE)
+    except ValueError:
+        contours, hierarchy = cv2.findContours(
+            edgeImg,
+            cv2.RETR_TREE,
+            cv2.CHAIN_APPROX_SIMPLE)
     # Find level 1 contours (i.e. largest contours)
     level1Meta = []
     for contourIndex, tupl in enumerate(hierarchy[0]):
@@ -78,6 +86,21 @@ def findSignificantContour(edgeImg):
     contoursWithArea.sort(key=lambda meta: meta[1], reverse=True)
     largestContour = contoursWithArea[0][0]
     return largestContour
+
+
+def remove_holes(img, min_num_pixel):
+    cleaned_img = np.zeros(shape=(img.shape[0], img.shape[1]))
+
+    unique, counts = np.unique(img, return_counts=True)
+    print("\nunique values:", unique)
+    print("counted:", counts)
+
+    for label in range(len(counts)):
+        if counts[label] > min_num_pixel:
+            if unique[label] != 0:
+                cleaned_img[img == unique[label]] = 1
+
+    return cleaned_img
 
 
 def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
@@ -129,7 +152,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             trimap_print = np.copy(trimap)
             trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
             trimap_print[trimap_print == cv2.GC_FGD] = 255
-            # cv2.imwrite('trimap.png', trimap_print)
+            cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
 
             # run grabcut
             print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
@@ -170,9 +193,9 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # Add the masked foreground and background.
             cutout = cv2.add(foreground, background)
 
-            cv2.imwrite(data[:-4] + '_cutout.jpg', cutout)
-            cutout = cv2.imread(data[:-4] + '_cutout.jpg')
-            os.system("del " + data[:-4] + '_cutout.jpg')
+            cv2.imwrite(data[:-4] + '_contour.png', cutout)
+            cutout = cv2.imread(data[:-4] + '_contour.png')
+            os.system("del " + data[:-4] + '_contour.png')
 
             # cutout = cv2.imread(source, 1)  # TEMPORARY
 
@@ -189,21 +212,38 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
 
-            cv2.imwrite(data[:-4] + '_alpha.jpg', mask)
+            # binarise
+            ret, image_bin = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY_INV)
+            image_bin[image_bin < 127] = 0
+            image_bin[image_bin > 127] = 1
 
-            # blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            # ret3, threshed = cv2.threshold(blur, 250, 255, cv2.THRESH_OTSU)
+            cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
-            # threshed = cv2.GaussianBlur(mask, (5, 5), 0)
+            print("%s : cleaning up thresholding result, using connected component labelling of %s"
+                  % (threadName, data.split("\\")[-1]))
 
-            # cv2.imwrite(data[:-4] + '_alpha.jpg', threshed)
+            # remove black artifacts
+            blobs_labels = measure.label(image_bin, background=0)
+
+            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1100)
+
+            image_cleaned_inv = 1 - image_cleaned
+
+            cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
+
+            # remove white artifacts
+            blobs_labels_white = measure.label(image_cleaned_inv, background=0)
+
+            image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=2000)
+
+            cv2.imwrite(data[:-4] + "_final_.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             if create_cutout:
                 # create the image with an alpha channel
                 rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
 
                 # assign the mask to the last channel of the image
-                rgba[:, :, 3] = mask
+                rgba[:, :, 3] = image_cleaned_white * 255
                 cv2.imwrite(data[:-4] + '_cutout.png', rgba)
         else:
             queueLock_alpha.release()
@@ -211,7 +251,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
+    source = "C:\\Users\\Legos\\Documents\\Hochschule\\PhD\\3D_Scanner\\Focus_stacking\\leaffooted_subsample"
+    # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
     print("Using images from", source)
 
     # load pre-trained edge detector model
