@@ -152,7 +152,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             trimap_print = np.copy(trimap)
             trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
             trimap_print[trimap_print == cv2.GC_FGD] = 255
-            cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
+            #cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
 
             # run grabcut
             print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
@@ -201,13 +201,13 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             print("%s : adaptive thresholding to remove elements included in the contour of %s"
                   % (threadName, data.split("\\")[-1]))
-            cutout_blurred = cv2.GaussianBlur(cutout, (3, 3), 0)
+            cutout_blurred = cv2.GaussianBlur(cutout, (7, 7), 0)
 
             gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
             # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             #                                  cv2.THRESH_BINARY_INV, blockSize=501,C=2)
 
-            lower_gray = np.array([170, 170, 170])  # [R value, G value, B value]
+            lower_gray = np.array([171, 171, 171])  # [R value, G value, B value]
             upper_gray = np.array([255, 255, 255])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
@@ -217,26 +217,26 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             image_bin[image_bin < 127] = 0
             image_bin[image_bin > 127] = 1
 
-            cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            #cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             print("%s : cleaning up thresholding result, using connected component labelling of %s"
                   % (threadName, data.split("\\")[-1]))
 
             # remove black artifacts
-            blobs_labels = measure.label(image_bin, background=0)
+            blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1100)
+            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1710)
 
             image_cleaned_inv = 1 - image_cleaned
 
-            cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            #cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             # remove white artifacts
             blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
             image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=2000)
 
-            cv2.imwrite(data[:-4] + "_final_.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            cv2.imwrite(data[:-4] + "_alpha.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             if create_cutout:
                 # create the image with an alpha channel
@@ -251,7 +251,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "C:\\Users\\Legos\\Documents\\Hochschule\\PhD\\3D_Scanner\\Focus_stacking\\leaffooted_subsample"
+    source = "J:\\data\\leaffooted_masks"
     # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
     print("Using images from", source)
 
