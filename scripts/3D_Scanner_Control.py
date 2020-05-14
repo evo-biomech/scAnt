@@ -76,7 +76,9 @@ def configure_exposure(cam):
             return False
 
         # Ensure desired exposure time does not exceed the maximum
-        exposure_time_to_set = 200751  # with grey backdrop and half illumination # 29274 (with white back drop)
+        exposure_time_to_set = 100000
+        # 90000  # with grey backdrop and full illumination
+        # 200751  # with grey backdrop and half illumination
         exposure_time_to_set = min(cam.ExposureTime.GetMax(), exposure_time_to_set)
         cam.ExposureTime.SetValue(exposure_time_to_set)
         print('Shutter time set to %s us...\n' % exposure_time_to_set)
@@ -183,7 +185,7 @@ def print_device_info(cam):
     return result
 
 
-def acquire_images(cam, img_name):
+def get_and_export_images(cam, img_name):
     """
     This function acquires and saves 10 images from a device; please see
     Acquisition example for more in-depth comments on the acquisition of images.
@@ -205,6 +207,8 @@ def acquire_images(cam, img_name):
             print('Unable to set acquisition mode to continuous. Aborting...')
             return False
 
+        # always retrieve the newest captured image for the live view
+        cam.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestOnly)
         cam.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
         # print('Acquisition mode set to continuous...')
 
@@ -261,7 +265,7 @@ def acquire_images(cam, img_name):
     return result
 
 
-def run_single_camera(cam, img, img_name):
+def capture_image(cam, img_name):
     """
      This function acts as the body of the example; please see NodeMapInfo_QuickSpin example for more
      in-depth comments on setting up cameras.
@@ -283,10 +287,10 @@ def run_single_camera(cam, img, img_name):
             return False
 
         # Acquire images
-        result &= acquire_images(cam, img_name)
+        result &= get_and_export_images(cam, img_name)
 
         # Reset exposure
-        result &= reset_exposure(cam)
+        # result &= reset_exposure(cam)
 
         # Deinitialize camera
         cam.DeInit()
@@ -396,7 +400,14 @@ def main():
     # Move to listed positions
     positionsY = np.arange(0, 450, 50)
     positionsZ = np.arange(0, 1600, 80)
-    focus_stack = np.arange(-23000, -10000, 500)
+    focus_stack = np.arange(-25000, -8000, 500)
+
+    """
+    Stacking distances
+    """
+    # np.arange(-9000, 0, 500)          #  (medium animals 1.5 - 3 cm) -> two extension tubes
+    # np.arange(-23000, -10000, 500)    #  (large animals 3 - 5 cm) -> one extension tube
+    # np.arange(-25000, -8000, 500)     #  (very large animals 5 - 8 cm) -> one extension tube
 
     print("Homed! Actuators moving to default positions!")
 
@@ -445,7 +456,7 @@ def main():
 
                     # Run example on each camera
                     for step in focus_stack:
-                        for i in range(4):
+                        for i in range(3):
                             os.system(
                                 'ticcmd --resume --position ' + str(step) + ' --reset-command-timeout -d 00282144')
                             sleep(0.5)
@@ -457,8 +468,7 @@ def main():
 
                         img_name = "y_" + p_name + "_z_" + z_name + "_step_" + step_name + "_.tif"
 
-                        for i, cam in enumerate(cam_list):
-                            result &= run_single_camera(cam, img, img_name)
+                        capture_image(cam_list[0], img_name)
                         sleep(0.5)
                         images_taken += 1
                         print("Images taken:", images_taken, "out of", images_to_take)
@@ -483,7 +493,7 @@ def main():
                 print()
                 sleep(2)
                 for i, cam in enumerate(cam_list):
-                    result &= run_single_camera(cam, img)
+                    result &= capture_image(cam, img)
                 sleep(1)
 
     except():

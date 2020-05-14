@@ -189,7 +189,7 @@ def process_stack(threadName, q):
                 sharpened = enhancer.enhance(1.5)
                 sharpened.save(output_path)
 
-            print("Sharpened", output_path)
+                print("Sharpened", output_path)
 
             for temp_img in temp_files:
                 os.system("del " + str(temp_img))
@@ -349,8 +349,8 @@ stacks.sort()
 
 # setup as many threads as there are (virtual) CPUs
 exitFlag_stacking = 0
-# only use a quarter of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
-threadList_stacking = [0, 1, 2, 3]  # createThreadList(int(num_virtual_cores / 4))
+# only use a sixth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
+threadList_stacking = createThreadList(int(num_virtual_cores / 6))
 print("Using", len(threadList_stacking), "threads for stacking...")
 queueLock = threading.Lock()
 

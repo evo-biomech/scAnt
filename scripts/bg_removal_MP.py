@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import os
+from PIL import Image, ImageEnhance
 import queue
 import threading
 import time
@@ -17,9 +18,9 @@ class AlphaExtractionThread(threading.Thread):
         self.name = name
         self.q = q
 
-    def run(self, create_cutout=True):
+    def run(self):
         print("Starting " + self.name)
-        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=create_cutout)
+        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=True)
         print("Exiting " + self.name)
 
 
@@ -103,6 +104,32 @@ def remove_holes(img, min_num_pixel):
     return cleaned_img
 
 
+def apply_local_contrast(img, grid_size=(7, 7)):
+    """
+    ### CLAHE (Contrast limited Adaptive Histogram Equilisation) ###
+
+    Advanced application of local contrast. Adaptive histogram equalization is used to locally increase the contrast,
+    rather than globally, so bright areas are not pushed into over exposed areas of the histogram. The image is tiled
+    into a fixed size grid. Noise needs to be removed prior to this process, as it would be greatly amplified otherwise.
+    Similar to Adobe's "Clarity" option which also amplifies local contrast and thus pronounces edges, reduces haze.
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=grid_size)
+    cl1 = clahe.apply(blurred_gray)
+
+    # convert to PIL format to apply laplacian sharpening
+    img_pil = Image.fromarray(cl1)
+
+    enhancer = ImageEnhance.Sharpness(img_pil)
+    sharpened = enhancer.enhance(21)
+
+    # sharpened.save(source + "\\enhanced.png")
+
+    return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
+
+
 def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
     """
     create alpha mask for the image located in path
@@ -117,8 +144,11 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
 
             src = cv2.imread(data, 1)
+            
+            img_enhanced = apply_local_contrast(src)
+
             # reduce noise in the image before detecting edges
-            blurred = cv2.GaussianBlur(src, (5, 5), 0)
+            blurred = cv2.GaussianBlur(img_enhanced, (5, 5), 0)
 
             # turn image into float array
             blurred_float = blurred.astype(np.float32) / 255.0
@@ -134,6 +164,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # Draw the contour on the original image
             contourImg = np.copy(src)
             cv2.drawContours(contourImg, [contour], 0, (0, 255, 0), 2, cv2.LINE_AA, maxLevel=1)
+            # cv2.imwrite(data[:-4] + '_contour.png', contourImg)
 
             mask = np.zeros_like(edges_8u)
             cv2.fillPoly(mask, [contour], 255)
@@ -152,7 +183,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             trimap_print = np.copy(trimap)
             trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
             trimap_print[trimap_print == cv2.GC_FGD] = 255
-            #cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
+            # cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
 
             # run grabcut
             print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
@@ -207,7 +238,11 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             #                                  cv2.THRESH_BINARY_INV, blockSize=501,C=2)
 
-            lower_gray = np.array([171, 171, 171])  # [R value, G value, B value]
+            # front and back light
+            # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
+            # upper_gray = np.array([215, 215, 215])
+            # front light only
+            lower_gray = np.array([160, 160, 160])  # [R value, G value, B value]
             upper_gray = np.array([255, 255, 255])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
@@ -217,7 +252,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             image_bin[image_bin < 127] = 0
             image_bin[image_bin > 127] = 1
 
-            #cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            # cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             print("%s : cleaning up thresholding result, using connected component labelling of %s"
                   % (threadName, data.split("\\")[-1]))
@@ -225,33 +260,38 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # remove black artifacts
             blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1710)
+            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1000)
 
             image_cleaned_inv = 1 - image_cleaned
 
-            #cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            # cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             # remove white artifacts
             blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
             image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=2000)
 
-            cv2.imwrite(data[:-4] + "_alpha.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
+            cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             if create_cutout:
+                image_cleaned_white = cv2.imread(data[:-4] + "_masked.png", cv2.IMREAD_GRAYSCALE)
+                cutout = cv2.imread(data)
                 # create the image with an alpha channel
+                # smooth masks prevent sharp features along the outlines from being falsely matched
+                smooth_mask = cv2.GaussianBlur(image_cleaned_white, (19, 19), 0)
                 rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
 
                 # assign the mask to the last channel of the image
-                rgba[:, :, 3] = image_cleaned_white * 255
-                cv2.imwrite(data[:-4] + '_cutout.png', rgba)
+                rgba[:, :, 3] = smooth_mask
+                # save as lossless png
+                cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
         else:
             queueLock_alpha.release()
 
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "J:\\data\\leaffooted_masks"
+    source = "J:\\data\\centipede_black\\_stacked"
     # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
     print("Using images from", source)
 
