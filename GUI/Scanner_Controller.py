@@ -35,7 +35,7 @@ class ScannerController:
         self.stepper_position = [None, None, None]
 
         # settings for scanning
-        self.scan_stepSize = [50, 80, 500]
+        self.scan_stepSize = [50, 80, 200]
 
         self.scan_pos = [None, None, None]
         # set list of scan poses

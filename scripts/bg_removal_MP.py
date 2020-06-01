@@ -20,7 +20,7 @@ class AlphaExtractionThread(threading.Thread):
 
     def run(self):
         print("Starting " + self.name)
-        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=True)
+        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=False)
         print("Exiting " + self.name)
 
 
@@ -242,7 +242,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
             # upper_gray = np.array([215, 215, 215])
             # front light only
-            lower_gray = np.array([160, 160, 160])  # [R value, G value, B value]
+            lower_gray = np.array([158, 158, 158])  # [R value, G value, B value]
             upper_gray = np.array([255, 255, 255])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
@@ -291,14 +291,14 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "J:\\data\\centipede_black\\_stacked"
+    source = "J:\\data\\atta_vollenweideri_00098\\_stacked"
     # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
     print("Using images from", source)
 
     # load pre-trained edge detector model
     edgeDetector = cv2.ximgproc.createStructuredEdgeDetection("model.yml")
     print("loaded edge detector...")
-
+    
     # setup half as many threads as there are (virtual) CPUs
     exitFlag_alpha = 0
     num_virtual_cores = getThreads()
