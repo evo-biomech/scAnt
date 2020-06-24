@@ -349,8 +349,8 @@ stacks.sort()
 
 # setup as many threads as there are (virtual) CPUs
 exitFlag_stacking = 0
-# only use a sixth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
-threadList_stacking = createThreadList(int(num_virtual_cores / 6))
+# only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
+threadList_stacking = createThreadList(int(num_virtual_cores / 4))
 print("Using", len(threadList_stacking), "threads for stacking...")
 queueLock = threading.Lock()
 
