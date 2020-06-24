@@ -1,4 +1,7 @@
 # scAnt
 open source 3D scanning and reconstruction pipeline
 
-![](images/Scant_V2_model_open.png)
+![](images/scanner_3D_comp.png)
+
+
+![](images/model_collection_showcase_04.png)
