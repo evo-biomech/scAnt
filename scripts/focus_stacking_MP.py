@@ -3,7 +3,7 @@
 
 # Use in the console with
 """
-$ python Focus_stacking_MP_NEW.py --images "images_folder_path" --threshold "float"
+$ python Focus_stacking_MP.py --images "images_folder_path" --threshold "float"
 """
 
 from imutils import paths
