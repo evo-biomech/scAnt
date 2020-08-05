@@ -1,5 +1,5 @@
 # scAnt
-open source 3D scanning and reconstruction pipeline
+Open source 3D scanning and reconstruction pipeline
 
 ![](images/scanner_3D_comp.png)
 
