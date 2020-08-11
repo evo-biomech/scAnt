@@ -1,6 +1,14 @@
-import numpy as np
-from PySpin import PySpin
 import cv2
+import platform
+import numpy as np
+
+# as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
+used_plattform = platform.system()
+
+if used_plattform == "Linux":
+    import PySpin
+else:
+    from PySpin import PySpin  # to run on windows
 
 
 class customFLIR:
@@ -311,21 +319,104 @@ class customFLIR:
         # Release system instance
         self.system.ReleaseInstance()
 
+    def showExposure(self, img):
+        """ ### pass recorded images into this function to return overlaid exposure warnings / histogram"""
+        # code altered from official openCV documentation
+        # https://docs.opencv.org/master/d8/dbc/tutorial_histogram_calculation.html
+        # split bgr values into separate planes of the retrieved image
+        bgr_planes = cv2.split(img)
+        # define number of bins for colour histogram
+        histSize = 256
+        histRange = (0, 256)  # the upper boundary is exclusive
+        # to enforce equal bin sizes
+        accumulate = False
+
+        b_hist = cv2.calcHist(bgr_planes, [0], None, [histSize], histRange, accumulate=accumulate)
+        g_hist = cv2.calcHist(bgr_planes, [1], None, [histSize], histRange, accumulate=accumulate)
+        r_hist = cv2.calcHist(bgr_planes, [2], None, [histSize], histRange, accumulate=accumulate)
+
+        # define size of the generated histogram
+        hist_w = 256
+        hist_h = 200
+        bin_w = int(round(hist_w / histSize))
+
+        histImage = np.zeros((hist_h, hist_w, 3), dtype=np.uint8)
+
+        # first all values are normalised to fall in the range of the image
+        # might disable this later, as I'd rather have a constant scale on the refreshed inputs
+
+        cv2.normalize(b_hist, b_hist, alpha=0, beta=hist_h, norm_type=cv2.NORM_MINMAX)
+        cv2.normalize(g_hist, g_hist, alpha=0, beta=hist_h, norm_type=cv2.NORM_MINMAX)
+        cv2.normalize(r_hist, r_hist, alpha=0, beta=hist_h, norm_type=cv2.NORM_MINMAX)
+
+        for i in range(1, histSize):
+            cv2.line(histImage, (bin_w * (i - 1), hist_h - int(np.round(b_hist[i - 1]))),
+                     (bin_w * i, hist_h - int(np.round(b_hist[i]))),
+                     (255, 20, 20), thickness=2)
+            cv2.line(histImage, (bin_w * (i - 1), hist_h - int(np.round(g_hist[i - 1]))),
+                     (bin_w * i, hist_h - int(np.round(g_hist[i]))),
+                     (20, 255, 20), thickness=2)
+            cv2.line(histImage, (bin_w * (i - 1), hist_h - int(np.round(r_hist[i - 1]))),
+                     (bin_w * i, hist_h - int(np.round(r_hist[i]))),
+                     (20, 20, 255), thickness=2)
+
+        # next highlight overexposed areas
+
+        lower_limit = np.array([0, 0, 0])
+        upper_limit = np.array([254, 254, 254])
+
+        mask = cv2.bitwise_not(cv2.inRange(img, lower_limit, upper_limit))
+
+        over_exposed_img = np.zeros((img.shape[0], img.shape[1], 3))
+        over_exposed_img[:, :, 2] = mask
+
+        # combine histogram and over exposure to single overlay
+
+        px_offset_x = 20
+        px_offset_y = 20
+
+        offset_hist = np.zeros((img.shape[0], img.shape[1], 3))
+        offset_hist[img.shape[0] - hist_h - px_offset_y:img.shape[0] - px_offset_y,
+        img.shape[1] - hist_w - px_offset_x:img.shape[1] - px_offset_x] = histImage
+
+        overlay = over_exposed_img + offset_hist
+        overlay = overlay.astype(np.uint8)
+
+        # ret, alpha_overlay = cv2.threshold(np.sum(overlay, axis=2), 1, 255, cv2.THRESH_BINARY)
+        alpha_overlay = np.sum(overlay, axis=2) != 0
+        alpha_img = 1.0 - alpha_overlay
+
+        combined_img = np.zeros((img.shape[0], img.shape[1], 3))
+
+        # now for each colour channel blend the original image and the overlay together
+        for c in range(0, 3):
+            combined_img[:, :, c] = overlay[:, :, c] + (alpha_img * img[:, :, c])
+
+        return combined_img.astype(np.uint8)
+
 
 if __name__ == '__main__':
-    display_for_num_images = 10
+    display_for_num_images = 100
 
     # initialise camera
     FLIR = customFLIR()
+
     # custom settings
-    FLIR.set_gain(4)
+    gain = 15
 
     for i in range(display_for_num_images):
+        FLIR.set_gain(gain + i * 0.1)
+
         img = FLIR.live_view()
+        overlay = FLIR.showExposure(img)
+
+        cv2.imshow("Overlay", overlay)
         cv2.imshow("Live view", img)
+
         cv2.waitKey(1)
 
-    FLIR.capture_image(img_name="testy_mac_testface.tif")
+    FLIR.set_gain(10)
+    FLIR.capture_image(img_name="testy_mac_test_face.tif")
 
     # release camera
     FLIR.exit_cam()

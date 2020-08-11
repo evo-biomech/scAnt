@@ -10,6 +10,10 @@ from imutils import paths
 from skimage import measure
 from skimage import filters
 
+import platform
+
+used_platform = platform.system()
+
 
 class AlphaExtractionThread(threading.Thread):
     def __init__(self, threadID, name, q):
@@ -144,7 +148,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
 
             src = cv2.imread(data, 1)
-            
+
             img_enhanced = apply_local_contrast(src)
 
             # reduce noise in the image before detecting edges
@@ -226,7 +230,11 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             cv2.imwrite(data[:-4] + '_contour.png', cutout)
             cutout = cv2.imread(data[:-4] + '_contour.png')
-            os.system("del " + data[:-4] + '_contour.png')
+
+            if used_platform == "Linux":
+                os.system("rm " + data[:-4] + '_contour.png')
+            else:
+                os.system("del " + data[:-4] + '_contour.png')
 
             # cutout = cv2.imread(source, 1)  # TEMPORARY
 
@@ -242,7 +250,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
             # upper_gray = np.array([215, 215, 215])
             # front light only
-            lower_gray = np.array([158, 158, 158])  # [R value, G value, B value]
+            lower_gray = np.array([215, 215, 215])  # [R value, G value, B value]
             upper_gray = np.array([255, 255, 255])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
@@ -291,14 +299,14 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "J:\\data\\atta_vollenweideri_00098\\_stacked"
+    source = "/home/fabi/scAnt/hoverfly_test_stacked"
     # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
     print("Using images from", source)
 
     # load pre-trained edge detector model
     edgeDetector = cv2.ximgproc.createStructuredEdgeDetection("model.yml")
     print("loaded edge detector...")
-    
+
     # setup half as many threads as there are (virtual) CPUs
     exitFlag_alpha = 0
     num_virtual_cores = getThreads()

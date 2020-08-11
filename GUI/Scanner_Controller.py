@@ -4,6 +4,7 @@ import datetime
 import os
 import numpy as np
 from Live_view_FLIR import customFLIR
+from pathlib import Path
 
 """
 00281470,         Tic T500 Stepper Motor Controller -> Z-Axis (turntable)
@@ -35,13 +36,13 @@ class ScannerController:
         self.stepper_position = [None, None, None]
 
         # settings for scanning
-        self.scan_stepSize = [50, 80, 200]
+        self.scan_stepSize = [50, 80, 500]
 
         self.scan_pos = [None, None, None]
         # set list of scan poses
-        self.setScanRange(stepper=0, min=0, max=450)
-        self.setScanRange(stepper=1, min=0, max=1600)
-        self.setScanRange(stepper=2, min=-25000, max=-8000)
+        self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
+        self.setScanRange(stepper=1, min=0, max=1600, step=self.scan_stepSize[1])
+        self.setScanRange(stepper=2, min=-25000, max=-8000, step=self.scan_stepSize[2])
 
         # keep track of position during scanning, skip to next full rotation of Y Axis
         self.completedRotations = 0
@@ -163,11 +164,15 @@ class ScannerController:
             os.system('ticcmd --resume --reset-command-timeout -d ' + self.stepper_IDs[stepper])
             self.getStepperPosition(stepper)
 
-    def setScanRange(self, stepper, min, max):
+    def setScanRange(self, stepper, min, max, step):
+        # set min and max poses according to input (within range)
         if max > self.stepper_maxPos[stepper]:
             max = self.stepper_maxPos[stepper]
         elif min < self.stepper_minPos[stepper]:
             min = self.stepper_minPos[stepper]
+
+        # set desired step size (limited by GUI inputs as well as min and max values)
+        self.scan_stepSize[stepper] = step
 
         self.scan_pos[stepper] = np.array(np.arange(int(min), int(max), int(self.scan_stepSize[stepper])), dtype=int)
         if len(self.scan_pos[stepper]) == 0:
@@ -225,17 +230,17 @@ if __name__ == '__main__':
     scAnt.cam.capture_image(img_name="testy_mac_testface.tif")
 
     # define output folder
-    scAnt.outputFolder = "I:\\3D_Scanner\\images\\scAnt_test_scan\\"
+    scAnt.outputFolder = Path.cwd()
     if not os.path.exists(scAnt.outputFolder):
         os.makedirs(scAnt.outputFolder)
         print("made folder!")
 
     # run example scan
     print("\nRunning Demo Scan!")
-    scAnt.scan_stepSize = [200, 400, 5000]
-    scAnt.setScanRange(stepper=0, min=0, max=250)
-    scAnt.setScanRange(stepper=1, min=0, max=1600)
-    scAnt.setScanRange(stepper=2, min=-20000, max=-5000)
+    scAnt.scan_stepSize = [200, 800, 5000]
+    scAnt.setScanRange(stepper=0, min=0, max=250, step=50)
+    scAnt.setScanRange(stepper=1, min=0, max=1600, step=400)
+    scAnt.setScanRange(stepper=2, min=-20000, max=-5000, step=5000)
 
     scAnt.runScan()
 

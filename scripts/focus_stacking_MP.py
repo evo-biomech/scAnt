@@ -16,6 +16,8 @@ import threading
 import time
 import sys
 import numpy as np
+from pathlib import Path
+import platform
 
 
 class myThread(threading.Thread):
@@ -51,7 +53,7 @@ def process_data(threadName, q):
             data = q.get()
             queueLock.release()
             print("%s processing %s" % (threadName, data))
-            checkFocus(args["images"] + "\\" + data)
+            checkFocus(args["images"].joinpath(data))
         else:
             queueLock.release()
 
@@ -89,6 +91,8 @@ def variance_of_laplacian(image):
     lap_image = cv2.Laplacian(blurred_image, cv2.CV_64F)
     lap_var = lap_image.var()
 
+    print(args["display"])
+
     if args["display"]:
         cv2.imshow("Laplacian of Image", lap_image)
 
@@ -97,7 +101,7 @@ def variance_of_laplacian(image):
 
 
 def checkFocus(image_path):
-    image = cv2.imread(image_path)
+    image = cv2.imread(str(image_path))
 
     # original window size (due to input image)
     # = 2448 x 2048 -> time to size it down!
@@ -116,13 +120,13 @@ def checkFocus(image_path):
     if fm < args["threshold"]:
         text = "BLURRY"
         color_text = (0, 0, 255)
-        rejected_images.append(image_path.split("\\")[-1])
+        rejected_images.append(image_path.name)
     else:
         text = "NOT Blurry"
         color_text = (255, 0, 0)
-        usable_images.append(image_path.split("\\")[-1])
+        usable_images.append(image_path.name)
 
-    print(image_path.split("\\")[-1], "is", text)
+    print(image_path.name, "is", text)
 
     if args["display"]:
         # show the image
@@ -140,15 +144,24 @@ def process_stack(threadName, q):
             data = q.get()
             queueLock.release()
 
-            print(data.split(" ")[1])
-            stack_name = data.split(" ")[1].split("\\")[-1][:-15]
+            stack_name = data.split(" ")[1]
+            stack_name = Path(stack_name).name[:-15]
 
-            temp_output_folder = output_folder + "\\" + str(stack_name)
+            temp_output_folder = output_folder.joinpath(stack_name)
 
-            print("%s processing stack %s" % (threadName, stack_name))
+            print("%s is processing stack %s" % (threadName, stack_name))
 
-            os.system(path_to_external + "align_image_stack -m -x -c 100 -a " + temp_output_folder + "\\"
-                      + str(stack_name) + "OUT" + data)
+            used_plattform = platform.system()
+
+            if used_plattform == "Linux":
+                os.system("align_image_stack -m -x -c 100 -a " + str(
+                    temp_output_folder.joinpath(stack_name))
+                          + "OUT" + data)
+            else:
+                # use additional external files under windows to execute alignment via hugin
+                os.system(str(path_to_external) + " align_image_stack -m -x -c 100 -a " + str(
+                    temp_output_folder.joinpath(stack_name))
+                          + "OUT" + data)
 
             image_str_focus = ""
             temp_files = []
@@ -159,27 +172,33 @@ def process_stack(threadName, q):
             # go through list in reverse order (better results of focus stacking)
             for img in range(num_images_in_stack):
                 if img < 10:
-                    path = temp_output_folder + "\\" + str(stack_name) + "OUT000" + str(img) + ".tif"
+                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT000" + str(img) + ".tif"
                 elif img < 100:
-                    path = temp_output_folder + "\\" + str(stack_name) + "OUT00" + str(img) + ".tif"
+                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT00" + str(img) + ".tif"
                 elif img < 1000:
-                    path = temp_output_folder + "\\" + str(stack_name) + "OUT0" + str(img) + ".tif"
+                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT0" + str(img) + ".tif"
                 else:
-                    path = temp_output_folder + "\\" + str(stack_name) + "OUT" + str(img) + ".tif"
+                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT" + str(img) + ".tif"
 
                 temp_files.append(path)
                 image_str_focus += " " + path
 
-            output_path = output_folder + "\\" + stack_name + ".tif"
+            output_path = str(output_folder.joinpath(stack_name)) + ".tif"
             print(output_path)
 
             print("generating:", image_str_focus + "\n")
 
             # --save-masks     to save soft and hard masks
             # --gray-projector=l-star alternative stacking method
-            os.system(path_to_external + "enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                      "--hard-mask --contrast-edge-scale=1 --output=" +
-                      output_path + image_str_focus)
+
+            if used_plattform == "Linux":
+                os.system("enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                          "--hard-mask --contrast-edge-scale=1 --output=" +
+                          output_path + image_str_focus)
+            else:
+                os.system(path_to_external + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                          "--hard-mask --contrast-edge-scale=1 --output=" +
+                          output_path + image_str_focus)
 
             print("Stacked image saved as", output_path)
 
@@ -192,202 +211,218 @@ def process_stack(threadName, q):
                 print("Sharpened", output_path)
 
             for temp_img in temp_files:
-                os.system("del " + str(temp_img))
+                if used_plattform == "Linux":
+                    os.system("rm " + str(temp_img))
+                else:
+                    os.system("del " + str(temp_img))
 
             print("Deleted temporary files of stack", data)
         else:
             queueLock.release()
 
 
-"""
-### Loading image paths into queue from disk ###
-"""
+if __name__ == '__main__':
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--images", required=True,
-                help="path to input directory of images")
-ap.add_argument("-t", "--threshold", type=float, default=10.0,
-                help="focus measures that fall below this value will be considered 'blurry'")
-ap.add_argument("-s", "--sharpen", type=bool, default=False,
-                help="apply sharpening to final result [True / False]")
-ap.add_argument("-d", "--display", type=bool, default=True,
-                help="show images with displayed focus score [True / False]")
-args = vars(ap.parse_args())
+    """
+    ### Loading image paths into queue from disk ###
+    """
 
-# parsing in boolean arguments
-if args["display"] == "False":
-    args["display"] = False
-else:
-    args["display"] = True
+    # construct the argument parse and parse the arguments
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--images", required=True,
+                    help="path to input directory of images")
+    ap.add_argument("-t", "--threshold", type=float, default=10.0,
+                    help="focus measures that fall below this value will be considered 'blurry'")
+    ap.add_argument("-s", "--sharpen", type=bool, default=False,
+                    help="apply sharpening to final result [True / False]")
+    ap.add_argument("-d", "--display", type=bool, default=False,
+                    help="show images with displayed focus score [True / False]")
+    args = vars(ap.parse_args())
 
-if args["sharpen"] == "True":
-    args["sharpen"] = True
-else:
-    args["sharpen"] = False
+    print("Using a laplacian variance threshold of", args["threshold"], "for discarding out-of-focus images")
 
-blurry_removed = input("Have you removed blurry images already? [y/n] default n")
+    # parsing in boolean arguments
+    if args["display"] == "False" or not args["display"]:
+        args["display"] = False
+        print("Images will NOT be displayed during out-of-focus check")
+    elif args["display"]:
+        args["display"] = True
+        print("Images will be displayed during out-of-focus check")
 
-# setup as many threads as there are (virtual) CPUs
-exitFlag = 0
-num_virtual_cores = getThreads()
-threadList = createThreadList(num_virtual_cores)
-print("Found", num_virtual_cores, "(virtual) cores...")
-queueLock = threading.Lock()
+    if args["sharpen"] == "True":
+        args["sharpen"] = True
+        print("Output images will be additionally sharpened")
+    else:
+        args["sharpen"] = False
+        print("Output images will NOT be additionally sharpened")
 
-# define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-all_image_paths = os.listdir(args["images"])  # dir is your directory path
-workQueue = queue.Queue(len(all_image_paths))
-threads = []
-threadID = 1
+    # convert input str of file location into path object
+    args["images"] = Path(args["images"])
 
-# create list of image paths classified as in-focus or blurry
-usable_images = []
-rejected_images = []
+    blurry_removed = input("Have you removed blurry images already? [y/n] default n")
 
-"""
-### extracting "in-focus" images for further processing ###
-"""
+    # setup as many threads as there are (virtual) CPUs
+    exitFlag = 0
+    num_virtual_cores = getThreads()
+    threadList = createThreadList(num_virtual_cores)
+    print("Found", num_virtual_cores, "(virtual) cores...")
+    queueLock = threading.Lock()
 
-if blurry_removed != "y":
+    # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+    all_image_paths = os.listdir(args["images"])  # dir is your directory path
+
+    workQueue = queue.Queue(len(all_image_paths))
+    threads = []
+    threadID = 1
+
+    # create list of image paths classified as in-focus or blurry
+    usable_images = []
+    rejected_images = []
+
+    """
+    ### extracting "in-focus" images for further processing ###
+    """
+
+    if blurry_removed != "y":
+
+        # Create new threads
+        for tName in threadList:
+            thread = myThread(threadID, tName, workQueue)
+            thread.start()
+            threads.append(thread)
+            threadID += 1
+
+        cv2.ocl.setUseOpenCL(True)
+
+        # Fill the queue
+        queueLock.acquire()
+        for path in all_image_paths:
+            workQueue.put(path)
+        queueLock.release()
+
+        # Wait for queue to empty
+        while not workQueue.empty():
+            pass
+
+        # Notify threads it's time to exit
+        exitFlag = 1
+
+        # Wait for all threads to complete
+        for t in threads:
+            t.join()
+        print("Exiting Main Thread")
+
+        cv2.destroyAllWindows()
+    else:
+        # if blurry images have been discarded already add all paths to "usable_images"
+        for image_path in all_image_paths:
+            usable_images.append(image_path)
+
+    # as threads may terminate at different times the file list needs to be sorted
+    usable_images.sort()
+
+    if len(usable_images) > 1:
+        print("\nThe following images are sharp enough for focus stacking:\n")
+        for path in usable_images:
+            print(path)
+    else:
+        print("No images suitable for focus stacking found!")
+        exit()
+
+    path_to_external = Path.cwd().joinpath("external")
+
+    output_folder = Path(str(args["images"]) + "_stacked")
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print("made folder!")
+
+    # revert the order of images to begin with the image furthest away
+    # -> maximise field of view during alignment and leads to better blending results with less ghosting
+    usable_images.reverse()
+
+    # group images of each stack together
+    pics = len(usable_images)
+    stacks = []
+
+    print("\nSorting in-focus images into stacks...")
+    for i in range(pics):
+
+        image_str_align = ""
+
+        current_stack_name = usable_images[0][:-15]
+        print("Created stack:", current_stack_name)
+
+        if not os.path.exists(output_folder.joinpath(current_stack_name)):
+            os.makedirs(output_folder.joinpath(current_stack_name))
+            print("made corresponding temporary folder!")
+        else:
+            print("corresponding temporary folder already exists!")
+
+        path_num = 0
+        for path in usable_images:
+            if current_stack_name == str(path)[:-15]:
+                image_str_align += " " + str(args["images"].joinpath(path))
+                path_num += 1
+            else:
+                break
+
+        del usable_images[0:path_num]
+
+        stacks.append(image_str_align)
+
+        if len(usable_images) < 2:
+            break
+
+    # sort stacks in ascending order
+    stacks.sort()
+
+    """
+    ### Alignment and stacking of images ###
+    """
+
+    # setup as many threads as there are (virtual) CPUs
+    exitFlag_stacking = 0
+    # only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
+    threadList_stacking = createThreadList(int(num_virtual_cores / 4))
+    print("Using", len(threadList_stacking), "threads for stacking...")
+    queueLock = threading.Lock()
+
+    # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+    workQueue_stacking = queue.Queue(len(stacks))
+    threads = []
+    threadID = 1
 
     # Create new threads
-    for tName in threadList:
-        thread = myThread(threadID, tName, workQueue)
+    for tName in threadList_stacking:
+        thread = myThread_Stacking(threadID, tName, workQueue_stacking)
         thread.start()
         threads.append(thread)
         threadID += 1
 
-    cv2.ocl.setUseOpenCL(True)
-
-    # Fill the queue
+    # Fill the queue with stacks
     queueLock.acquire()
-    for path in all_image_paths:
-        workQueue.put(path)
+    for stack in stacks:
+        workQueue_stacking.put(stack)
     queueLock.release()
 
     # Wait for queue to empty
-    while not workQueue.empty():
+    while not workQueue_stacking.empty():
         pass
 
     # Notify threads it's time to exit
-    exitFlag = 1
+    exitFlag_stacking = 1
 
     # Wait for all threads to complete
     for t in threads:
         t.join()
-    print("Exiting Main Thread")
+    print("Exiting Main Stacking Thread")
+    print("Deleting temporary folders")
 
-    cv2.destroyAllWindows()
-else:
-    # if blurry images have been discarded already add all paths to "usable_images"
-    for image_path in all_image_paths:
-        usable_images.append(image_path)
+    for stack in stacks:
+        stack_name = stack.split(" ")[1]
+        stack_name = Path(stack_name).name[:-15]
+        os.rmdir(output_folder.joinpath(stack_name))
+        print("removed  ...", stack_name)
 
-# as threads may terminate at different times the file list needs to be sorted
-usable_images.sort()
-
-if len(usable_images) > 1:
-    print("\nThe following images are sharp enough for focus stacking:\n")
-    for path in usable_images:
-        print(path)
-else:
-    print("No images suitable for focus stacking found!")
-    exit()
-
-path_to_external = os.path.dirname(os.getcwd()) + "\\external\\"
-
-output_folder = args["images"] + "_stacked"
-
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
-    print("made folder!")
-
-# revert the order of images to begin with the image furthest away
-# -> maximise field of view during alignment and leads to better blending results with less ghosting
-usable_images.reverse()
-
-# group images of each stack together
-pics = len(usable_images)
-stacks = []
-
-print("\nSorting in-focus images into stacks...")
-for i in range(pics):
-
-    image_str_align = ""
-
-    current_stack_name = usable_images[0][:-15]
-    print("Created stack:", current_stack_name)
-
-    if not os.path.exists(output_folder + "\\" + current_stack_name):
-        os.makedirs(output_folder + "\\" + current_stack_name)
-        print("made corresponding temporary folder!")
-    else:
-        print("corresponding temporary folder already exists!")
-
-    path_num = 0
-    for path in usable_images:
-        if current_stack_name == path[:-15]:
-            image_str_align += " " + args["images"] + "\\" + path
-            path_num += 1
-        else:
-            break
-
-    del usable_images[0:path_num]
-
-    stacks.append(image_str_align)
-
-    if len(usable_images) < 2:
-        break
-
-# sort stacks in ascending order
-stacks.sort()
-
-"""
-### Alignment and stacking of images ###
-"""
-
-# setup as many threads as there are (virtual) CPUs
-exitFlag_stacking = 0
-# only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
-threadList_stacking = createThreadList(int(num_virtual_cores / 4))
-print("Using", len(threadList_stacking), "threads for stacking...")
-queueLock = threading.Lock()
-
-# define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-workQueue_stacking = queue.Queue(len(stacks))
-threads = []
-threadID = 1
-
-# Create new threads
-for tName in threadList_stacking:
-    thread = myThread_Stacking(threadID, tName, workQueue_stacking)
-    thread.start()
-    threads.append(thread)
-    threadID += 1
-
-# Fill the queue with stacks
-queueLock.acquire()
-for stack in stacks:
-    workQueue_stacking.put(stack)
-queueLock.release()
-
-# Wait for queue to empty
-while not workQueue_stacking.empty():
-    pass
-
-# Notify threads it's time to exit
-exitFlag_stacking = 1
-
-# Wait for all threads to complete
-for t in threads:
-    t.join()
-print("Exiting Main Stacking Thread")
-print("Deleting temporary folders")
-
-for stack in stacks:
-    stack_name = stack.split(" ")[1].split("\\")[-1][:-15]
-    os.rmdir(output_folder + "\\" + stack_name)
-    print("removed  ...", stack_name)
-
-print("Stacking finalised!")
+    print("Stacking finalised!")

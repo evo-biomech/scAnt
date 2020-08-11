@@ -9,6 +9,8 @@ Locations of required executables and how to use them:
 # to convert the UI into the required .py file run:
 # -x = input     -o = output
 # pyuic5.exe -x "I:\3D_Scanner\scAnt\GUI\test.ui" -o "I:\3D_Scanner\scAnt\GUI\test.py"
+# or alternatively on Ubuntu
+# pyuic5 scAnt_GUI_mw.ui -o scAnt_GUI_mw.py
 
 """
 imports
@@ -180,10 +182,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # adjust scanner range on input
         self.ui.doubleSpinBox_xMin.valueChanged.connect(self.setScannerRange)
+        self.ui.doubleSpinBox_xStep.valueChanged.connect(self.setScannerRange)
         self.ui.doubleSpinBox_xMax.valueChanged.connect(self.setScannerRange)
         self.ui.doubleSpinBox_yMin.valueChanged.connect(self.setScannerRange)
+        self.ui.doubleSpinBox_yStep.valueChanged.connect(self.setScannerRange)
         self.ui.doubleSpinBox_yMax.valueChanged.connect(self.setScannerRange)
         self.ui.doubleSpinBox_zMin.valueChanged.connect(self.setScannerRange)
+        self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
         self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
 
         self.images_taken = 0
@@ -204,17 +209,22 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.abortScan = False
         self.scanInProgress = False
 
+        self.showExposure = False
+
     """
     Stepper Control
     """
 
     def setScannerRange(self):
         self.scanner.setScanRange(stepper=0, min=self.ui.doubleSpinBox_xMin.value(),
-                                  max=self.ui.doubleSpinBox_xMax.value() + self.scanner.scan_stepSize[0])
+                                  max=self.ui.doubleSpinBox_xMax.value() + self.scanner.scan_stepSize[0],
+                                  step=self.ui.doubleSpinBox_xStep.value())
         self.scanner.setScanRange(stepper=1, min=self.ui.doubleSpinBox_yMin.value(),
-                                  max=self.ui.doubleSpinBox_yMax.value() + self.scanner.scan_stepSize[1])
+                                  max=self.ui.doubleSpinBox_yMax.value() + self.scanner.scan_stepSize[1],
+                                  step=self.ui.doubleSpinBox_yStep.value())
         self.scanner.setScanRange(stepper=2, min=self.ui.doubleSpinBox_zMin.value(),
-                                  max=self.ui.doubleSpinBox_zMax.value() + self.scanner.scan_stepSize[2])
+                                  max=self.ui.doubleSpinBox_zMax.value() + self.scanner.scan_stepSize[2],
+                                  step=self.ui.doubleSpinBox_zStep.value())
 
     def updateDisplayX(self):
         pos = self.ui.horizontalSlider_xAxis.value()
@@ -388,6 +398,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def update_live_view(self, progress_callback):
         while self.liveView:
             img = self.cam.live_view()
+            # if enabled, display exposure as histogram and highlight over exposed areas
+            if self.ui.checkBox_highlightExposure.isChecked():
+                img = self.cam.showExposure(img)
+
             live_img = QtGui.QImage(img, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
             live_img_pixmap = QtGui.QPixmap.fromImage(live_img)
 
@@ -500,8 +514,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         enableInputs = True
         if self.scanInProgress:
             enableInputs = False
+            print("disabling inputs!")
+        else:
+            print("enabling inputs!")
         # disable panels that could interfere with the scan
-        print("disabling inputs!!!")
         self.ui.horizontalSlider_xAxis.setEnabled(enableInputs)
         self.ui.horizontalSlider_yAxis.setEnabled(enableInputs)
         self.ui.horizontalSlider_zAxis.setEnabled(enableInputs)
@@ -511,6 +527,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_xMin.setEnabled(enableInputs)
         self.ui.doubleSpinBox_yMin.setEnabled(enableInputs)
         self.ui.doubleSpinBox_zMin.setEnabled(enableInputs)
+        self.ui.doubleSpinBox_xStep.setEnabled(enableInputs)
+        self.ui.doubleSpinBox_yStep.setEnabled(enableInputs)
+        self.ui.doubleSpinBox_zStep.setEnabled(enableInputs)
         self.ui.doubleSpinBox_xMax.setEnabled(enableInputs)
         self.ui.doubleSpinBox_yMax.setEnabled(enableInputs)
         self.ui.doubleSpinBox_zMax.setEnabled(enableInputs)
