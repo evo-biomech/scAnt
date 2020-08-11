@@ -431,7 +431,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_gainLevel.setFont(font)
         self.doubleSpinBox_gainLevel.setDecimals(2)
         self.doubleSpinBox_gainLevel.setMinimum(0.0)
-        self.doubleSpinBox_gainLevel.setMaximum(20.0)
+        self.doubleSpinBox_gainLevel.setMaximum(25.0)
         self.doubleSpinBox_gainLevel.setProperty("value", 1.83)
         self.doubleSpinBox_gainLevel.setObjectName("doubleSpinBox_gainLevel")
         self.doubleSpinBox_gamma = QtWidgets.QDoubleSpinBox(self.frame_cameraSettings)

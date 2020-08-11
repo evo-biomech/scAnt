@@ -396,26 +396,24 @@ class customFLIR:
 
 
 if __name__ == '__main__':
-    display_for_num_images = 100
+    display_for_num_images = 50
 
     # initialise camera
     FLIR = customFLIR()
 
     # custom settings
-    gain = 15
+    gain = 5
 
     for i in range(display_for_num_images):
-        FLIR.set_gain(gain + i * 0.1)
+        FLIR.set_gain(gain + i * 0.2)
 
         img = FLIR.live_view()
         overlay = FLIR.showExposure(img)
 
-        cv2.imshow("Overlay", overlay)
-        cv2.imshow("Live view", img)
+        cv2.imshow("Live view", overlay)
 
         cv2.waitKey(1)
 
-    FLIR.set_gain(10)
     FLIR.capture_image(img_name="testy_mac_test_face.tif")
 
     # release camera
