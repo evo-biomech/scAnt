@@ -18,12 +18,14 @@ imports
 import datetime
 import sys
 import traceback
-
-from Live_view_FLIR import customFLIR
+import os
+from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
-from Scanner_Controller import ScannerController
-from scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
-import time
+
+from GUI.Live_view_FLIR import customFLIR
+from scripts.Scanner_Controller import ScannerController
+from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
+import scripts.project_manager as ymlRW
 
 
 class WorkerSignals(QtCore.QObject):
@@ -211,19 +213,47 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.showExposure = False
 
+        # Scanner output setup
+        self.output_location = str(Path.cwd().parent)
+        self.update_output_location()
+        self.ui.pushButton_browseOutput.pressed.connect(self.set_output_location)
+
+        self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
+
+        # processing
+        self.stackImages = False
+        self.stackMethod = "Default"
+        self.stackFocusThreshold = 10.0
+        self.stackDisplayFocus = False
+        self.stackSharpen = False
+        self.ui.checkBox_stackImages.stateChanged.connect(self.enableStacking)
+
+        self.maskImages = False
+        self.maskThreshMin = 215
+        self.maskThreshMax = 240
+        self.maskArtifactSizeBlack = 1000
+        self.maskArtifactSizeWhite = 2000
+        self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
+
+        # use config file
+        self.loadedConfig = False
+        self.ui.pushButton_browsePresets.pressed.connect(self.loadConfig)
+
+        self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
+
     """
     Stepper Control
     """
 
     def setScannerRange(self):
         self.scanner.setScanRange(stepper=0, min=self.ui.doubleSpinBox_xMin.value(),
-                                  max=self.ui.doubleSpinBox_xMax.value() + self.scanner.scan_stepSize[0],
+                                  max=self.ui.doubleSpinBox_xMax.value() + self.ui.doubleSpinBox_xStep.value(),
                                   step=self.ui.doubleSpinBox_xStep.value())
         self.scanner.setScanRange(stepper=1, min=self.ui.doubleSpinBox_yMin.value(),
-                                  max=self.ui.doubleSpinBox_yMax.value() + self.scanner.scan_stepSize[1],
+                                  max=self.ui.doubleSpinBox_yMax.value() + self.ui.doubleSpinBox_yStep.value(),
                                   step=self.ui.doubleSpinBox_yStep.value())
         self.scanner.setScanRange(stepper=2, min=self.ui.doubleSpinBox_zMin.value(),
-                                  max=self.ui.doubleSpinBox_zMax.value() + self.scanner.scan_stepSize[2],
+                                  max=self.ui.doubleSpinBox_zMax.value() + self.ui.doubleSpinBox_zStep.value(),
                                   step=self.ui.doubleSpinBox_zStep.value())
 
     def updateDisplayX(self):
@@ -440,9 +470,22 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def capture_image(self):
         now = datetime.datetime.now()
-        file_name = self.ui.lineEdit_projectName.text() + "_" + now.strftime("%Y-%m-%d_%H;%M;%S;%MS_" + ".tif")
+
+        self.create_output_folders()
+
+        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H;%M;%S;%MS_" + ".tif")))
         self.cam.capture_image(file_name)
         self.log_info("Captured " + file_name)
+
+    def create_output_folders(self):
+        self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
+        if not os.path.exists(self.output_location_folder):
+            os.makedirs(self.output_location_folder)
+            self.log_info("Created folder at:" + str(self.output_location_folder))
+        if not os.path.exists(self.output_location_folder.joinpath("RAW")):
+            os.makedirs(self.output_location_folder.joinpath("RAW"))
+        if not os.path.exists(self.output_location_folder.joinpath("stacked")):
+            os.makedirs(self.output_location_folder.joinpath("stacked"))
 
     """
     Scanner Setup
@@ -455,50 +498,151 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         name = self.ui.lineEdit_projectName.text()
         self.setWindowTitle("scAnt V 1.0  :  " + name)
 
-    def runScanAndReport_threaded(self, progress_callback):
-        # number of images taken over the number of images to take
-        self.images_taken = 0
-        self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
-            self.scanner.scan_pos[2])
+    def set_output_location(self):
+        new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
+                                                                  str(Path.cwd().parent))
+        if new_location:
+            self.output_location = new_location
 
-        self.log_info("Running Scan!")
-        print(self.scanner.scan_pos)
+        self.update_output_location()
 
-        for posX in self.scanner.scan_pos[0]:
-            self.scanner.moveToPosition(0, posX)
-            self.posX = posX
-            progress_callback.emit(self.progress)
-            for posY in self.scanner.scan_pos[1]:
-                self.scanner.moveToPosition(1, posY + self.scanner.completedRotations * self.scanner.stepper_maxPos[1])
-                self.posY = posY
-                progress_callback.emit(self.progress)
-                for posZ in self.scanner.scan_pos[2]:
-                    if self.abortScan:
-                        return
-                    self.scanner.moveToPosition(2, posZ)
-                    # to follow the naming convention when focus stacking
-                    img_name = self.scanner.outputFolder + self.ui.lineEdit_projectName.text() \
-                               + "_x_" + self.scanner.correctName(posX) \
-                               + "_y_" + self.scanner.correctName(posY) \
-                               + "_step_" + self.scanner.correctName(posZ) + "_.tif"
-                    self.cam.capture_image(img_name=img_name)
-                    self.images_taken += 1
-                    self.getProgress()
-                    self.posZ = posZ
-                    progress_callback.emit(self.progress)
+    def loadConfig(self):
+        file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
+                                                     str(Path.cwd().parent), "config file (*.yaml)")
+        config_location = file[0]
+        if config_location:
+            # if a file has been selected, convert it into a Path object
+            config_location = Path(config_location)
+            config = ymlRW.read_config_file(config_location)
 
-                self.scanner.completedStacks += 1
+            # camera_settings:
+            self.ui.doubleSpinBox_exposureTime.setValue(config["camera_settings"]["exposure_time"])
+            if config["camera_settings"]["exposure_auto"]:
+                self.ui.checkBox_exposureAuto.setChecked(True)
+            else:
+                self.set_exposure_manual()
 
-            self.scanner.completedRotations += 1
+            self.ui.doubleSpinBox_gainLevel.setValue(config["camera_settings"]["gain_level"])
+            if config["camera_settings"]["gain_auto"]:
+                self.ui.checkBox_gainAuto.setChecked(True)
+            else:
+                self.ui.checkBox_gainAuto.setChecked(False)
 
-        # return to default position
-        # reset settings
-        self.images_taken = 0
-        self.deEnergise()
-        self.homeX()
-        self.homeZ()
-        self.resetY()
-        self.scanner.completedRotations = 0
+            self.ui.doubleSpinBox_gamma.setValue(config["camera_settings"]["gamma"])
+            self.set_gamma()
+
+            self.ui.doubleSpinBox_balanceRatioRed.setValue(config["camera_settings"]["balance_ratio_red"])
+            self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
+            self.set_balance_ratio()
+
+            self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
+            self.set_black_level()
+
+            # scanner_settings
+            self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
+            self.ui.doubleSpinBox_yMin.setValue(config["scanner_settings"]["y_min"])
+            self.ui.doubleSpinBox_zMin.setValue(config["scanner_settings"]["z_min"])
+
+            self.ui.doubleSpinBox_xMax.setValue(config["scanner_settings"]["x_max"])
+            self.ui.doubleSpinBox_yMax.setValue(config["scanner_settings"]["y_max"])
+            self.ui.doubleSpinBox_zMax.setValue(config["scanner_settings"]["z_max"])
+
+            self.ui.doubleSpinBox_xStep.setValue(config["scanner_settings"]["x_step"])
+            self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
+            self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
+
+            self.setScannerRange()
+
+            # stacking
+            self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
+
+            if config["stacking"]["stacking_method"] == "default":
+                self.ui.comboBox_stackingMethod.setCurrentIndex(0)
+            elif config["stacking"]["stacking_method"] == "1-star":
+                self.ui.comboBox_stackingMethod.setCurrentIndex(1)
+            elif config["stacking"]["stacking_method"] == "masks":
+                self.ui.comboBox_stackingMethod.setCurrentIndex(2)
+
+            self.stackFocusThreshold = config["stacking"]["threshold"]
+            self.ui.spinBox_thresholdFocus.setValue(self.stackFocusThreshold)
+
+            self.stackDisplayFocus = config["stacking"]["display_focus_check"]
+            self.stackSharpen = config["stacking"]["additional_sharpening"]
+
+            # masking
+            self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
+            self.maskThreshMin = config["masking"]["mask_thresh_min"]
+            self.maskThreshMax = config["masking"]["mask_thresh_max"]
+            self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
+            self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
+
+            self.loadedConfig = True
+            self.log_info("Loaded config-file successfully!")
+
+            print(config)
+
+    def writeConfig(self):
+        if self.ui.comboBox_stackingMethod.currentIndex() == 0:
+            stacking_method = "default"
+        elif self.ui.comboBox_stackingMethod.currentIndex() == 1:
+            stacking_method = "1-star"
+        elif self.ui.comboBox_stackingMethod.currentIndex() == 2:
+            stacking_method = "mask"
+
+        config = {'general': {'project_name': self.ui.lineEdit_projectName.text()},
+                  'camera_settings': {'exposure_auto': self.ui.checkBox_exposureAuto.isChecked(),
+                                      'exposure_time': self.ui.doubleSpinBox_exposureTime.value(),
+                                      'gain_auto': self.ui.checkBox_gainAuto.isChecked(),
+                                      'gain_level': self.ui.doubleSpinBox_gainLevel.value(),
+                                      'gamma': self.ui.doubleSpinBox_gamma.value(),
+                                      'balance_ratio_red': self.ui.doubleSpinBox_balanceRatioRed.value(),
+                                      'balance_ratio_blue': self.ui.doubleSpinBox_balanceRatioBlue.value(),
+                                      'black_level': self.ui.doubleSpinBox_blackLevel.value()},
+                  'scanner_settings': {'x_min': self.ui.doubleSpinBox_xMin.value(),
+                                       'x_max': self.ui.doubleSpinBox_xMax.value(),
+                                       'x_step': self.ui.doubleSpinBox_xStep.value(),
+                                       'y_min': self.ui.doubleSpinBox_yMin.value(),
+                                       'y_max': self.ui.doubleSpinBox_yMax.value(),
+                                       'y_step': self.ui.doubleSpinBox_yStep.value(),
+                                       'z_min': self.ui.doubleSpinBox_zMin.value(),
+                                       'z_max': self.ui.doubleSpinBox_zMax.value(),
+                                       'z_step': self.ui.doubleSpinBox_zStep.value()},
+                  'stacking': {'stack_images': self.ui.checkBox_stackImages.isChecked(),
+                               'stacking_method': stacking_method,
+                               'threshold': self.ui.spinBox_thresholdFocus.value(),
+                               'display_focus_check': self.stackDisplayFocus,
+                               'additional_sharpening': self.stackSharpen},
+                  'masking': {'mask_images': self.ui.checkBox_maskImages.isChecked(),
+                              'mask_thresh_min': self.ui.spinBox_thresholdMin.value(),
+                              'mask_thresh_max': self.ui.spinBox_thresholdMax.value(),
+                              'min_artifact_size_black': self.maskArtifactSizeBlack,
+                              'min_artifact_size_white': self.maskArtifactSizeWhite}}
+
+        self.create_output_folders()
+        ymlRW.write_config_file(config, Path(self.output_location_folder))
+        self.log_info("Exported config_file successfully!")
+
+    def update_output_location(self):
+        self.ui.lineEdit_outputLocation.setText(self.output_location)
+
+    def enableStacking(self, set_to=False):
+        self.stackImages = self.ui.checkBox_stackImages.isChecked()
+
+        self.ui.label_stackingMethod.setEnabled(self.stackImages)
+        self.ui.comboBox_stackingMethod.setEnabled(self.stackImages)
+        self.ui.label_thresholdFocus.setEnabled(self.stackImages)
+        self.ui.spinBox_thresholdFocus.setEnabled(self.stackImages)
+        self.ui.label_maskImages.setEnabled(self.stackImages)
+        self.ui.checkBox_maskImages.setEnabled(self.stackImages)
+
+    def enableMasking(self, set_to=False):
+        self.maskImages = self.ui.checkBox_maskImages.isChecked()
+
+        self.ui.label_thresholdMasking.setEnabled(self.maskImages)
+        self.ui.label_thresholdMaskingMin.setEnabled(self.maskImages)
+        self.ui.label_thresholdMaskingMax.setEnabled(self.maskImages)
+        self.ui.spinBox_thresholdMin.setEnabled(self.maskImages)
+        self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
 
     def displayProgress(self, progress):
         print("Displaying progress!")
@@ -550,6 +694,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def runScanAndReport(self):
         if not self.scanInProgress:
+            # create output folder
+            self.create_output_folders()
+            # save configuration file
+            self.writeConfig()
             # enable and show progress
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
@@ -572,6 +720,49 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.abortScan = True
             self.log_info("SCAN ABORTED!")
+
+    def runScanAndReport_threaded(self, progress_callback):
+        # number of images taken over the number of images to take
+        self.images_taken = 0
+        self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
+            self.scanner.scan_pos[2])
+        self.log_info("Running Scan!")
+        print(self.scanner.scan_pos)
+        for posX in self.scanner.scan_pos[0]:
+            self.scanner.moveToPosition(0, posX)
+            self.posX = posX
+            progress_callback.emit(self.progress)
+            for posY in self.scanner.scan_pos[1]:
+                self.scanner.moveToPosition(1, posY + self.scanner.completedRotations * self.scanner.stepper_maxPos[1])
+                self.posY = posY
+                progress_callback.emit(self.progress)
+                for posZ in self.scanner.scan_pos[2]:
+                    if self.abortScan:
+                        return
+                    self.scanner.moveToPosition(2, posZ)
+                    # to follow the naming convention when focus stacking
+                    img_name = str(self.output_location_folder.joinpath("RAW",
+                                                                        "_x_" + self.scanner.correctName(posX)
+                                                                        + "_y_" + self.scanner.correctName(posY)
+                                                                        + "_step_" + self.scanner.correctName(
+                                                                            posZ) + "_.tif"))
+                    self.cam.capture_image(img_name=img_name)
+                    self.images_taken += 1
+                    self.getProgress()
+                    self.posZ = posZ
+                    progress_callback.emit(self.progress)
+                self.scanner.completedStacks += 1
+            self.scanner.completedRotations += 1
+        # return to default position
+        # reset settings
+        self.images_taken = 0
+        self.deEnergise()
+        self.homeX()
+        self.homeZ()
+        self.resetY()
+        self.scanner.moveToPosition(1, self.ui.doubleSpinBox_yStep.value())
+        self.resetY()
+        self.scanner.completedRotations = 0
 
     def closeEvent(self, event):
         # report the program is to be closed so threads can be exited

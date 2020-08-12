@@ -1,0 +1,33 @@
+general:
+  project_name: example_scan
+camera_settings:
+  exposure_auto: false
+  exposure_time: 90000.0
+  gain_auto: false
+  gain_level: 15.0
+  gamma: 0.8
+  balance_ratio_red: 1.58
+  balance_ratio_blue: 1.79
+  black_level: 0.0
+scanner_settings:
+  x_min: 0.0
+  x_max: 400.0
+  x_step: 200.0
+  y_min: 0.0
+  y_max: 1600.0
+  y_step: 400.0
+  z_min: -20000.0
+  z_max: -10000.0
+  z_step: 4000.0
+stacking:
+  stack_images: true
+  stacking_method: default
+  threshold: 7.5
+  display_focus_check: false
+  additional_sharpening: false
+masking:
+  mask_images: true
+  mask_thresh_min: 205
+  mask_thresh_max: 245
+  min_artifact_size_black: 1000
+  min_artifact_size_white: 2000

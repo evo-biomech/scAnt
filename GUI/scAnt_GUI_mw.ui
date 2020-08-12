@@ -1096,6 +1096,9 @@
      <property name="text">
       <string/>
      </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
     </widget>
     <widget class="QLabel" name="label_gainAuto">
      <property name="geometry">
@@ -1425,7 +1428,7 @@
     <widget class="QPushButton" name="pushButton_startScan">
      <property name="geometry">
       <rect>
-       <x>90</x>
+       <x>30</x>
        <y>400</y>
        <width>131</width>
        <height>41</height>
@@ -1613,7 +1616,7 @@
       <rect>
        <x>30</x>
        <y>240</y>
-       <width>120</width>
+       <width>141</width>
        <height>20</height>
       </rect>
      </property>
@@ -1665,7 +1668,7 @@
       <rect>
        <x>30</x>
        <y>320</y>
-       <width>120</width>
+       <width>141</width>
        <height>20</height>
       </rect>
      </property>
@@ -1707,7 +1710,7 @@
       <rect>
        <x>30</x>
        <y>360</y>
-       <width>120</width>
+       <width>141</width>
        <height>20</height>
       </rect>
      </property>
@@ -1808,7 +1811,7 @@
       <rect>
        <x>30</x>
        <y>280</y>
-       <width>120</width>
+       <width>141</width>
        <height>20</height>
       </rect>
      </property>
@@ -1843,6 +1846,26 @@
      </property>
      <property name="value">
       <number>10</number>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_saveConfig">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>400</y>
+       <width>101</width>
+       <height>41</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Save config</string>
      </property>
     </widget>
    </widget>

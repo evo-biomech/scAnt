@@ -112,7 +112,7 @@ class ScannerController:
 
             while not self.getLimitState(stepper):
                 os.system('ticcmd --resume --reset-command-timeout -d ' + self.stepper_IDs[stepper])
-                sleep(0.2)
+                # sleep(0.2)
 
         os.system('ticcmd --halt-and-set-position 0 -d ' + self.stepper_IDs[stepper])
 
