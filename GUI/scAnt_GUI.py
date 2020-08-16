@@ -26,6 +26,7 @@ from GUI.Live_view_FLIR import customFLIR
 from scripts.Scanner_Controller import ScannerController
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
 import scripts.project_manager as ymlRW
+from scripts.processStack import getThreads, stack_images, mask_images
 
 
 class WorkerSignals(QtCore.QObject):
@@ -240,6 +241,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_browsePresets.pressed.connect(self.loadConfig)
 
         self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
+
+        # stack and mask images
+        self.maxStackThreads = int(getThreads() / 4)
+        self.activeThreads = 0
+        self.stackList = []
 
     """
     Stepper Control
@@ -572,7 +578,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # masking
             self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
             self.maskThreshMin = config["masking"]["mask_thresh_min"]
+            self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
             self.maskThreshMax = config["masking"]["mask_thresh_max"]
+            self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
             self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
             self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
 
@@ -736,9 +744,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.scanner.moveToPosition(1, posY + self.scanner.completedRotations * self.scanner.stepper_maxPos[1])
                 self.posY = posY
                 progress_callback.emit(self.progress)
+
+                # create list of images associated with each stack for simultaneous processing
+                stackName = []
+
                 for posZ in self.scanner.scan_pos[2]:
                     if self.abortScan:
                         return
+
+                    # stack images
+                    if self.stackImages:
+                        self.checkActiveStackThreads()
+
                     self.scanner.moveToPosition(2, posZ)
                     # to follow the naming convention when focus stacking
                     img_name = str(self.output_location_folder.joinpath("RAW",
@@ -746,11 +763,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                                                         + "_y_" + self.scanner.correctName(posY)
                                                                         + "_step_" + self.scanner.correctName(
                                                                             posZ) + "_.tif"))
+                    stackName.append(img_name)
+
                     self.cam.capture_image(img_name=img_name)
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
+
+                self.stackList.append(stackName)
+
                 self.scanner.completedStacks += 1
             self.scanner.completedRotations += 1
         # return to default position
@@ -764,15 +786,40 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.resetY()
         self.scanner.completedRotations = 0
 
+    """
+    process captured images simultaneously
+    """
+
+    def checkActiveStackThreads(self):
+        if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
+            worker = Worker(self.processStack)
+            self.activeThreads += 1
+            self.threadpool.start(worker)
+
+    def processStack(self, progress_callback):
+        stack = self.stackList[0]
+        del self.stackList[0]
+        # stack images
+        print("\nSTACKING: \n\n", stack)
+
+        stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold, sharpen=self.stackSharpen,
+                                      stacking_method=self.stackMethod)
+
+        if self.maskImages:
+            mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
+                        min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite)
+
+        self.activeThreads -= 1
+
     def closeEvent(self, event):
+        # de energise steppers
+        self.scanner.deEnergise()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
         # end live view before releasing camera
         self.liveView = False
         # release camera
         self.cam.exit_cam()
-        # de energise steppers
-        self.scanner.deEnergise()
         print("Application Closed!")
         exit()
 
