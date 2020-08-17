@@ -31,3 +31,13 @@ masking:
   mask_thresh_max: 245
   min_artifact_size_black: 1000
   min_artifact_size_white: 2000
+exif_data:
+  Make: FLIR
+  Model: BFS-U3-200S6C-C
+  SerialNumber: 18382947
+  Lens: MPZ
+  CameraSerialNumber: 18382947
+  LensManufacturer: Computar
+  LensModel: 35.0 f/2.2
+  FocalLength: 35.0
+  FocalLengthIn35mmFormat: 95.0

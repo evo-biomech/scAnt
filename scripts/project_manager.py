@@ -30,7 +30,21 @@ mask_thresh_min:
 mask_thresh_mask:
 min_artifact_size_black:
 min_artifact_size_white:
+
+# exif_data
+Make:
+Model:
+SerialNumber:
+Lens:
+CameraSerialNumber:
+LensManufacturer:
+LensModel:
+FocalLength:
+FocalLengthIn35mmFormat:
 """
+
+# All common exif data entries are supported. For additional entries refer to exiftool.org
+# The examples above are included here, as they relevant for most reconstruction software
 
 
 def read_config_file(path):
@@ -47,7 +61,7 @@ def write_config_file(content, path):
 
 
 if __name__ == '__main__':
-    config = read_config_file(Path.cwd().parent.joinpath("config.yaml"))
+    config = read_config_file(Path.cwd().parent.joinpath("example_config.yaml"))
     print(config)
 
     write_config_file(content=config, path=Path.cwd().parent)
