@@ -1,5 +1,5 @@
 general:
-  project_name: example_scan
+  project_name: example
 camera_settings:
   exposure_auto: false
   exposure_time: 90000.0
