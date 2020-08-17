@@ -487,10 +487,10 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
         cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
 
 
-def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh):
+def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout=False):
     # load pre-trained edge detector model
     edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().parent.joinpath("scripts", "model.yml")))
     print("loaded edge detector...")
 
     for img in input_paths:
-        createAlphaMask(img, edgeDetector, min_rgb, max_rgb, min_bl, min_wh)
+        createAlphaMask(img, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout)

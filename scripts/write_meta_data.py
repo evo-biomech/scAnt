@@ -4,6 +4,7 @@ from pathlib import Path
 import platform
 from scripts.project_manager import read_config_file
 
+
 # follow installation guide for Ubuntu or use executable directly under Windows (located in "/external")
 # sudo apt install libimage-exiftool-perl
 
@@ -34,19 +35,34 @@ def write_exif_to_img(img_path, custom_exif_dict):
         exifToolPath = str(Path.cwd().parent.joinpath("external", "exiftool.exe"))
         # for Windows user have to specify the Exif tool exe path for metadata extraction.
 
-    complete_command = [exifToolPath, img_path]
+    complete_command = [exifToolPath, img_path, "-overwrite_original_in_place"]
     for key in custom_exif_dict:
         write_str = "-" + key + "=" + str(custom_exif_dict[key])
         print(write_str)
         complete_command.append(write_str)
 
+    print(complete_command)
+
     subprocess.Popen(complete_command)
 
 
+def get_default_values():
+    # WARNING! THESE SETTINGS ARE SPECIFIC TO THE CAMERA USED DURING DEVELOPMENT
+    # OF THE SCANNER AND WILL LIKELY NOT APPLY TO YOUR SETUP
+    exif = {"Make": "FLIR",
+            "Model": "BFS-U3-200S6C-C",
+            "SerialNumber": "18382947",
+            "Lens": "MPZ",
+            "CameraSerialNumber": "18382947",
+            "LensManufacturer": "Computar",
+            "LensModel": "35.0 f / 2.2",
+            "FocalLength": "35.0",
+            "FocalLengthIn35mmFormat": "95.0"}
+    return exif
+
+
 if __name__ == '__main__':
-    # img_path = "_DSC0743.jpg"
-    # img_path = "porcellio_dilatatus_x_00000_y_00000_.tif"
-    img_path = "_x_00000_y_00000__cutout.tif"
+    img_path = Path.cwd().parent.parent.joinpath("Downloads", "_x_00000_y_00000__cutout.tif")
 
     print("original file: ")
     show_me_what_you_got(img_path)

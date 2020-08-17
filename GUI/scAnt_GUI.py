@@ -27,6 +27,7 @@ from scripts.Scanner_Controller import ScannerController
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
 import scripts.project_manager as ymlRW
 from scripts.processStack import getThreads, stack_images, mask_images
+from scripts.write_meta_data import write_exif_to_img, get_default_values
 
 
 class WorkerSignals(QtCore.QObject):
@@ -235,6 +236,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskArtifactSizeBlack = 1000
         self.maskArtifactSizeWhite = 2000
         self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
+
+        self.exif = get_default_values()
+        self.createCutout = True
 
         # use config file
         self.loadedConfig = False
@@ -584,6 +588,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
             self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
 
+            # meta data (exif)
+            self.exif = config["exif_data"]
+
             self.loadedConfig = True
             self.log_info("Loaded config-file successfully!")
 
@@ -624,7 +631,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                               'mask_thresh_min': self.ui.spinBox_thresholdMin.value(),
                               'mask_thresh_max': self.ui.spinBox_thresholdMax.value(),
                               'min_artifact_size_black': self.maskArtifactSizeBlack,
-                              'min_artifact_size_white': self.maskArtifactSizeWhite}}
+                              'min_artifact_size_white': self.maskArtifactSizeWhite},
+                  "exif_data": self.exif}
 
         self.create_output_folders()
         ymlRW.write_config_file(config, Path(self.output_location_folder))
@@ -805,9 +813,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold, sharpen=self.stackSharpen,
                                       stacking_method=self.stackMethod)
 
+        write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
+
         if self.maskImages:
             mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
-                        min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite)
+                        min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
+
+            if self.createCutout:
+                write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.tif', custom_exif_dict=self.exif)
 
         self.activeThreads -= 1
 
