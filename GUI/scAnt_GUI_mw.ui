@@ -461,7 +461,7 @@
       </rect>
      </property>
      <property name="minimum">
-      <number>-30000</number>
+      <number>-40000</number>
      </property>
      <property name="maximum">
       <number>0</number>
@@ -658,7 +658,7 @@
       <number>0</number>
      </property>
      <property name="minimum">
-      <double>-35000.000000000000000</double>
+      <double>-40000.000000000000000</double>
      </property>
      <property name="maximum">
       <double>0.000000000000000</double>
@@ -667,7 +667,7 @@
       <double>1000.000000000000000</double>
      </property>
      <property name="value">
-      <double>-25000.000000000000000</double>
+      <double>-20000.000000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="doubleSpinBox_zMax">

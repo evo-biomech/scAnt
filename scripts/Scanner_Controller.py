@@ -3,7 +3,7 @@ from time import time
 import datetime
 import os
 import numpy as np
-from Live_view_FLIR import customFLIR
+from GUI.Live_view_FLIR import customFLIR
 from pathlib import Path
 
 """

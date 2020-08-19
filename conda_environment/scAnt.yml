@@ -1,0 +1,21 @@
+# scAnt.yml
+
+# scAnt - Open Source 3D Scanner and Processing Pipeline
+# © Fabian Plum, 2020
+# MIT License
+
+name: scAnt
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - pip
+  - numpy
+  - matplotlib
+  - opencv=4.1.0
+  - pyqt
+  - imutils
+  - pillow
+  - scikit-image

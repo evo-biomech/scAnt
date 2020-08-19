@@ -116,7 +116,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     Advanced application of local contrast. Adaptive histogram equalization is used to locally increase the contrast,
     rather than globally, so bright areas are not pushed into over exposed areas of the histogram. The image is tiled
     into a fixed size grid. Noise needs to be removed prior to this process, as it would be greatly amplified otherwise.
-    Similar to Adobe's "Clarity" option which also amplifies local contrast and thus pronounces edges, reduces haze.
+    Similar to Adobe's "Clarity" option which also amplifies local contrast and thus pronounces edges and reduces haze.
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
