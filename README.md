@@ -6,7 +6,7 @@
 
 All structural components of the scanner are can be manufactured using 3D-printing and CNC routers and are available for download as .ipt, .iam, .stl, and .svg files from our [thingiverse](https://www.thingiverse.com/fabianplum/designs) page
 
-![](imagesscanner_3D_comp.png)
+![](images/scanner_3D_comp.png)
 
 ## Installation
 **scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04**. Newer releases of Ubuntu will likely not pose an issue but only these configurations have been tested so far. The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras, and [Pololu USB Stepper drivers](https://www.pololu.com/category/212/tic-stepper-motor-controllers) to limit the number of required components for the scanner as much as possible. We are planning on including support for other cameras and stepper drivers in the future as well. Please refer to our [thingiverse](https://www.thingiverse.com/fabianplum/designs) page for a full list of components.
