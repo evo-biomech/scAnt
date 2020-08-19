@@ -4,7 +4,9 @@
 
 ![](images/model_collection_showcase_04.png)
 
-All structural components of the scanner are can be manufactured using 3D-printing and CNC routers and are available for download as .ipt, .iam, .stl, and .svg files from our [thingiverse](https://www.thingiverse.com/fabianplum/designs) page
+
+All structural components of the scanner are manufactured using 3D-printers and laser cutters and are available for download as .ipt, .iam, .stl, and .svg files from our [thingiverse](https://www.thingiverse.com/fabianplum/designs) page
+
 
 ![](images/scanner_3D_comp.png)
 
