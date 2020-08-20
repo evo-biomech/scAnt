@@ -64,7 +64,7 @@ Unpack all files in a folder of your choice before you continue
 sudo apt-get install libavcodec57 libavformat57 libswscale4 libswresample2 libavutil55 libusb-1.0-0 libgtkmm-2.4-dev
 ```
 
-2. Once all depenodencies are installed, install spinnaker from its extracted folder
+2. Once all dependencies are installed, install spinnaker from its extracted folder
 
 ```bash
 sudo sh install_spinnaker.sh
@@ -117,7 +117,7 @@ This should output a list of all connected USB stepper drivers.
 cd scAnt/scripts
 python Scanner_Controller.py
 ```
-- the scanner will then home all axes, drive to a set of example positions and capture images as it would during scanning for a very course grid.
+- the scanner will then home all axes, drive to a set of example positions and capture images as it would during scanning for a very coarse grid.
 - If no errors appear, images will be saved and “Demo completed successfully” is printed to the console
 
 **Image Processing**
