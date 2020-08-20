@@ -90,7 +90,7 @@ def process_stack(data, output_folder, path_to_external, sharpen):
                   + "OUT" + data)
     else:
         # use additional external files under windows to execute alignment via hugin
-        os.system(str(path_to_external) + " align_image_stack -m -x -c 100 -a " + str(
+        os.system(str(path_to_external) + "\\align_image_stack -m -x -c 100 -a " + str(
             temp_output_folder.joinpath(stack_name))
                   + "OUT" + data)
 
@@ -127,7 +127,7 @@ def process_stack(data, output_folder, path_to_external, sharpen):
                   "--hard-mask --contrast-edge-scale=1 --output=" +
                   output_path + image_str_focus)
     else:
-        os.system(path_to_external + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+        os.system(str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
                   "--hard-mask --contrast-edge-scale=1 --output=" +
                   output_path + image_str_focus)
 
@@ -175,7 +175,7 @@ def stack_images(input_paths, threshold=10.0, sharpen=False, stacking_method="De
         print("No images suitable for focus stacking found!")
         exit()
 
-    path_to_external = Path.cwd().joinpath("../external")
+    path_to_external = Path.cwd().joinpath("external")
     output_folder = images.parent.joinpath("stacked")
 
     if not os.path.exists(output_folder):

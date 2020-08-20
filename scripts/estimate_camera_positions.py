@@ -75,7 +75,7 @@ def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
 
 
 if __name__ == '__main__':
-    config = read_config_file(path=Path.cwd().parent.joinpath("example_config.yaml"))
+    config = read_config_file(path=Path.cwd().joinpath("example_config.yaml"))
     print(config["scanner_settings"])
     X, Y, Z = create_input_arrays(config)
 

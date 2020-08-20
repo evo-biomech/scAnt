@@ -15,7 +15,7 @@ The easiest way to get your scanner up and running is by installing our pre-conf
 
 ```bash
 cd conda_environment
-conda env create -f scAnt.yml
+conda env create -f scAnt_UBUNTU.yml
 ```
 
 After the environment has been created successfully, close the terminal and open a new one. Run the following line to activate your new environment and continue the installation.

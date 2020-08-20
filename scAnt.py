@@ -237,6 +237,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskArtifactSizeWhite = 2000
         self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
 
+        # once the scan has been started check if new sets of images are available for stacking
+        self.timerStack = QtCore.QTimer(self)
+        self.timerStack.timeout.connect(self.checkActiveStackThreads)
+
         self.exif = get_default_values()
         self.createCutout = True
 
@@ -728,6 +732,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
+
+                    if self.stackImages:
+                        # check for images in the stacking Queue
+                        self.timerStack.start(1000)
+
                     self.threadpool.start(worker)
                 else:
                     self.log_info("Steppers are still moving!")

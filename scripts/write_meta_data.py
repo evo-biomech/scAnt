@@ -12,7 +12,7 @@ def show_me_what_you_got(img_path):
     if platform.system() == "Linux":
         exifToolPath = "exiftool"
     else:
-        exifToolPath = str(Path.cwd().parent.joinpath("external", "exiftool.exe"))
+        exifToolPath = str(Path.cwd().joinpath("external", "exiftool.exe"))
         # for Windows user have to specify the Exif tool exe path for metadata extraction.
 
     infoDict = {}  # Creating the dict to get the metadata tags
@@ -32,7 +32,7 @@ def write_exif_to_img(img_path, custom_exif_dict):
     if platform.system() == "Linux":
         exifToolPath = "exiftool"
     else:
-        exifToolPath = str(Path.cwd().parent.joinpath("external", "exiftool.exe"))
+        exifToolPath = str(Path.cwd().joinpath("external", "exiftool.exe"))
         # for Windows user have to specify the Exif tool exe path for metadata extraction.
 
     complete_command = [exifToolPath, img_path, "-overwrite_original_in_place"]
