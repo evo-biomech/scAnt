@@ -4,6 +4,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from pathlib import Path
 import numpy as np
 import math
+import os
+import cv2
 
 
 def create_input_arrays(config_file):
@@ -89,8 +91,45 @@ def tab_x(n):
     return string
 
 
-def generate_sfm(config):
-    X, Y, Z = create_input_arrays(config)
+def splitall(path):
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path:  # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
+
+
+def generate_sfm(project_location, use_cutouts=True):
+    for file in os.listdir(str(project_location)):
+        if file.endswith(".yaml"):
+            config = read_config_file(path=project_location.joinpath(file))
+    try:
+        X, Y, Z = create_input_arrays(config)
+    except(UnboundLocalError):
+        print("UnboundLocalError: No config file found at specified project location!")
+        return
+
+    image_list = []
+    image_dir = project_location.joinpath("stacked")
+    for img in os.listdir(str(image_dir)):
+        if use_cutouts:
+            if img[-10:-4] == "cutout":
+                image_list.append(img)
+        else:
+            if img[-5] == "_":
+                image_list.append(img)
+
+    # get image dimensions of first image in loaded list
+    image_example = cv2.imread(str(image_dir.joinpath(image_list[0])))
+    image_dimensions = image_example.shape
 
     X_ang = convert_to_angles(X, inc_per_rot=1600)  # as the initial angle is view from below
     Y_ang = convert_to_angles(Y, inc_per_rot=1600)
@@ -122,9 +161,72 @@ def generate_sfm(config):
     out.write(tab_x(1) + '],')
 
     out.write(tab_x(1) + '"views": [')
-    out.write(tab_x(2) + '{')
 
-    out.write(tab_x(2) + '}')
+    viewId = 1000000
+    intrinsicId = 1000000000
+    resectionId = 0
+
+    image_location = splitall(project_location.joinpath("stacked"))
+    meshroom_img_path = image_location[0][:-1]
+    for dir in image_location[1:]:
+        meshroom_img_path += "\/" + dir
+
+    for cam in range(len(trans_mats)):
+        out.write(tab_x(2) + '{')
+        viewId += 1
+        resectionId += 1
+        out.write(tab_x(3) + '"viewId": "' + str(viewId) + '",')
+        out.write(tab_x(3) + '"poseId": "' + str(viewId) + '",')
+        out.write(tab_x(3) + '"intrinsicId": "' + str(intrinsicId) + '",')
+        out.write(tab_x(3) + '"resectionId": "' + str(resectionId) + '",')
+        out.write(tab_x(3) + '"path": "' + meshroom_img_path + '\/' + image_list[0] + '",')
+        # USE image_list[cam] after debugging!
+        out.write(tab_x(3) + '"width": "' + str(image_dimensions[1]) + '",')
+        out.write(tab_x(3) + '"height": "' + str(image_dimensions[0]) + '",')
+        out.write(tab_x(3) + '"metadata": {')
+        out.write(tab_x(4) + '"AliceVision:SensorWidth": "' + str(config["exif_data"]["SensorWidth"]) + '",')
+        out.write(tab_x(4) + '"Exif:FocalLength": "' + str(config["exif_data"]["FocalLength"]) + '",')
+        out.write(tab_x(4) + '"Exif:FocalLengthIn35mmFilm": "'
+                  + str(config["exif_data"]["FocalLengthIn35mmFormat"]) + '",')
+        out.write(tab_x(4) + '"FNumber": "' + str(config["exif_data"]["FNumber"]) + '",')
+        out.write(tab_x(4) + '"Make": "' + str(config["exif_data"]["Make"]) + '",')
+        out.write(tab_x(4) + '"Model": "' + str(config["exif_data"]["Model"]) + '",')
+        out.write(tab_x(4) + '"Orientation": "1",')
+        out.write(tab_x(4) + '"PixelAspectRatio": "1",')
+        out.write(tab_x(4) + '"ResolutionUnit": "in",')
+        out.write(tab_x(4) + '"XResolution": "150",')
+        out.write(tab_x(4) + '"YResolution": "150",')
+        out.write(tab_x(4) + '"compression": "lzw",')
+        out.write(tab_x(4) + '"oiio:BitsPerSample": "8",')
+        out.write(tab_x(4) + '"planarconfig": "contig",')
+
+        out.write(tab_x(4) + '"tiff:Compression": "5",')
+        out.write(tab_x(4) + '"tiff:PhotometricInterpretation": "2",')
+        out.write(tab_x(4) + '"tiff:PlanarConfiguration": "1",')
+        out.write(tab_x(4) + '"tiff:RowsPerStrip": "47",')
+        out.write(tab_x(4) + '"tiff:UnassociatedAlpha": "1",')
+        out.write(tab_x(4) + '"tiff:subfiletype": "0"')
+
+        out.write(tab_x(3) + '}')
+
+        out.write(tab_x(2) + '}')
+
+        if cam != len(trans_mats) - 1:
+            # add a comma to all but the last entry
+            out.write(',')
+
+    out.write(tab_x(1) + '],')
+    out.write(tab_x(1) + '"intrinsics": [')
+
+    # TODO Intrinsics info here #
+
+    out.write(tab_x(1) + '],')
+    out.write(tab_x(1) + '"poses": [')
+
+    # TODO Pose info here #
+
+    out.write(tab_x(1) + ']')
+    out.write('\n}')
 
     out.close()
 
@@ -132,7 +234,7 @@ def generate_sfm(config):
 if __name__ == '__main__':
     config = read_config_file(path=Path.cwd().joinpath("example_config.yaml"))
 
-    generate_sfm(config)
+    generate_sfm(project_location=Path.cwd().joinpath("test"))
 
     exit()
 
