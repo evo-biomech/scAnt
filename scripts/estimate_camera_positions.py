@@ -26,6 +26,7 @@ def convert_to_angles(input_arr, inc_per_rot):
 def get_approx_cam_pos(X_ang, Y_ang, r):
     scanner_positions = [[], [], []]
     scanner_orientations = [[], [], []]
+    trans_mats = []
 
     for x in X_ang:
         for y in Y_ang:
@@ -41,7 +42,14 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
             scanner_positions[1].append(P_y)
             scanner_positions[2].append(P_z)
 
-    return scanner_positions, scanner_orientations
+            trans_mats.append(create_transformation_matrix(px=scanner_positions[0][-1],
+                                                           py=scanner_positions[1][-1],
+                                                           pz=scanner_positions[2][-1],
+                                                           alpha=-y + math.pi,
+                                                           beta=0,
+                                                           gamma=x - (193 / 1600 * 2 * math.pi)))
+
+    return scanner_positions, scanner_orientations, trans_mats
 
 
 def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
@@ -74,8 +82,60 @@ def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
     return np.array(Trans_Mat)
 
 
+def tab_x(n):
+    string = "\n"
+    for i in range(n):
+        string += "\t"
+    return string
+
+
+def generate_sfm(config):
+    X, Y, Z = create_input_arrays(config)
+
+    X_ang = convert_to_angles(X, inc_per_rot=1600)  # as the initial angle is view from below
+    Y_ang = convert_to_angles(Y, inc_per_rot=1600)
+
+    # max Z -> 40,000 at ~ 25 cm sensor to centre
+    # min Z ->      0 at ~ 15 cm sensor to centre
+    # measured 40,000 tics = ~ 10 cm +/- 0.1 cm
+
+    # distance_tic -> convert to distance in meters to use as constant radius
+
+    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
+
+    _, _, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
+
+    out = open(Path.cwd().joinpath("test.sfm"), "w+")
+    out.write("{")
+    out.write(tab_x(1) + '"version": [')
+    out.write(tab_x(2) + '"1",')
+    out.write(tab_x(2) + '"0",')
+    out.write(tab_x(2) + '"0"')
+    out.write(tab_x(1) + '],')
+
+    out.write(tab_x(1) + '"featuresFolders": [')
+    out.write(tab_x(2) + '""')
+    out.write(tab_x(1) + '],')
+
+    out.write(tab_x(1) + '"matchesFolders": [')
+    out.write(tab_x(2) + '""')
+    out.write(tab_x(1) + '],')
+
+    out.write(tab_x(1) + '"views": [')
+    out.write(tab_x(2) + '{')
+
+    out.write(tab_x(2) + '}')
+
+    out.close()
+
+
 if __name__ == '__main__':
     config = read_config_file(path=Path.cwd().joinpath("example_config.yaml"))
+
+    generate_sfm(config)
+
+    exit()
+
     print(config["scanner_settings"])
     X, Y, Z = create_input_arrays(config)
 
@@ -89,11 +149,10 @@ if __name__ == '__main__':
     # distance_tic -> convert to distance in meters to use as constant radius
 
     corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
-    print(corrected_Z)
 
-    scanner_positions, scanner_orientations = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
+    scanner_positions, scanner_orientations, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
 
-    # compute transformation matrix
+    # compute transformation matrices for every camera
     trans_mat_start = create_transformation_matrix(px=scanner_positions[0][0],
                                                    py=scanner_positions[1][0],
                                                    pz=scanner_positions[2][0],
@@ -101,6 +160,7 @@ if __name__ == '__main__':
                                                    beta=0,
                                                    gamma=X_ang[0] - (193 / 1600 * 2 * math.pi))
 
+    print("\n transformation matrix of initial camera position")
     print(trans_mat_start)
 
     # Matplotlib solution
@@ -139,3 +199,6 @@ if __name__ == '__main__':
     ax.legend(loc='upper left', bbox_to_anchor=(0.65, 1.05))
 
     plt.show()
+
+    ####
+    print("{\n\t{\n\tTesty\n\t}\n}")
