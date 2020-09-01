@@ -84,10 +84,19 @@ def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
     return np.array(Trans_Mat)
 
 
-def tab_x(n):
+def tab_x_REALTAB(n):
+    # produces real tabs
     string = "\n"
     for i in range(n):
         string += "\t"
+    return string
+
+
+def tab_x(n):
+    # produces 4 spaces instead of tabs
+    string = "\n"
+    for i in range(n):
+        string += "    "
     return string
 
 
@@ -127,6 +136,9 @@ def generate_sfm(project_location, use_cutouts=True):
             if img[-5] == "_":
                 image_list.append(img)
 
+    # sort image_list alphabetically to maintain the same order
+    image_list.sort()
+
     # get image dimensions of first image in loaded list
     image_example = cv2.imread(str(image_dir.joinpath(image_list[0])))
     image_dimensions = image_example.shape
@@ -144,6 +156,10 @@ def generate_sfm(project_location, use_cutouts=True):
 
     _, _, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
 
+    """
+    Define version and folders
+    """
+    print(project_location.joinpath("cameras.sfm"))
     out = open(project_location.joinpath("cameras.sfm"), "w+")
     out.write("{")
     out.write(tab_x(1) + '"version": [')
@@ -162,14 +178,19 @@ def generate_sfm(project_location, use_cutouts=True):
 
     out.write(tab_x(1) + '"views": [')
 
-    viewId = 1000000
+    viewId = 10000000
     intrinsicId = 1000000000
     resectionId = 0
+    locked = 0
 
     image_location = splitall(project_location.joinpath("stacked"))
     meshroom_img_path = image_location[0][:-1]
     for dir in image_location[1:]:
         meshroom_img_path += "\/" + dir
+
+    """
+    Enter all cameras and assign IDs to reference for each pose
+    """
 
     for cam in range(len(trans_mats)):
         out.write(tab_x(2) + '{')
@@ -214,15 +235,89 @@ def generate_sfm(project_location, use_cutouts=True):
             # add a comma to all but the last entry
             out.write(',')
 
+    """
+    Enter intrinsics of camera model(s)
+    These values need to be calculated / estimated by Meshroom and entered here
+    """
+
     out.write(tab_x(1) + '],')
     out.write(tab_x(1) + '"intrinsics": [')
 
-    # TODO Intrinsics info here #
+    out.write(tab_x(2) + '{')
+    out.write(tab_x(3) + '"intrinsicsId": "' + str(intrinsicId) + '",')
+    out.write(tab_x(3) + '"width": "' + str(image_dimensions[1]) + '",')
+    out.write(tab_x(3) + '"height": "' + str(image_dimensions[0]) + '",')
+    out.write(tab_x(3) + '"serialNumber": "' + meshroom_img_path + '_' + str(config["exif_data"]["Model"]) + '",')
+    out.write(tab_x(3) + '"type": "radial3",')
+    out.write(tab_x(3) + '"initializationMode": "estimated",')
+    out.write(tab_x(3) + '"pxInitialFocalLength": "14619.847328244276",')
+    out.write(tab_x(3) + '"pxFocalLength": "15519.947135073095",')
+    out.write(tab_x(3) + '"principalPoint": [')
+
+    out.write(tab_x(4) + '"2716.6301443869565",')
+    out.write(tab_x(4) + '"1867.8392268971065"')
+
+    out.write(tab_x(3) + '],')
+    out.write(tab_x(3) + '"distortionParams": [')
+
+    out.write(tab_x(4) + '"-0.17524723918970503",')
+    out.write(tab_x(4) + '"64.900546663178233",')
+    out.write(tab_x(4) + '"-2556.4868417370758"')
+
+    out.write(tab_x(3) + '],')
+    out.write(tab_x(3) + '"locked": "' + str(locked) + '"')
+
+    out.write(tab_x(2) + '}')
+
+    """
+    All estimated poses are 
+    """
 
     out.write(tab_x(1) + '],')
     out.write(tab_x(1) + '"poses": [')
 
-    # TODO Pose info here #
+    # reset viewID to begin at the initial count and move sequentially through all cameras
+    viewId = 10000000
+    cam = 0
+    for trans_mat in trans_mats:
+        out.write(tab_x(2) + '{')
+        viewId += 1
+        out.write(tab_x(3) + '"poseId": "' + str(viewId) + '",')
+        out.write(tab_x(3) + '"pose": {')
+        out.write(tab_x(4) + '"transform": {')
+        out.write(tab_x(5) + '"rotation": [')
+
+        # rotation of camera
+        out.write(tab_x(6) + '"' + str(round(trans_mat[0][0], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[0][1], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[0][2], ndigits=17)) + '",')
+
+        out.write(tab_x(6) + '"' + str(round(trans_mat[1][0], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[1][1], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[1][2], ndigits=17)) + '",')
+
+        out.write(tab_x(6) + '"' + str(round(trans_mat[2][0], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[2][1], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[2][2], ndigits=17)) + '"')
+
+        out.write(tab_x(5) + '],')
+        out.write(tab_x(5) + '"center": [')
+
+        # translation of camera
+        out.write(tab_x(6) + '"' + str(round(trans_mat[0][3], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[1][3], ndigits=17)) + '",')
+        out.write(tab_x(6) + '"' + str(round(trans_mat[2][3], ndigits=17)) + '"')
+
+        out.write(tab_x(5) + ']')
+        out.write(tab_x(4) + '},')
+        out.write(tab_x(4) + '"locked": "' + str(locked) + '"')
+        out.write(tab_x(3) + '}')
+        out.write(tab_x(2) + '}')
+
+        if cam != len(trans_mats) - 1:
+            # add a comma to all but the last entry
+            out.write(',')
+        cam += 1
 
     out.write(tab_x(1) + ']')
     out.write('\n}')
@@ -231,9 +326,9 @@ def generate_sfm(project_location, use_cutouts=True):
 
 
 if __name__ == '__main__':
-    config = read_config_file(path=Path.cwd().joinpath("example_config.yaml"))
+    config = read_config_file(path=Path.cwd().parent.joinpath("example_config.yaml"))
 
-    generate_sfm(project_location=Path("I:\\3D_Scanner\\images\\camponotus_gigas"), use_cutouts=False)
+    generate_sfm(project_location=Path("/home/fabi/camponotus_gigas"), use_cutouts=False)
 
     exit()
 
@@ -251,7 +346,8 @@ if __name__ == '__main__':
 
     corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
 
-    scanner_positions, scanner_orientations, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
+    scanner_positions, scanner_orientations, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang,
+                                                                             r=corrected_Z)
 
     # compute transformation matrices for every camera
     trans_mat_start = create_transformation_matrix(px=scanner_positions[0][0],
