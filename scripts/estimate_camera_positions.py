@@ -144,7 +144,7 @@ def generate_sfm(project_location, use_cutouts=True):
 
     _, _, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
 
-    out = open(Path.cwd().joinpath("test.sfm"), "w+")
+    out = open(project_location.joinpath("cameras.sfm"), "w+")
     out.write("{")
     out.write(tab_x(1) + '"version": [')
     out.write(tab_x(2) + '"1",')
@@ -179,8 +179,7 @@ def generate_sfm(project_location, use_cutouts=True):
         out.write(tab_x(3) + '"poseId": "' + str(viewId) + '",')
         out.write(tab_x(3) + '"intrinsicId": "' + str(intrinsicId) + '",')
         out.write(tab_x(3) + '"resectionId": "' + str(resectionId) + '",')
-        out.write(tab_x(3) + '"path": "' + meshroom_img_path + '\/' + image_list[0] + '",')
-        # USE image_list[cam] after debugging!
+        out.write(tab_x(3) + '"path": "' + meshroom_img_path + '\/' + image_list[cam] + '",')
         out.write(tab_x(3) + '"width": "' + str(image_dimensions[1]) + '",')
         out.write(tab_x(3) + '"height": "' + str(image_dimensions[0]) + '",')
         out.write(tab_x(3) + '"metadata": {')
@@ -234,7 +233,7 @@ def generate_sfm(project_location, use_cutouts=True):
 if __name__ == '__main__':
     config = read_config_file(path=Path.cwd().joinpath("example_config.yaml"))
 
-    generate_sfm(project_location=Path.cwd().joinpath("test"))
+    generate_sfm(project_location=Path("I:\\3D_Scanner\\images\\camponotus_gigas"), use_cutouts=False)
 
     exit()
 
