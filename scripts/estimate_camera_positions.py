@@ -170,10 +170,12 @@ def generate_sfm(project_location, use_cutouts=True):
 
     out.write(tab_x(1) + '"featuresFolders": [')
     out.write(tab_x(2) + '""')
+    out.write(tab_x(2))
     out.write(tab_x(1) + '],')
 
     out.write(tab_x(1) + '"matchesFolders": [')
     out.write(tab_x(2) + '""')
+    out.write(tab_x(2))
     out.write(tab_x(1) + '],')
 
     out.write(tab_x(1) + '"views": [')
@@ -181,7 +183,7 @@ def generate_sfm(project_location, use_cutouts=True):
     viewId = 10000000
     intrinsicId = 1000000000
     resectionId = 0
-    locked = 0
+    locked = 1
 
     image_location = splitall(project_location.joinpath("stacked"))
     meshroom_img_path = image_location[0][:-1]
@@ -244,7 +246,7 @@ def generate_sfm(project_location, use_cutouts=True):
     out.write(tab_x(1) + '"intrinsics": [')
 
     out.write(tab_x(2) + '{')
-    out.write(tab_x(3) + '"intrinsicsId": "' + str(intrinsicId) + '",')
+    out.write(tab_x(3) + '"intrinsicId": "' + str(intrinsicId) + '",')
     out.write(tab_x(3) + '"width": "' + str(image_dimensions[1]) + '",')
     out.write(tab_x(3) + '"height": "' + str(image_dimensions[0]) + '",')
     out.write(tab_x(3) + '"serialNumber": "' + meshroom_img_path + '_' + str(config["exif_data"]["Model"]) + '",')
