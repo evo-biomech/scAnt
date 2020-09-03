@@ -122,7 +122,7 @@ python Scanner_Controller.py
 
 **Image Processing**
 
-A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each, just ask me tomorrow, because I'm a little tired right now. Anyway, here are the lines you need to install all the good stuff:
+A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/) documentation. The following lines will install all that good stuff:
 
 ```bash
 sudo add-apt-repository ppa:hugin/hugin-builds
