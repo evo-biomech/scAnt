@@ -139,14 +139,110 @@ sudo apt install libimage-exiftool-perl
 
 ***
 
-## Usage
+## Meshroom Guide
 
-```python
-import scAnt
+**Add your camera to the sensor database**
 
-Then run scAnt.py
-#duh
+Within the directory of the downloaded Meshroom installation go to the following folder and edit the file “**cameraSensors.db**” using any common text editor:
+
+*…/Meshroom-2019.2.0/AliceVision/share/AliceVision/cameraSensors.db*
+
+The entry should contain the following:
+
+```bash
+Make;Model;SensorWidth
 ```
+Ensure to enter these details as they are listed in your project configuration file, thus, metadata of your stacked and masked images. There should be no spaces between the entries. For our configuration add the following line:
+
+```bash
+FLIR;BFS-U3-200S6C-C;13.1
+```
+Adding the correct sensor width is crucial in computing the camera intrinsics, such as distortion parameters, object scale, and distances. Otherwise the camera alignment, during feature matching and structure-from-motion steps are likely to fail.
+
+Once these details have been added, launch **Meshroom** and drag your images named *…cutout.tif* into **Meshroom**. If the metadata and added camera sensor are recognised, a **green aperture icon** should be displayed over all images.
+
+![](images/meshroom_correctly_loaded.png)
+
+If not all images are listed, or the aperture icon remains red / yellow, execute the helper script “batch_fix_meta_data.py” to fix any issues resulting from your images' exif files. 
+
+
+**Setting up the reconstruction pipeline**
+
+*Try to run the pipeline with this configuration, before attempting to use approximated camera positions. Only if issues with the alignment of multiple camera poses arise, you should use approximated positions, as fine differences in the scanner setup can cause poorer reconstruction results, without **guided matching** (available only in the **2020 version** of **Meshroom**)!*
+
+1. **CameraInit**
+
+- *No parameters need to be changed here.*
+- However, ensure that only one element is listed under **Intrinsics**. If there is more than one, remove all images you imported previously, delete all elements listed under **Intrinsics**, and load your images again. If the issue persists, execute the helper script “batch_fix_meta_data.py” to fix any issues resulting from your images exif files. 
+
+2. **FeatureExtraction**
+
+- Enable Advanced Attributes** by clicking on the three dots at the upper right corner.
+- Describer Types: Check **sift** and **akaze**
+- Describer Preset: Normal (pick High if your subject has many fine structures)
+- Force CPU Extraction: Uncheck
+
+3. **ImageMatching**
+
+- Max Descriptors: 10000
+- Nb Matches: 200
+
+4. **FeatureMatching**
+
+- Describer Types: Check **sift** and **akaze**
+- Guided Matching: Check
+
+5. **StructureFromMotion**
+
+- Describer Types: Check **sift** and **akaze**
+- Local Bundle Adjustment: Check
+- Maximum Number of Matches: 0 (ensures all matches are retained)
+
+6. **PrepareDenseScene**
+
+- *No parameters need to be changed here.*
+
+7. **DepthMap**
+
+- Downscale: 1 (use maximum resolution of each image to compute depth maps)
+
+8. **DepthMapFilter**
+
+- Min View Angle: 1
+- Compute Normal Maps: Check
+
+9. **Meshing**
+
+- Estimate Space from SfM: Uncheck (while this will potentially produce “floaters” that need to be removed during post processing it assists in reserving very fine / long structures, such as antennae)
+- Min Observations for SfM Space Estimation: 2 (only required if above attribute remains checked)
+- Min Observations Angle for SfM Space Estimation: 5 (only required if above attribute remains checked)
+- Max Input Points: 100000000
+- simGaussianSizeInit: 5
+- simGaussianSize: 5
+- Add landmarks to the Dense Point Cloud: Check	
+
+10. **MeshFiltering**
+
+- Filter Large Triangles Factor: 40
+- Smoothing Iterations: 2
+
+11. Texturing
+
+- Texture Side: 16384
+- Unwrap Method: **LSCM** (will lead to larger texture files, but much higher surface quality)
+- Texture File Type: png
+- Fill Holes: Check
+
+Now click on **start** and watch the magic happen. Actually, this is the best time to grab a cup of coffee, as the reconstruction process takes between 3 and 10 hours, depending on your step size, camera resolution, and system specs.
+
+**Exporting the textured mesh:**
+
+All outputs within Meshroom are automatically saved in the project’s environment. By right clicking on the **Texturing node** and choosing “**Open Folder**” the location of the created mesh (**.obj** file) is shown. 
+
+
+
+
+***
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

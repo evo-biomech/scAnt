@@ -206,11 +206,11 @@ def generate_sfm(project_location, use_cutouts=True):
         out.write(tab_x(3) + '"width": "' + str(image_dimensions[1]) + '",')
         out.write(tab_x(3) + '"height": "' + str(image_dimensions[0]) + '",')
         out.write(tab_x(3) + '"metadata": {')
-        out.write(tab_x(4) + '"AliceVision:SensorWidth": "' + str(config["exif_data"]["SensorWidth"]) + '",')
+        out.write(tab_x(4) + '"AliceVision:SensorWidth": "13.1",')
         out.write(tab_x(4) + '"Exif:FocalLength": "' + str(config["exif_data"]["FocalLength"]) + '",')
         out.write(tab_x(4) + '"Exif:FocalLengthIn35mmFilm": "'
                   + str(config["exif_data"]["FocalLengthIn35mmFormat"]) + '",')
-        out.write(tab_x(4) + '"FNumber": "' + str(config["exif_data"]["FNumber"]) + '",')
+        out.write(tab_x(4) + '"FNumber": "16",')
         out.write(tab_x(4) + '"Make": "' + str(config["exif_data"]["Make"]) + '",')
         out.write(tab_x(4) + '"Model": "' + str(config["exif_data"]["Model"]) + '",')
         out.write(tab_x(4) + '"Orientation": "1",')

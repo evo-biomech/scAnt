@@ -4,21 +4,22 @@ from pathlib import Path
 import os
 import cv2
 
-folder = Path("/home/fabi/camponotus_gigas/stacked")
-config = read_config_file("/home/fabi/camponotus_gigas/example_config.yaml")
+# enter the folder to your project here
+folder = Path("I:\\3D_Scanner\\images\\leaffooted_fine_stacked")
+config = read_config_file(Path.cwd().parent.joinpath("example_config.yaml"))
 exif = config["exif_data"]
 
 for img in os.listdir(str(folder)):
-    if img[-10:] == "cutout.tif":
+    if img[-5:] == "_.tif":
         img_tif = cv2.imread(str(folder.joinpath(img)), cv2.IMREAD_UNCHANGED)
-        alpha = img_tif[:, :, 3]
-        _, mask = cv2.threshold(alpha, 240, 255, cv2.THRESH_BINARY)
+        img_alpha = cv2.imread(str(folder.joinpath(img[:-4] + "_masked.png")), cv2.IMREAD_UNCHANGED)
 
-        print(alpha)
+        _, mask = cv2.threshold(img_alpha, 240, 255, cv2.THRESH_BINARY)
+
         print(img_tif.shape)
         img_jpg = cv2.bitwise_not(cv2.bitwise_not(img_tif[:, :, :3], mask=mask))
-        cv2.waitKey(1)
-
-        filename = str(folder.joinpath(img))[:-3] + "jpg"
+        print(img_jpg.shape)
+        filename = str(folder.joinpath(img))[:-4] + "cutout_new.tif"
+        print(filename)
         cv2.imwrite(filename, img_jpg)
         write_exif_to_img(img_path=filename, custom_exif_dict=exif)

@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 import platform
 from scripts.project_manager import read_config_file
+import os
 
 
 # follow installation guide for Ubuntu or use executable directly under Windows (located in "/external")
@@ -34,6 +35,8 @@ def write_exif_to_img(img_path, custom_exif_dict):
     else:
         exifToolPath = str(Path.cwd().joinpath("external", "exiftool.exe"))
         # for Windows user have to specify the Exif tool exe path for metadata extraction.
+        if not os.path.isfile(exifToolPath):
+            exifToolPath = str(Path.cwd().parent.joinpath("external", "exiftool.exe"))
 
     complete_command = [exifToolPath, img_path, "-overwrite_original_in_place"]
     for key in custom_exif_dict:
