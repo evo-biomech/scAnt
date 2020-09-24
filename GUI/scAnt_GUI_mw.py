@@ -206,7 +206,7 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_yMin.setFont(font)
         self.doubleSpinBox_yMin.setDecimals(0)
         self.doubleSpinBox_yMin.setMinimum(0.0)
-        self.doubleSpinBox_yMin.setMaximum(450.0)
+        self.doubleSpinBox_yMin.setMaximum(1599.0)
         self.doubleSpinBox_yMin.setSingleStep(5.0)
         self.doubleSpinBox_yMin.setProperty("value", 0.0)
         self.doubleSpinBox_yMin.setObjectName("doubleSpinBox_yMin")

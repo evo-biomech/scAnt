@@ -326,7 +326,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
@@ -432,7 +432,7 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
 
     # cutout = cv2.imread(source, 1)  # TEMPORARY
 
-    cutout_blurred = cv2.GaussianBlur(cutout, (7, 7), 0)
+    cutout_blurred = cv2.GaussianBlur(cutout, (9, 9), 0)
 
     gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
     # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
