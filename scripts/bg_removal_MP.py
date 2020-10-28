@@ -24,7 +24,7 @@ class AlphaExtractionThread(threading.Thread):
 
     def run(self):
         print("Starting " + self.name)
-        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=False)
+        createAlphaMask(self.name, self.q, edgeDetector=edgeDetector, create_cutout=True)
         print("Exiting " + self.name)
 
 
@@ -120,14 +120,14 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=4.2, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
     img_pil = Image.fromarray(cl1)
 
     enhancer = ImageEnhance.Sharpness(img_pil)
-    sharpened = enhancer.enhance(21)
+    sharpened = enhancer.enhance(31)
 
     # sharpened.save(source + "\\enhanced.png")
 
@@ -250,8 +250,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
             # upper_gray = np.array([215, 215, 215])
             # front light only
-            lower_gray = np.array([215, 215, 215])  # [R value, G value, B value]
-            upper_gray = np.array([255, 255, 255])
+            lower_gray = np.array([189, 177, 177])  # [R value, G value, B value]
+            upper_gray = np.array([204, 203, 203])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
 
@@ -268,7 +268,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # remove black artifacts
             blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-            image_cleaned = remove_holes(blobs_labels, min_num_pixel=1000)
+            image_cleaned = remove_holes(blobs_labels, min_num_pixel=20000)
 
             image_cleaned_inv = 1 - image_cleaned
 
@@ -277,7 +277,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # remove white artifacts
             blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
-            image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=2000)
+            image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=15000)
 
             cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
@@ -299,8 +299,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "/home/fabi/scAnt/hoverfly_test_stacked"
-    # 'J:\\data\\leaffooted_stacked'  # 'I:\\3D_Scanner\\images'
+    source = "J:\\Orthomeria_versicolor\\stacked"
+
     print("Using images from", source)
 
     # load pre-trained edge detector model

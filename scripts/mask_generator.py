@@ -111,7 +111,7 @@ def remove_holes(img, min_num_pixel):
 
 def apply_local_contrast(img, grid_size=(7, 7)):
     """
-    ### CLAHE (Contrast limited Adaptive Histogram Equilisation) ###
+    ### CLAHE (Contrast limited Adaptive Histogram Equalisation) ###
 
     Advanced application of local contrast. Adaptive histogram equalization is used to locally increase the contrast,
     rather than globally, so bright areas are not pushed into over exposed areas of the histogram. The image is tiled
@@ -121,14 +121,14 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
     img_pil = Image.fromarray(cl1)
 
     enhancer = ImageEnhance.Sharpness(img_pil)
-    sharpened = enhancer.enhance(21)
+    sharpened = enhancer.enhance(31)
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 

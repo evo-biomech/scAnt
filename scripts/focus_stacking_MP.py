@@ -159,9 +159,11 @@ def process_stack(threadName, q):
                           + "OUT" + data)
             else:
                 # use additional external files under windows to execute alignment via hugin
-                os.system(str(path_to_external) + " align_image_stack -m -x -c 100 -a " + str(
+                os.system(str(path_to_external) + "\\align_image_stack -m -x -c 100 -a " + str(
                     temp_output_folder.joinpath(stack_name))
                           + "OUT" + data)
+
+            # TODO: try the additional modifier " --gpu " to hopefully speed up the process!!!
 
             image_str_focus = ""
             temp_files = []
@@ -196,9 +198,10 @@ def process_stack(threadName, q):
                           "--hard-mask --contrast-edge-scale=1 --output=" +
                           output_path + image_str_focus)
             else:
-                os.system(path_to_external + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                          "--hard-mask --contrast-edge-scale=1 --output=" +
-                          output_path + image_str_focus)
+                os.system(
+                    str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                    "--hard-mask --contrast-edge-scale=1 --output=" +
+                    output_path + image_str_focus)
 
             print("Stacked image saved as", output_path)
 
@@ -329,7 +332,7 @@ if __name__ == '__main__':
         print("No images suitable for focus stacking found!")
         exit()
 
-    path_to_external = Path.cwd().joinpath("external")
+    path_to_external = Path.cwd().parent.joinpath("external")
 
     output_folder = Path(str(args["images"]) + "_stacked")
 
