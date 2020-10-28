@@ -338,7 +338,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
 
-def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout=True, used_platform="Linux"):
+def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout=True):
     """
     create alpha mask for the image located in path
     :img_path: image location
@@ -425,6 +425,8 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     cv2.imwrite(data[:-4] + '_contour.png', cutout)
     cutout = cv2.imread(data[:-4] + '_contour.png')
 
+    used_platform = platform.system()
+
     if used_platform == "Linux":
         os.system("rm " + data[:-4] + '_contour.png')
     else:
@@ -432,7 +434,7 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
 
     # cutout = cv2.imread(source, 1)  # TEMPORARY
 
-    cutout_blurred = cv2.GaussianBlur(cutout, (9, 9), 0)
+    cutout_blurred = cv2.GaussianBlur(cutout, (5, 5), 0)
 
     gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
     # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,

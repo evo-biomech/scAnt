@@ -461,7 +461,7 @@
       </rect>
      </property>
      <property name="minimum">
-      <number>-40000</number>
+      <number>-45000</number>
      </property>
      <property name="maximum">
       <number>0</number>
@@ -658,7 +658,7 @@
       <number>0</number>
      </property>
      <property name="minimum">
-      <double>-40000.000000000000000</double>
+      <double>-45000.000000000000000</double>
      </property>
      <property name="maximum">
       <double>0.000000000000000</double>
@@ -1986,7 +1986,7 @@
      <x>0</x>
      <y>0</y>
      <width>1420</width>
-     <height>22</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuScanner">

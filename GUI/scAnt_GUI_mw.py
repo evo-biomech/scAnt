@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'scAnt_GUI_mw.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.13.0
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -156,7 +158,7 @@ class Ui_MainWindow(object):
         self.label_setRangeZMin.setObjectName("label_setRangeZMin")
         self.horizontalSlider_zAxis = QtWidgets.QSlider(self.frame_stepperControl)
         self.horizontalSlider_zAxis.setGeometry(QtCore.QRect(50, 260, 450, 20))
-        self.horizontalSlider_zAxis.setMinimum(-40000)
+        self.horizontalSlider_zAxis.setMinimum(-45000)
         self.horizontalSlider_zAxis.setMaximum(0)
         self.horizontalSlider_zAxis.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider_zAxis.setObjectName("horizontalSlider_zAxis")
@@ -227,7 +229,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         self.doubleSpinBox_zMin.setFont(font)
         self.doubleSpinBox_zMin.setDecimals(0)
-        self.doubleSpinBox_zMin.setMinimum(-40000.0)
+        self.doubleSpinBox_zMin.setMinimum(-45000.0)
         self.doubleSpinBox_zMin.setMaximum(0.0)
         self.doubleSpinBox_zMin.setSingleStep(1000.0)
         self.doubleSpinBox_zMin.setProperty("value", -20000.0)
@@ -698,7 +700,7 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1420, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1420, 18))
         self.menubar.setObjectName("menubar")
         self.menuScanner = QtWidgets.QMenu(self.menubar)
         self.menuScanner.setObjectName("menuScanner")
@@ -773,4 +775,3 @@ class Ui_MainWindow(object):
         self.label_progressTotal.setText(_translate("MainWindow", "Progress"))
         self.label_log.setText(_translate("MainWindow", "Log"))
         self.menuScanner.setTitle(_translate("MainWindow", "Scanner"))
-
