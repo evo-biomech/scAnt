@@ -476,17 +476,27 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
     if create_cutout:
-        image_cleaned_white = cv2.imread(data[:-4] + "_masked.png", cv2.IMREAD_GRAYSCALE)
+        image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
         cutout = cv2.imread(data)
         # create the image with an alpha channel
         # smooth masks prevent sharp features along the outlines from being falsely matched
+        """
         smooth_mask = cv2.GaussianBlur(image_cleaned_white, (11, 11), 0)
         rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
-
         # assign the mask to the last channel of the image
         rgba[:, :, 3] = smooth_mask
         # save as lossless png
         cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
+        """
+
+        _, mask = cv2.threshold(cv2.cvtColor(image_cleaned_white, cv2.COLOR_BGR2GRAY), 240, 255, cv2.THRESH_BINARY)
+        print(cutout.shape)
+        img_jpg = cv2.bitwise_not(cv2.bitwise_not(cutout[:, :, :3], mask=mask))
+
+        print(img_jpg.shape)
+        img_jpg[np.where((img_jpg == [255, 255, 255]).all(axis=2))] = [0, 0, 0]
+        cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
+
 
 
 def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout=False):

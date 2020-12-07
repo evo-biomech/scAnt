@@ -251,7 +251,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
 
         # stack and mask images
-        self.maxStackThreads = int(getThreads() / 4)
+        self.maxStackThreads = int(getThreads() / 6)
         self.activeThreads = 0
         self.stackList = []
 
@@ -829,7 +829,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
 
             if self.createCutout:
-                write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.tif', custom_exif_dict=self.exif)
+                write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
 
         self.activeThreads -= 1
 

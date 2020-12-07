@@ -121,7 +121,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
