@@ -1,6 +1,6 @@
 # scAnt - Open Source 3D Scanner
 
-**scAnt** is a completely open source and low-cost macro 3D scanner, designed to digitise insects of a vast size range and in full colour. Aiming to automate the capturing process of specimens as much as possible, the project comes complete with example configurations for the scanning process, as well as additional scripts including stacking and complex masking of images to prepare them for various photogrammetry software of your choice! For a look at a few **scAnt** results check-out http://bit.ly/ScAnt-3D
+**scAnt** is a completely open source and low-cost macro 3D scanner, designed to digitise insects of a vast size range and in full colour. Aiming to automate the capturing process of specimens as much as possible, the project comes complete with example configurations for the scanning process, as well as additional scripts including stacking and complex masking of images to prepare them for various photogrammetry software of your choice! For a look at a few **scAnt** results check-out http://bit.ly/ScAnt-3D as well as our [Sketchfab Collection](https://sketchfab.com/EvoBiomech/collections/scant-collection)!
 
 ![](images/model_collection_showcase_04.png)
 
