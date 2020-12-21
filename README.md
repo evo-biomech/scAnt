@@ -135,6 +135,28 @@ sudo apt install libimage-exiftool-perl
 
 ### Windows 10
 
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
+
+[meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+
+
+**FLIR Support / Spinnaker / Windows**
+
+*download the SpinnakerSDK_FULL_*.*.*.*_x64.exe file for your architecture (usually x64)*
+
+**FLIR Support / Spinnaker / Windows / python**
+
+*depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m_linux_x86_64.tar.gz***
+
+
+Unpack all files in a folder of your choice. Then proceed with the following steps:
+
+1. Install the SpinnakerSDK...exe and make sure you:
+* choose **Application Development** in the installation profile.
+* if you have **not** installed Visual Studio, choose the latest version shown in the installer and the recommeneded packages
+
+2. ---
+
 ***
 
 ## Meshroom Guide
