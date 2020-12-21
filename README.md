@@ -37,10 +37,10 @@ If you do not wish to install the pre-configured environment, here are the depen
   - scikit-image
 
 
-Additional drivers and libraries for the camera and stepper drivers may need to be installed, as described for both Ubuntu and Windows below.
+Additional drivers and libraries for the camera and stepper drivers need to be installed, as described for both Ubuntu and Windows below.
 ***
 
-**Ubuntu 18.04**
+### Ubuntu 18.04
 
 Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
 
@@ -133,7 +133,7 @@ sudo apt install libimage-exiftool-perl
 
 ***
 
-**Windows** installation guide coming soon
+### Windows 10
 
 ***
 
