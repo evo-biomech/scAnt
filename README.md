@@ -91,7 +91,7 @@ If a live preview of the camera appears for a few seconds and an example image i
 
 **Stepper driver setup**
 
-1. The Pololu stepper drivers can be controlled and set up via a console. Download the drivers specific to your system from [pololu.com](https://www.pololu.com/docs/0J71/3), which also provides additional information regarding installation and a list of supported commands. All drivers are open-source, and the respective code can be found on [Pololu's Git](https://github.com/pololu/pololu-tic-software).
+1. The Pololu stepper drivers can be controlled and set up via a console. Download the drivers specific to your system from [pololu.com](https://www.pololu.com/docs/0J71/3.2), which also provides additional information regarding installation and a list of supported commands. All drivers are open-source, and the respective code can be found on [Pololu's Git](https://github.com/pololu/pololu-tic-software).
 
 2. Unpack the downloaded .tar.xy file and install the driver:
 
@@ -104,7 +104,7 @@ sudo pololu-tic-*/install.sh
 4. If one or all of the stepper controllers were previously plugged into your computer re-plug them, so they are recognised correctly by your computer. Now, open the terminal and run:
 
 ```bash
-ticcmd –list
+ticcmd --list
 ```
 
 This should output a list of all connected USB stepper drivers.
@@ -144,6 +144,17 @@ Download the drivers and python bindings for **Spinnaker & Pyspin** from the off
 
 *download the SpinnakerSDK_FULL_*.*.*.*_x64.exe file for your architecture (usually x64)*
 
+### Windows 10
+
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
+
+[meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+
+
+**FLIR Support / Spinnaker / Windows**
+
+*download the SpinnakerSDK_FULL_x.x.x.x_x64.exe file for your architecture (usually x64)*
+
 **FLIR Support / Spinnaker / Windows / python**
 
 *depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m_linux_x86_64.tar.gz***
@@ -151,11 +162,58 @@ Download the drivers and python bindings for **Spinnaker & Pyspin** from the off
 
 Unpack all files in a folder of your choice. Then proceed with the following steps:
 
-1. Install the SpinnakerSDK...exe and make sure you:
+1. Install the SpinnakerSDK...exe:
 * choose **Application Development** in the installation profile.
 * if you have **not** installed Visual Studio, choose the latest version shown in the installer and the recommeneded packages
+* select "I will use GigE cameras" if applicable (we use a USB 3.0 version of the FLIR BFS) 
+* no need to participate in any evaluation programs if you don't want to
 
-2. ---
+2. Next, install the downloaded **.whl** file for your python environment. Ensure you activate your python environment before running the **pip install** command below. Ensure your python environment is active.
+
+```bash
+pip install spinnaker_python-x.x.x.x-cpX-cpXm-win_amd64.whl
+```
+
+3. To verify everything has been installed correctly, run **Live_view_FLIR.py** from the GUI folder. 
+
+```bash
+cd scant/GUI
+python Live_view_FLIR.py
+```
+
+If a live preview of the camera appears for a few seconds and an example image is saved (within the GUI folder), all camera drivers and libraries have been installed correctly.
+
+**Stepper driver setup**
+
+1. The Pololu stepper drivers can be controlled and set up via a console. Download the drivers specific to your system from [pololu.com](https://www.pololu.com/docs/0J71/3.1), which also provides additional information regarding installation and a list of supported commands. All drivers are open-source, and the respective code can be found on [Pololu's Git](https://github.com/pololu/pololu-tic-software).
+
+2. Unpack the downloaded pololu-tic-x.x.x-win.msi file and install the driver:
+* double click the file to start the installation
+* check "Add the bin directory to the **PATH environment variable**"
+
+3. If one or all of the stepper controllers were previously plugged into your computer re-plug them, so they are recognised correctly by your computer. Now, open the terminal and run:
+
+```bash
+ticcmd --list
+```
+
+This should output a list of all connected USB stepper drivers.
+
+4. To test which number corresponds to which stepper launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in editor  and add the IDs of each the stepper to the corresponding axes.
+
+5. Now that your camera and steppers are all set up, you can run a complete functionality check of the scanner by running the **Scanner_Controller.py** script.
+
+```bash
+cd scAnt/scripts
+python Scanner_Controller.py
+```
+- the scanner will then home all axes, drive to a set of example positions and capture images as it would during scanning for a very coarse grid.
+- If no errors appear, images will be saved and “Demo completed successfully” is printed to the console
+
+
+**Image Processing**
+
+A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each access to their source code, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/) documentation. For windows, we provide a set of precombpiled executable files of the required applications in **/external**.
 
 ***
 
