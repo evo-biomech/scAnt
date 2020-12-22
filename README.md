@@ -13,9 +13,18 @@ All structural components of the scanner can be manufactured using 3D-printing a
 
 The easiest way to get your scanner up and running is through installation of our pre-configured anaconda environment:
 
+**for Ubuntu 18.04**
+
 ```bash
 cd conda_environment
 conda env create -f scAnt_UBUNTU.yml
+```
+
+**for Windows 10**
+
+```bash
+cd conda_environment
+conda env create -f scAnt_WINDOWS.yml
 ```
 
 After the environment has been created successfully, re-start the terminal, and run the following line to activate the environment, and to continue the installation.
