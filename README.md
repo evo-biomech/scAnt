@@ -144,17 +144,6 @@ Download the drivers and python bindings for **Spinnaker & Pyspin** from the off
 
 **FLIR Support / Spinnaker / Windows**
 
-*download the SpinnakerSDK_FULL_*.*.*.*_x64.exe file for your architecture (usually x64)*
-
-### Windows 10
-
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
-
-[meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
-
-
-**FLIR Support / Spinnaker / Windows**
-
 *download the SpinnakerSDK_FULL_x.x.x.x_x64.exe file for your architecture (usually x64)*
 
 **FLIR Support / Spinnaker / Windows / python**
