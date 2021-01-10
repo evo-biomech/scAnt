@@ -118,7 +118,13 @@ ticcmd --list
 
 This should output a list of all connected USB stepper drivers.
 
-6. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the IDs of each the stepper to the corresponding axes.
+6. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
+
+```python
+self.stepperX_ID = "XXXXXXXX"
+self.stepperY_ID = "YYYYYYYY"
+self.stepperZ_ID = "ZZZZZZZZ"
+```
 
 7. Now that your camera and steppers are all set up, you can run a complete functionality check of the scanner by running the **Scanner_Controller.py** script.
 
@@ -199,7 +205,13 @@ ticcmd --list
 
 This should output a list of all connected USB stepper drivers.
 
-4. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the IDs of each the stepper to the corresponding axes.
+4. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
+
+```python
+self.stepperX_ID = "XXXXXXXX"
+self.stepperY_ID = "YYYYYYYY"
+self.stepperZ_ID = "ZZZZZZZZ"
+```
 
 5. Now that your camera and steppers are all set up, you can run a complete functionality check of the scanner by running the **Scanner_Controller.py** script.
 
