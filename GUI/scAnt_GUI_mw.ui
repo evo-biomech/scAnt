@@ -957,7 +957,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>80</y>
+       <y>120</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -975,7 +975,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>160</y>
+       <y>200</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -993,7 +993,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>200</y>
+       <y>240</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -1011,7 +1011,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>240</y>
+       <y>280</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -1029,7 +1029,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>280</y>
+       <y>320</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -1043,29 +1043,11 @@
       <string>Balance Ratio (blue)</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_blackLevel">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>320</y>
-       <width>171</width>
-       <height>20</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>10</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Black Level</string>
-     </property>
-    </widget>
     <widget class="QLabel" name="label_exposureAuto">
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>40</y>
+       <y>80</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -1083,7 +1065,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>40</y>
+       <y>80</y>
        <width>61</width>
        <height>21</height>
       </rect>
@@ -1104,7 +1086,7 @@
      <property name="geometry">
       <rect>
        <x>30</x>
-       <y>120</y>
+       <y>160</y>
        <width>171</width>
        <height>20</height>
       </rect>
@@ -1122,7 +1104,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>120</y>
+       <y>160</y>
        <width>61</width>
        <height>21</height>
       </rect>
@@ -1180,7 +1162,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>80</y>
+       <y>120</y>
        <width>121</width>
        <height>22</height>
       </rect>
@@ -1210,7 +1192,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>160</y>
+       <y>200</y>
        <width>121</width>
        <height>22</height>
       </rect>
@@ -1237,7 +1219,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>200</y>
+       <y>240</y>
        <width>121</width>
        <height>22</height>
       </rect>
@@ -1267,7 +1249,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>240</y>
+       <y>280</y>
        <width>121</width>
        <height>22</height>
       </rect>
@@ -1297,7 +1279,7 @@
      <property name="geometry">
       <rect>
        <x>200</x>
-       <y>280</y>
+       <y>320</y>
        <width>121</width>
        <height>22</height>
       </rect>
@@ -1321,36 +1303,6 @@
      </property>
      <property name="value">
       <double>1.790000000000000</double>
-     </property>
-    </widget>
-    <widget class="QDoubleSpinBox" name="doubleSpinBox_blackLevel">
-     <property name="geometry">
-      <rect>
-       <x>200</x>
-       <y>320</y>
-       <width>121</width>
-       <height>22</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>10</pointsize>
-      </font>
-     </property>
-     <property name="decimals">
-      <number>2</number>
-     </property>
-     <property name="minimum">
-      <double>-5.000000000000000</double>
-     </property>
-     <property name="maximum">
-      <double>10.000000000000000</double>
-     </property>
-     <property name="singleStep">
-      <double>0.500000000000000</double>
-     </property>
-     <property name="value">
-      <double>0.000000000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_highlightExposure">
@@ -1387,6 +1339,34 @@
      </property>
      <property name="text">
       <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_selectCamera">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>40</y>
+       <width>171</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Select Camera</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_selectCamera">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>40</y>
+       <width>151</width>
+       <height>22</height>
+      </rect>
      </property>
     </widget>
    </widget>
@@ -1986,7 +1966,7 @@
      <x>0</x>
      <y>0</y>
      <width>1420</width>
-     <height>18</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuScanner">

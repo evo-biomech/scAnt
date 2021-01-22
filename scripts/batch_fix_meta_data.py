@@ -8,7 +8,7 @@ import time
 from scripts.mask_generator import apply_local_contrast
 
 # enter the folder to your project here
-folder = Path("J:\\0500_um\\stacked")
+folder = Path("C:\\Users\\Legos\\Desktop\\3D_scans\\0050_um\\RAW_stacked")
 config = read_config_file(Path.cwd().parent.joinpath("example_config.yaml"))
 exif = config["exif_data"]
 use_CLAHE = False

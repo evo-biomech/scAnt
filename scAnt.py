@@ -122,6 +122,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
         self.cam = customFLIR()
+        # camera needs to be initialised before use (self.cam.initialise_camera)
+        # all detected FLIR cameras are listed in self.cam.device_names
+        self.cam.initialise_camera(select_cam=0)
+
+        for cam in self.cam.device_names:
+            self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
+
+        self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
 
         self.scanner = ScannerController()
         # set the used camera as the camera of the scanner as well
@@ -143,7 +151,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.doubleSpinBox_balanceRatioBlue.valueChanged.connect(self.set_balance_ratio)
 
-        self.ui.doubleSpinBox_blackLevel.valueChanged.connect(self.set_black_level)
+        # TODO Add support for Black level selection
+        # self.ui.doubleSpinBox_blackLevel.valueChanged.connect(self.set_black_level)
 
         self.ui.pushButton_xHome.pressed.connect(self.homeX)
 
@@ -379,6 +388,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     Camera Settings
     """
 
+    def select_camera(self):
+        for ID, cam in enumerate(self.cam.device_names):
+            if self.ui.comboBox_selectCamera.currentText() == str(cam[0] + " ID: " + cam[1]):
+                # stop the live view if currently in use
+                if self.liveView:
+                    self.begin_live_view()  # sets live view false if already running
+                # de-initialise the previous camera before setting up the newly selected one
+                self.cam.deinitialise_camera()
+                self.cam.initialise_camera(select_cam=ID)
+                self.log_info("Camera in use: " + str(cam[0] + " ID: " + cam[1]))
+                self.begin_live_view()
+
     def check_exposure(self):
         if self.ui.checkBox_exposureAuto.isChecked():
             self.set_exposure_auto()
@@ -549,8 +570,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
             self.set_balance_ratio()
 
-            self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
-            self.set_black_level()
+            # self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
+            # self.set_black_level()
 
             # scanner_settings
             self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
@@ -616,7 +637,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                       'gamma': self.ui.doubleSpinBox_gamma.value(),
                                       'balance_ratio_red': self.ui.doubleSpinBox_balanceRatioRed.value(),
                                       'balance_ratio_blue': self.ui.doubleSpinBox_balanceRatioBlue.value(),
-                                      'black_level': self.ui.doubleSpinBox_blackLevel.value()},
+                                      # 'black_level': self.ui.doubleSpinBox_blackLevel.value()
+                                      },
                   'scanner_settings': {'x_min': self.ui.doubleSpinBox_xMin.value(),
                                        'x_max': self.ui.doubleSpinBox_xMax.value(),
                                        'x_step': self.ui.doubleSpinBox_xStep.value(),
@@ -708,7 +730,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_gamma.setEnabled(enableInputs)
         self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(enableInputs)
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(enableInputs)
-        self.ui.doubleSpinBox_blackLevel.setEnabled(enableInputs)
+        # self.ui.doubleSpinBox_blackLevel.setEnabled(enableInputs)
 
         self.ui.lineEdit_projectName.setEnabled(enableInputs)
 

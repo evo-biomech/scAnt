@@ -11,7 +11,7 @@ else:
     from PySpin import PySpin  # to run on windows
 
 
-class customFLIR:
+class customFLIR():
 
     def __init__(self):
 
@@ -20,12 +20,27 @@ class customFLIR:
 
         # Get current library version
         version = self.system.GetLibraryVersion()
-        print('Library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
+        print('Spinnaker library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
 
         # Retrieve list of cameras from the system
         self.cam_list = self.system.GetCameras()
 
-        # use first camera in retrieved list (so currently only supports one connected camera at a time)
+        # get all serial numbers of connected and support FLIR cameras
+        self.device_names = []
+
+        for id, cam in enumerate(self.cam_list):
+            nodemap = cam.GetTLDeviceNodeMap()
+
+            # Retrieve device serial number
+            node_device_serial_number = PySpin.CStringPtr(nodemap.GetNode("DeviceSerialNumber"))
+            node_device_model = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
+
+            if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
+                self.device_names.append([node_device_model.GetValue(), node_device_serial_number.GetValue()])
+
+            print("Detected", self.device_names[id][0], "with Serial ID", self.device_names[id][1])
+
+        # by default, use the first camera in the retrieved list
         self.cam = self.cam_list[0]
 
         num_cameras = self.cam_list.GetSize()
@@ -44,6 +59,12 @@ class customFLIR:
             input('Done! Press Enter to exit...')
             return False
 
+        print("\nExecute CustomFLIR.initialise_camera and pass the number of the listed camera, "
+              "in case more than one has been detected!\n")
+
+    def initialise_camera(self, select_cam=0):
+        # overwrite the selected cam at initialisation if desired
+        self.cam = self.cam_list[select_cam]
         # initialise camera, apply settings and begin acquisition
         # Initialize camera
         self.cam.Init()
@@ -65,6 +86,12 @@ class customFLIR:
 
         # Begin Acquisition of image stream
         self.cam.BeginAcquisition()
+
+    def deinitialise_camera(self):
+        # required to release camera for other applications in case another one is selected while running scAnt
+        self.cam.EndAcquisition()
+        # Deinitialize camera
+        self.cam.DeInit()
 
     def configure_exposure(self, exposure_time_to_set=100000):
         """
@@ -319,6 +346,7 @@ class customFLIR:
         # Release system instance
         self.system.ReleaseInstance()
 
+
     def showExposure(self, img):
         """ ### pass recorded images into this function to return overlaid exposure warnings / histogram"""
         # code altered from official openCV documentation
@@ -396,10 +424,11 @@ class customFLIR:
 
 
 if __name__ == '__main__':
-    display_for_num_images = 50
+    display_for_num_images = 10
 
     # initialise camera
     FLIR = customFLIR()
+    FLIR.initialise_camera(select_cam=0)
 
     # custom settings
     gain = 5
