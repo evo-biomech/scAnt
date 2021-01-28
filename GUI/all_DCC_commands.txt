@@ -1,0 +1,156 @@
+Find all single line commands here:
+http://digicamcontrol.com/doc/userguide/singlecmd
+
+and additional remote commands here:
+http://digicamcontrol.com/doc/userguide/remoteutil
+
+
+/help                     - this screen
+/capture                  - capture photo
+/capturenoaf              - capture photo without autofocus
+/captureall               - capture photo with all connected devices
+/captureallnoaf           - capture photo without autofocus with all devices
+/format                   - format camera card(s)
+/session session_name     - use session [session_name]
+/preset preset_name       - use preset [preset_name]
+/folder path              - set the photo save folder
+/filenametemplate template- set the photo save file name template
+/filename fileName        - set the photo save file name
+/counter number           - set the photo initial counter
+/wait [mseconds]          - after done wait for a keypress 
+                            or specified number of milliseconds
+--------------------------------------------------------
+For single camera usage :
+--------------------------------------------------------
+/iso isonumber             - set the iso number ex. 100 200 400
+/aperture aperture         - set the aperture number ex. 9.5 8.0
+/shutter shutter speed     - set the shutter speed ex. "1/50" "1/250" 1s 3s
+/ec compensation           - set the exposure comp. -1.5 +2.0
+
+
+Further commands:
+
+"All_Close",
+"All_Minimize",
+"AstroLiveViewWnd_Hide",
+"AstroLiveViewWnd_Show",
+"BarcodeWnd_Hide",
+"BarcodeWnd_Show",
+"BrowseWnd_Hide",
+"BrowseWnd_Show",
+"BulbCaptureStart",
+"BulbCaptureStop",
+"BulbScriptStart",
+"BulbScriptStop",
+"BulbWnd_Hide",
+"BulbWnd_Show",
+"CameraPropertyWnd_Hide",
+"CameraPropertyWnd_Show",
+"Capture",
+"CaptureAll",
+"CaptureNoAf",
+"Del_Image",
+"DownloadPhotosWnd_Hide",
+"DownloadPhotosWnd_Show",
+"EndBulb",
+"FocusStackingWnd_Hide",
+"FocusStackingWnd_Show",
+"FullScreenWnd_Hide",
+"FullScreenWnd_Show",
+"FullScreenWnd_ShowTimed",
+"Like_Image",
+"LiveView_Capture",
+"LiveView_CaptureSnapShot",
+"LiveView_Focus",
+"LiveView_Focus_M",
+"LiveView_Focus_MM",
+"LiveView_Focus_MMM",
+"LiveView_Focus_Move_Down",
+"LiveView_Focus_Move_Left",
+"LiveView_Focus_Move_Right",
+"LiveView_Focus_Move_Up",
+"LiveView_Focus_P",
+"LiveView_Focus_PP",
+"LiveView_Focus_PPP",
+"LiveView_ManualFocus",
+"LiveView_NoProcess",
+"LiveView_Preview",
+"LiveView_Zoom_100",
+"LiveView_Zoom_25",
+"LiveView_Zoom_33",
+"LiveView_Zoom_50",
+"LiveView_Zoom_66",
+"LiveView_Zoom_All",
+"LiveViewWnd_Hide",
+"LiveViewWnd_Maximize",
+"LiveViewWnd_Message",
+"LiveViewWnd_Show",
+"LiveViewWnd_StartMotionDetection",
+"LiveViewWnd_StartRecord",
+"LiveViewWnd_StopMotionDetection",
+"LiveViewWnd_StopRecord",
+"MainWnd_Message",
+"MultipleCamera_Reset",
+"MultipleCamera_Start",
+"MultipleCamera_Stop",
+"MultipleCameraWnd_Hide",
+"MultipleCameraWnd_Show",
+"MultipleLiveView_Col",
+"MultipleLiveView_Row",
+"MultipleLiveView_Start",
+"MultipleLiveView_Stop",
+"MultipleLiveViewWnd_Hide",
+"MultipleLiveViewWnd_Maximize",
+"MultipleLiveViewWnd_Show",
+"Next_Image",
+"NextAperture",
+"NextCamera",
+"NextExposureCompensation",
+"NextIso",
+"NextSeries",
+"NextShutter",
+"NextWhiteBalance",
+"Prev_Image",
+"PrevAperture",
+"PrevCamera",
+"PrevExposureCompensation",
+"PrevIso",
+"PrevShutter",
+"PrevWhiteBalance",
+"PrintWnd_Hide",
+"PrintWnd_Show",
+"Refresh_Image",
+"RefreshDisplay",
+"ResetDevice",
+"Restore",
+"RotateLeft",
+"RotateRight",
+"ScriptWnd_Hide",
+"ScriptWnd_Show",
+"Select_Image",
+"SelectAll_Image",
+"SetLayout",
+"SortCameras",
+"StartBulb",
+"StartZoomIn",
+"StartZoomOut",
+"StatisticsWnd_Hide",
+"StatisticsWnd_Show",
+"StopZoomIn",
+"StopZoomOut",
+"TagSelectorWnd_Hide",
+"TagSelectorWnd_Show",
+"TimeLapse_Start",
+"TimeLapse_Stop",
+"TimeLapseWnd_Hide",
+"TimeLapseWnd_Show",
+"Unlike_Image",
+"ViewExplorer",
+"ViewExternal",
+"Zoom_Image_100",
+"Zoom_Image_200",
+"Zoom_Image_60",
+"Zoom_Image_Fit",
+"ZoomPoint",
+"StartRecord",
+"StopRecord"
