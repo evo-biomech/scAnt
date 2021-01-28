@@ -116,10 +116,11 @@ if __name__ == '__main__':
     # where to save images
     current_folder = str(Path.cwd().parent)
 
-    # calling the class for the first time is meant to aid in findind attached cameras.
+    # calling the class for the first time is meant to aid in finding attached cameras.
     # the name of the connected camera is then stored in DSLR.camera_model
     DSLR = customDSLR()
     if DSLR.camera_model is None:
+        # exit program when no camera is connected
         exit()
 
     # if a camera is connected, it needs to be initialised before use
