@@ -8,7 +8,6 @@ camera_settings:
   gamma: 0.8
   balance_ratio_red: 1.58
   balance_ratio_blue: 1.79
-  black_level: 0.0
 scanner_settings:
   x_min: 0.0
   x_max: 400.0

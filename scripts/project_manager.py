@@ -8,6 +8,8 @@ List of parameters:
 project_name:
 
 # camera settings
+camera_type:
+camera_model:
 exposure_auto:
 exposure_time:
 gain_auto:
@@ -15,7 +17,11 @@ gain_level:
 gamma:
 balance_ratio_red:
 balance_ratio_blue:
-black_level:
+shutterspeed:
+aperture:
+iso:
+whitebalance:
+compression:
 
 # stacking
 stack_images:

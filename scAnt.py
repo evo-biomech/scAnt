@@ -629,7 +629,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         elif self.ui.comboBox_stackingMethod.currentIndex() == 2:
             stacking_method = "mask"
 
-        config = {'general': {'project_name': self.ui.lineEdit_projectName.text()},
+        config = {'general': {'project_name': self.ui.lineEdit_projectName.text(),
+                              'camera_type': "",
+                              'camera_model': "",
+                              },
                   'camera_settings': {'exposure_auto': self.ui.checkBox_exposureAuto.isChecked(),
                                       'exposure_time': self.ui.doubleSpinBox_exposureTime.value(),
                                       'gain_auto': self.ui.checkBox_gainAuto.isChecked(),
@@ -637,7 +640,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                       'gamma': self.ui.doubleSpinBox_gamma.value(),
                                       'balance_ratio_red': self.ui.doubleSpinBox_balanceRatioRed.value(),
                                       'balance_ratio_blue': self.ui.doubleSpinBox_balanceRatioBlue.value(),
-                                      # 'black_level': self.ui.doubleSpinBox_blackLevel.value()
+                                      # values specific to DSLR cameras
+                                      'camera_type': "",
+                                      'camera_model': "",
+                                      'shutterspeed': "",
+                                      'aperture': "",
+                                      'iso': "",
+                                      'whitebalance': "",
+                                      'compression': ""
                                       },
                   'scanner_settings': {'x_min': self.ui.doubleSpinBox_xMin.value(),
                                        'x_max': self.ui.doubleSpinBox_xMax.value(),
