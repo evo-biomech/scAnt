@@ -132,8 +132,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
 
         self.scanner = ScannerController()
-        # set the used camera as the camera of the scanner as well
-        self.scanner.initCam(self.cam)
 
         self.threadpool = QtCore.QThreadPool()
 
