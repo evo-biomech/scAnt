@@ -131,7 +131,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
 
-        self.scanner = ScannerController()
+        try:
+            self.scanner = ScannerController()
+            self.scanner_initialised = True
+        except IndexError:
+            self.scanner_initialised = False
+            self.disable_stepper_inputs()
 
         self.threadpool = QtCore.QThreadPool()
 
@@ -174,37 +179,38 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.horizontalSlider_zAxis.valueChanged.connect(self.updateDisplayZ)
 
-        self.deEnergise()
+        if self.scanner_initialised:
+            # disable stepper control before they have been homed (except for y axis)
+            self.deEnergise()
+            self.homed_X = False
+            self.homed_Z = False
+            self.ui.horizontalSlider_xAxis.setEnabled(False)
+            self.ui.horizontalSlider_zAxis.setEnabled(False)
+            self.resetY()
 
-        # disable stepper control before they have been homed (except for y axis)
-        self.homed_X = False
-        self.homed_Z = False
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
-        self.resetY()
+            # get default scanner Range
+            self.ui.doubleSpinBox_xMin.setValue(self.scanner.scan_pos[0][0])
+            self.ui.doubleSpinBox_xMax.setValue(self.scanner.scan_pos[0][-1] + self.scanner.scan_stepSize[0])
+            self.ui.doubleSpinBox_yMin.setValue(self.scanner.scan_pos[1][0])
+            self.ui.doubleSpinBox_yMax.setValue(self.scanner.scan_pos[1][-1] + self.scanner.scan_stepSize[1])
+            self.ui.doubleSpinBox_zMin.setValue(self.scanner.scan_pos[2][0])
+            self.ui.doubleSpinBox_zMax.setValue(self.scanner.scan_pos[2][-1] + self.scanner.scan_stepSize[2])
 
-        # get default scanner Range
-        self.ui.doubleSpinBox_xMin.setValue(self.scanner.scan_pos[0][0])
-        self.ui.doubleSpinBox_xMax.setValue(self.scanner.scan_pos[0][-1] + self.scanner.scan_stepSize[0])
-        self.ui.doubleSpinBox_yMin.setValue(self.scanner.scan_pos[1][0])
-        self.ui.doubleSpinBox_yMax.setValue(self.scanner.scan_pos[1][-1] + self.scanner.scan_stepSize[1])
-        self.ui.doubleSpinBox_zMin.setValue(self.scanner.scan_pos[2][0])
-        self.ui.doubleSpinBox_zMax.setValue(self.scanner.scan_pos[2][-1] + self.scanner.scan_stepSize[2])
+            # adjust scanner range on input
+            self.ui.doubleSpinBox_xMin.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_xStep.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_xMax.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_yMin.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_yStep.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_yMax.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_zMin.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
 
-        # adjust scanner range on input
-        self.ui.doubleSpinBox_xMin.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_xStep.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_xMax.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_yMin.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_yStep.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_yMax.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_zMin.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
-        self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
+            self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
+                self.scanner.scan_pos[2])
 
         self.images_taken = 0
-        self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
-            self.scanner.scan_pos[2])
         self.progress = 0
 
         self.ui.pushButton_startScan.pressed.connect(self.runScanAndReport)
@@ -704,6 +710,26 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_yAxis.display(self.posY)
         self.ui.lcdNumber_zAxis.display(self.posZ)
 
+    def disable_stepper_inputs(self):
+        self.ui.horizontalSlider_xAxis.setEnabled(False)
+        self.ui.horizontalSlider_yAxis.setEnabled(False)
+        self.ui.horizontalSlider_zAxis.setEnabled(False)
+        self.ui.pushButton_xHome.setEnabled(False)
+        self.ui.pushButton_yReset.setEnabled(False)
+        self.ui.pushButton_zHome.setEnabled(False)
+        self.ui.doubleSpinBox_xMin.setEnabled(False)
+        self.ui.doubleSpinBox_yMin.setEnabled(False)
+        self.ui.doubleSpinBox_zMin.setEnabled(False)
+        self.ui.doubleSpinBox_xStep.setEnabled(False)
+        self.ui.doubleSpinBox_yStep.setEnabled(False)
+        self.ui.doubleSpinBox_zStep.setEnabled(False)
+        self.ui.doubleSpinBox_xMax.setEnabled(False)
+        self.ui.doubleSpinBox_yMax.setEnabled(False)
+        self.ui.doubleSpinBox_zMax.setEnabled(False)
+        self.ui.pushButton_Energise.setEnabled(False)
+        self.ui.pushButton_stepperDeEnergise.setEnabled(False)
+        self.ui.pushButton_startScan.setEnabled(False)
+
     def changeInputState(self):
         enableInputs = True
         if self.scanInProgress:
@@ -864,8 +890,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.activeThreads -= 1
 
     def closeEvent(self, event):
-        # de energise steppers
-        self.scanner.deEnergise()
+        if self.scanner_initialised:
+            # de energise steppers
+            self.scanner.deEnergise()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
         # end live view before releasing camera
