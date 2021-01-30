@@ -121,15 +121,26 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
-        self.cam = customFLIR()
-        # camera needs to be initialised before use (self.cam.initialise_camera)
-        # all detected FLIR cameras are listed in self.cam.device_names
-        self.cam.initialise_camera(select_cam=0)
-
-        for cam in self.cam.device_names:
-            self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
-
-        self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
+        try:
+            self.cam = customFLIR()
+            # camera needs to be initialised before use (self.cam.initialise_camera)
+            # all detected FLIR cameras are listed in self.cam.device_names
+            # by default, use the first camera found in the list
+            self.cam.initialise_camera(select_cam=0)
+            # now retrieve the name of all found FLIR cameras and add them to the camera selection
+            for cam in self.cam.device_names:
+                self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
+            self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
+            self.camera_type = "FLIR"
+            # cam.device_names contains both model and serial number
+            self.camera_model = self.cam.device_names[0][0]
+            self.FLIR_found = True
+        except IndexError:
+            warning = "No FLIR camera found!"
+            self.log_info(warning)
+            print(warning)
+            self.FLIR_found = False
+            self.disable_FLIR_inputs()
 
         try:
             self.scanner = ScannerController()
@@ -137,6 +148,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         except IndexError:
             self.scanner_initialised = False
             self.disable_stepper_inputs()
+            warning = "No Stepper Controller found!"
+            self.log_info(warning)
+            print(warning)
 
         self.threadpool = QtCore.QThreadPool()
 
@@ -403,6 +417,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.cam.initialise_camera(select_cam=ID)
                 self.log_info("Camera in use: " + str(cam[0] + " ID: " + cam[1]))
                 self.begin_live_view()
+                self.camera_model = self.cam.device_names[ID][0]
 
     def check_exposure(self):
         if self.ui.checkBox_exposureAuto.isChecked():
@@ -634,8 +649,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             stacking_method = "mask"
 
         config = {'general': {'project_name': self.ui.lineEdit_projectName.text(),
-                              'camera_type': "",
-                              'camera_model': "",
+                              'camera_type': self.camera_type,
+                              'camera_model': self.camera_model,
                               },
                   'camera_settings': {'exposure_auto': self.ui.checkBox_exposureAuto.isChecked(),
                                       'exposure_time': self.ui.doubleSpinBox_exposureTime.value(),
@@ -645,8 +660,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                       'balance_ratio_red': self.ui.doubleSpinBox_balanceRatioRed.value(),
                                       'balance_ratio_blue': self.ui.doubleSpinBox_balanceRatioBlue.value(),
                                       # values specific to DSLR cameras
-                                      'camera_type': "",
-                                      'camera_model': "",
                                       'shutterspeed': "",
                                       'aperture': "",
                                       'iso': "",
@@ -729,6 +742,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_Energise.setEnabled(False)
         self.ui.pushButton_stepperDeEnergise.setEnabled(False)
         self.ui.pushButton_startScan.setEnabled(False)
+
+    def disable_FLIR_inputs(self):
+        self.ui.checkBox_exposureAuto.setEnabled(False)
+        self.ui.doubleSpinBox_exposureTime.setEnabled(False)
+        self.ui.checkBox_gainAuto.setEnabled(False)
+        self.ui.doubleSpinBox_gainLevel.setEnabled(False)
+        self.ui.doubleSpinBox_gamma.setEnabled(False)
+        self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(False)
+        self.ui.doubleSpinBox_balanceRatioRed.setEnabled(False)
+        self.ui.pushButton_startLiveView.setEnabled(False)
+        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.pushButton_captureImage.setEnabled(False)
+        # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def changeInputState(self):
         enableInputs = True
@@ -890,15 +916,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.activeThreads -= 1
 
     def closeEvent(self, event):
+        # de-energise steppers, if connected
         if self.scanner_initialised:
             # de energise steppers
             self.scanner.deEnergise()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
+
         # end live view before releasing camera
         self.liveView = False
-        # release camera
-        self.cam.exit_cam()
+
+        if self.FLIR_found:
+            # release camera
+            self.cam.exit_cam()
         print("Application Closed!")
         exit()
 
