@@ -1,0 +1,49 @@
+general:
+  project_name: test_project
+  camera_type: DSLR
+  camera_model: D850
+camera_settings:
+  exposure_auto: ''
+  exposure_time: ''
+  gain_auto: ''
+  gain_level: ''
+  gamma: ''
+  balance_ratio_red: ''
+  balance_ratio_blue: ''
+  shutterspeed: 1/50
+  aperture: 3.5
+  iso: 500
+  whitebalance: KELVIN
+  compression: JPEG (FINE)
+scanner_settings:
+  x_min: 0.0
+  x_max: 450.0
+  x_step: 50.0
+  y_min: 0.0
+  y_max: 1600.0
+  y_step: 80.0
+  z_min: -20000.0
+  z_max: -8000.0
+  z_step: 500.0
+stacking:
+  stack_images: false
+  stacking_method: default
+  threshold: 10
+  display_focus_check: false
+  additional_sharpening: false
+masking:
+  mask_images: false
+  mask_thresh_min: 175
+  mask_thresh_max: 215
+  min_artifact_size_black: 1000
+  min_artifact_size_white: 2000
+exif_data:
+  Make: NIKON
+  Model: D850
+  SerialNumber: '18382947'
+  Lens: Nikkor
+  CameraSerialNumber: '18382947'
+  LensManufacturer: Computar
+  LensModel: 35.0 f / 2.2
+  FocalLength: '35.0'
+  FocalLengthIn35mmFormat: '95.0'
