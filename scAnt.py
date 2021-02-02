@@ -24,6 +24,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 import scripts.project_manager as ymlRW
 from GUI.Live_view_FLIR import customFLIR
+from GUI.Live_view_DSLR import customDSLR
 from scripts.Scanner_Controller import ScannerController
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
 from scripts.processStack import getThreads, stack_images, mask_images
@@ -121,16 +122,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
+        # Find FLIR cameras, if attached
         try:
-            self.cam = customFLIR()
+            self.FLIR = customFLIR()
             # camera needs to be initialised before use (self.cam.initialise_camera)
             # all detected FLIR cameras are listed in self.cam.device_names
             # by default, use the first camera found in the list
+            self.cam = self.FLIR
             self.cam.initialise_camera(select_cam=0)
             # now retrieve the name of all found FLIR cameras and add them to the camera selection
             for cam in self.cam.device_names:
                 self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
-            self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
             self.camera_type = "FLIR"
             # cam.device_names contains both model and serial number
             self.camera_model = self.cam.device_names[0][0]
@@ -141,6 +143,29 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print(warning)
             self.FLIR_found = False
             self.disable_FLIR_inputs()
+
+        try:
+            # TODO add support for the selection of multiple connected DSLR cameras
+            self.DSLR_initialised = False
+            self.DSLR = customDSLR()
+            self.log_info("Found " + str(self.DSLR.camera_model))
+            self.ui.comboBox_selectCamera.addItem(str(self.DSLR.camera_model))
+            if not self.FLIR_found:
+                self.cam = self.DSLR
+                self.camera_type = "DSLR"
+                self.camera_model = self.DSLR.camera_model
+
+                # launch DCC to access all settings and enable external live-view of the DSLR
+                worker = Worker(self.launch_DCC_threaded)
+                worker.signals.finished.connect(self.finished_DCC_launch)
+
+                self.threadpool.start(worker)
+
+        except:
+            print("No DSLRs connected")
+
+        # connect camera selection combo box to respective function
+        self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
 
         try:
             self.scanner = ScannerController()
@@ -407,17 +432,46 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     """
 
     def select_camera(self):
-        for ID, cam in enumerate(self.cam.device_names):
-            if self.ui.comboBox_selectCamera.currentText() == str(cam[0] + " ID: " + cam[1]):
-                # stop the live view if currently in use
-                if self.liveView:
-                    self.begin_live_view()  # sets live view false if already running
-                # de-initialise the previous camera before setting up the newly selected one
-                self.cam.deinitialise_camera()
-                self.cam.initialise_camera(select_cam=ID)
-                self.log_info("Camera in use: " + str(cam[0] + " ID: " + cam[1]))
-                self.begin_live_view()
-                self.camera_model = self.cam.device_names[ID][0]
+        self.disable_FLIR_inputs()
+        self.disable_DSLR_inputs()
+        selected_camera = self.ui.comboBox_selectCamera.currentText()
+        self.log_info("Selected camera: " + str(selected_camera))
+
+        # de-initialised previous FLIR, if it was in use
+        if self.camera_type == "FLIR":
+            # stop the live view if currently in use
+            if self.liveView:
+                self.begin_live_view()  # sets live view false if already running
+            # de-initialise the previous camera before setting up the newly selected one
+            self.cam.deinitialise_camera()
+
+        if selected_camera[0] == "B":  # check if selected model is a FLIR camera
+            for ID, FLIR in enumerate(self.FLIR.device_names):
+                if self.ui.comboBox_selectCamera.currentText() == str(FLIR[0] + " ID: " + FLIR[1]):
+                    self.cam = self.FLIR
+                    self.cam.initialise_camera(select_cam=ID)
+                    self.log_info("Camera in use: " + str(FLIR[0] + " ID: " + FLIR[1]))
+                    self.begin_live_view()
+                    self.camera_model = self.FLIR.device_names[ID][0]
+                    self.camera_type = "FLIR"
+                    self.enable_FLIR_inputs()
+        else:
+            self.cam = self.DSLR
+            self.camera_type = "DSLR"
+            self.camera_model = self.DSLR.camera_model
+            # initialise DSLR by launching an instance of DigiCamControl
+            worker = Worker(self.launch_DCC_threaded)
+            worker.signals.finished.connect(self.finished_DCC_launch)
+
+            self.threadpool.start(worker)
+
+    def launch_DCC_threaded(self, progress_callback):
+        self.cam.initialise_camera()
+        self.DSLR_initialised = True
+
+    def finished_DCC_launch(self):
+        self.log_info("Launched DCC and retrieved camera settings")
+        self.enable_DSLR_inputs()
 
     def check_exposure(self):
         if self.ui.checkBox_exposureAuto.isChecked():
@@ -526,8 +580,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         now = datetime.datetime.now()
 
         self.create_output_folders()
-
-        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H;%M;%S;%MS_" + ".tif")))
+        # create unique filename
+        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_" + ".tif")))
         self.cam.capture_image(file_name)
         self.log_info("Captured " + file_name)
 
@@ -742,6 +796,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_Energise.setEnabled(False)
         self.ui.pushButton_stepperDeEnergise.setEnabled(False)
         self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.lcdNumber_xAxis.setEnabled(False)
+        self.ui.lcdNumber_yAxis.setEnabled(False)
+        self.ui.lcdNumber_zAxis.setEnabled(False)
 
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
@@ -754,7 +811,30 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_startLiveView.setEnabled(False)
         self.ui.pushButton_startScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.checkBox_highlightExposure.setEnabled(False)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
+
+    def enable_FLIR_inputs(self):
+        self.ui.checkBox_exposureAuto.setEnabled(True)
+        self.ui.doubleSpinBox_exposureTime.setEnabled(True)
+        self.ui.checkBox_gainAuto.setEnabled(True)
+        self.ui.doubleSpinBox_gainLevel.setEnabled(True)
+        self.ui.doubleSpinBox_gamma.setEnabled(True)
+        self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(True)
+        self.ui.doubleSpinBox_balanceRatioRed.setEnabled(True)
+        self.ui.pushButton_startLiveView.setEnabled(True)
+        self.ui.pushButton_startScan.setEnabled(True)
+        self.ui.pushButton_captureImage.setEnabled(True)
+        self.ui.checkBox_highlightExposure.setEnabled(True)
+        # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
+
+    def enable_DSLR_inputs(self):
+        self.ui.pushButton_startScan.setEnabled(True)
+        self.ui.pushButton_captureImage.setEnabled(True)
+
+    def disable_DSLR_inputs(self):
+        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.pushButton_captureImage.setEnabled(False)
 
     def changeInputState(self):
         enableInputs = True
@@ -918,17 +998,20 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         # de-energise steppers, if connected
         if self.scanner_initialised:
+            print("de energising stepper motors")
             # de energise steppers
             self.scanner.deEnergise()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
 
-        # end live view before releasing camera
-        self.liveView = False
+        # stop the live view if currently in use
+        if self.liveView and self.camera_type == "FLIR":
+            self.begin_live_view()  # sets live view false if already running
 
-        if self.FLIR_found:
+        if self.camera_type == "FLIR":
             # release camera
             self.cam.exit_cam()
+
         print("Application Closed!")
         exit()
 
