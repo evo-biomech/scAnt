@@ -17,19 +17,26 @@ class customDSLR():
     def __init__(self):
 
         # get camera info. If none is connected, exit the program
-        p = subprocess.Popen('"' + str(digi_cam_cmd_path) + '" /verbose',
+        p = subprocess.Popen('"' + str(digi_cam_cmd_path) + '" /list cameras',
                              stdout=subprocess.PIPE, universal_newlines=True, shell=False)
         (output, err) = p.communicate()
         try:
-            self.camera_model = output.split("Driver :")[-1]
+            self.cameras = output.split("New Camera is connected ! Driver :")[1:]
+            for i, camera in enumerate(self.cameras):
+                self.cameras[i] = camera.split("\n")[0]  # remove line break from each entry
+
+            # by default, set the first found camera as active
+            self.camera_model = self.cameras[0]
+
             if self.camera_model[0:4] == "digi" or not self.camera_model:
                 print("No camera detected!")
                 self.camera_model = None
                 return
             else:
-                print("Detected:", self.camera_model)
+                print("Detected DSLR cameras:", *self.cameras, sep=' ')
+                print("Using:", self.camera_model)
         except IndexError:
-            print("No camera detected!")
+            print("No DSLR detected!")
             return
 
         # get all values as soon as camera is initialised
@@ -47,7 +54,7 @@ class customDSLR():
         # check for instance of CameraControl.exe for 20 seconds until timeout
         for i in range(20):
             sleep(1)
-            sp = subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c list session",
+            sp = subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c list sessions",
                                   stdout=subprocess.PIPE, universal_newlines=True, shell=False)
             (output, err) = sp.communicate()
             message = str(output).split(":")[-1].split("\n")[0]
@@ -74,11 +81,12 @@ class customDSLR():
         # compression setting
         self.all_compression_vals = self.get_all_settings("compressionsetting")
 
+        print("Successfully initialised camera!")
+
     def get_all_settings(self, key):
         sp = subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c list " + key,
                               stdout=subprocess.PIPE, universal_newlines=True, shell=False)
         (output, err) = sp.communicate()
-        print(output)
         raw_vals = (str(output).split("[")[-1].split("]")[0].split(","))
         all_vals = []
         for val in raw_vals:
@@ -117,7 +125,7 @@ class customDSLR():
                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     def capture_image(self, img_name="example.jpg"):
-        subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c CaptureNoAf " + img_name,
+        subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + ' /c CaptureNoAf "' + img_name + '"',
                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 
@@ -161,7 +169,7 @@ if __name__ == '__main__':
     iso_vals = ["500", "1000", "2000"]
     for iso_val in iso_vals:
         DSLR.set_iso(iso_val)
-        sleep(1)
+        sleep(2)
         # wait for setting to be applied before sending next capture command
         DSLR.capture_image(current_folder + "\\test_image_iso_" + iso_val + ".jpg")
         sleep(1)
