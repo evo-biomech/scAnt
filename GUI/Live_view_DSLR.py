@@ -46,8 +46,13 @@ class customDSLR():
         self.all_whitebalance_vals = []
         self.all_compression_vals = []
 
-    def initialise_camera(self):
+        self.shutterspeed = None
+        self.aperture = None
+        self.iso = None
+        self.whitebalance = None
+        self.compression = None
 
+    def initialise_camera(self):
         # launch DigiCamControl
         subprocess.Popen('"' + str(digi_cam_app_path) + '"')
 
@@ -72,18 +77,24 @@ class customDSLR():
 
         # iso
         self.all_iso_vals = self.get_all_settings("iso")
+        self.iso = self.get_current_setting("iso")
         # aperture
         self.all_aperture_vals = self.get_all_settings("aperture")
+        self.aperture = self.get_current_setting("aperture")
         # shutter speed
         self.all_shutterspeed_vals = self.get_all_settings("shutterspeed")
+        self.shutterspeed = self.get_current_setting("shutterspeed")
         # white balance
         self.all_whitebalance_vals = self.get_all_settings("whitebalance")
+        self.whitebalance = self.get_current_setting("whitebalance")
         # compression setting
         self.all_compression_vals = self.get_all_settings("compressionsetting")
+        self.compression = self.get_current_setting("compressionsetting")
 
         print("Successfully initialised camera!")
 
     def get_all_settings(self, key):
+        sleep(0.2)  # prevents issuing to many commands at a time
         sp = subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c list " + key,
                               stdout=subprocess.PIPE, universal_newlines=True, shell=False)
         (output, err) = sp.communicate()
@@ -91,7 +102,6 @@ class customDSLR():
         all_vals = []
         for val in raw_vals:
             all_vals.append(val.split('"')[1])
-
         return all_vals
 
     def set_shutterspeed(self, shutterspeed="1/100"):
@@ -127,6 +137,15 @@ class customDSLR():
     def capture_image(self, img_name="example.jpg"):
         subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + ' /c CaptureNoAf "' + img_name + '"',
                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+    def get_current_setting(self, setting):
+        sleep(0.2)  # prevents issuing to many commands at a time
+        sp = subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + ' /c get ' + setting,
+                              stdout=subprocess.PIPE, universal_newlines=True, shell=False)
+        (output, err) = sp.communicate()
+        val = output.split('"')[1]
+        print("Current " + setting + " : " + val)
+        return val
 
 
 if __name__ == '__main__':
