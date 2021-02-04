@@ -1,35 +1,32 @@
+import datetime
+import sys
+import traceback
+import os
+import cgitb
+from pathlib import Path
+from PyQt5 import QtWidgets, QtGui, QtCore
+
+from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
+
+import scripts.project_manager as ymlRW
+from scripts.Scanner_Controller import ScannerController
+from scripts.processStack import getThreads, stack_images, mask_images
+from scripts.write_meta_data import write_exif_to_img, get_default_values
+
 """
 Locations of required executables and how to use them:
 """
+
 
 # qt designer located at:
 # C:\Users\PlumStation\Anaconda3\envs\tf-gpu\Lib\site-packages\pyqt5_tools\Qt\bin\designer.exe
 # pyuic5 to convert UI to executable python code is located at:
 # C:\Users\PlumStation\Anaconda3\envs\tf-gpu\Scripts\pyuic5.exe
 # to convert the UI into the required .py file run:
-# -x = input     -o = output
+# -x = generates extra code to make ui.py file executable     -o = output
 # pyuic5.exe -x "I:\3D_Scanner\scAnt\GUI\test.ui" -o "I:\3D_Scanner\scAnt\GUI\test.py"
 # or alternatively on Ubuntu
 # pyuic5 scAnt_GUI_mw.ui -o scAnt_GUI_mw.py
-
-"""
-imports
-"""
-import datetime
-import sys
-import traceback
-import os
-from pathlib import Path
-from PyQt5 import QtWidgets, QtGui, QtCore
-
-import scripts.project_manager as ymlRW
-from GUI.Live_view_FLIR import customFLIR
-from GUI.Live_view_DSLR import customDSLR
-from scripts.Scanner_Controller import ScannerController
-from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing our generated file
-from scripts.processStack import getThreads, stack_images, mask_images
-from scripts.write_meta_data import write_exif_to_img, get_default_values
-
 
 class WorkerSignals(QtCore.QObject):
     '''
@@ -122,8 +119,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
+        # start thread pool
+        self.threadpool = QtCore.QThreadPool()
+
+        # search for cameras connected to the computer and supported by installed drivers
+        self.camera_type = None
+        self.camera_model = None
+        self.file_format = ".tif"
+
         # Find FLIR cameras, if attached
         try:
+            from GUI.Live_view_FLIR import customFLIR
             self.FLIR = customFLIR()
             # camera needs to be initialised before use (self.cam.initialise_camera)
             # all detected FLIR cameras are listed in self.cam.device_names
@@ -139,30 +145,34 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.FLIR_found = True
         except IndexError:
             warning = "No FLIR camera found!"
-            self.log_info(warning)
+            self.log_warning(warning)
             print(warning)
             self.FLIR_found = False
             self.disable_FLIR_inputs()
 
         try:
             # TODO add support for the selection of multiple connected DSLR cameras
+            from GUI.Live_view_DSLR import customDSLR
             self.DSLR_initialised = False
             self.DSLR = customDSLR()
             self.log_info("Found " + str(self.DSLR.camera_model))
+
             self.ui.comboBox_selectCamera.addItem(str(self.DSLR.camera_model))
+            self.DSLR_found = True
             if not self.FLIR_found:
+                self.ui.stacked_camera_settings.setCurrentIndex(1)
                 self.cam = self.DSLR
                 self.camera_type = "DSLR"
                 self.camera_model = self.DSLR.camera_model
-
-                # launch DCC to access all settings and enable external live-view of the DSLR
+                # initialise DSLR by launching an instance of DigiCamControl
                 worker = Worker(self.launch_DCC_threaded)
                 worker.signals.finished.connect(self.finished_DCC_launch)
 
                 self.threadpool.start(worker)
 
         except:
-            print("No DSLRs connected")
+            self.log_info("No DSLR camera found!")
+            self.DSLR_found = False
 
         # connect camera selection combo box to respective function
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
@@ -177,7 +187,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info(warning)
             print(warning)
 
-        self.threadpool = QtCore.QThreadPool()
+        # FLIR settings
 
         self.ui.checkBox_exposureAuto.stateChanged.connect(self.check_exposure)
 
@@ -195,6 +205,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # TODO Add support for Black level selection
         # self.ui.doubleSpinBox_blackLevel.valueChanged.connect(self.set_black_level)
+
+        # DSLR settings
+        self.ui.comboBox_shutterSpeed.currentTextChanged.connect(self.set_shutterspeed)
+
+        self.ui.comboBox_aperture.currentTextChanged.connect(self.set_aperture)
+
+        self.ui.comboBox_iso.currentTextChanged.connect(self.set_iso)
+
+        self.ui.comboBox_whiteBalance.currentTextChanged.connect(self.set_whitebalance)
+
+        self.ui.comboBox_compression.currentTextChanged.connect(self.set_compression)
+
+        # Stepper settings
 
         self.ui.pushButton_xHome.pressed.connect(self.homeX)
 
@@ -437,24 +460,29 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         selected_camera = self.ui.comboBox_selectCamera.currentText()
         self.log_info("Selected camera: " + str(selected_camera))
 
+        # stop the live view if currently in use
+        if self.liveView:
+            self.begin_live_view()  # sets live view false if already running
+
         # de-initialised previous FLIR, if it was in use
         if self.camera_type == "FLIR":
-            # stop the live view if currently in use
-            if self.liveView:
-                self.begin_live_view()  # sets live view false if already running
             # de-initialise the previous camera before setting up the newly selected one
             self.cam.deinitialise_camera()
 
-        if selected_camera[0] == "B":  # check if selected model is a FLIR camera
+        # new camera -> FLIR
+        if selected_camera.split(" ")[0] == "Blackfly":
             for ID, FLIR in enumerate(self.FLIR.device_names):
                 if self.ui.comboBox_selectCamera.currentText() == str(FLIR[0] + " ID: " + FLIR[1]):
                     self.cam = self.FLIR
                     self.cam.initialise_camera(select_cam=ID)
                     self.log_info("Camera in use: " + str(FLIR[0] + " ID: " + FLIR[1]))
+                    self.camera_type = "FLIR"
                     self.begin_live_view()
                     self.camera_model = self.FLIR.device_names[ID][0]
-                    self.camera_type = "FLIR"
                     self.enable_FLIR_inputs()
+                    self.file_format = ".tif"
+
+        # new camera -> DSLR
         else:
             self.cam = self.DSLR
             self.camera_type = "DSLR"
@@ -472,6 +500,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def finished_DCC_launch(self):
         self.log_info("Launched DCC and retrieved camera settings")
         self.enable_DSLR_inputs()
+
+    # FLIR Settings
 
     def check_exposure(self):
         if self.ui.checkBox_exposureAuto.isChecked():
@@ -534,26 +564,77 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.set_black_level(float(value))
 
     def update_live_view(self, progress_callback):
-        while self.liveView:
-            img = self.cam.live_view()
-            # if enabled, display exposure as histogram and highlight over exposed areas
-            if self.ui.checkBox_highlightExposure.isChecked():
-                img = self.cam.showExposure(img)
+        while self.liveView and self.camera_type == "FLIR":
+            try:
+                img = self.cam.live_view()
+                # if enabled, display exposure as histogram and highlight over exposed areas
+                if self.ui.checkBox_highlightExposure.isChecked():
+                    img = self.cam.showExposure(img)
 
-            live_img = QtGui.QImage(img, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
-            live_img_pixmap = QtGui.QPixmap.fromImage(live_img)
+                live_img = QtGui.QImage(img, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
+                live_img_pixmap = QtGui.QPixmap.fromImage(live_img)
 
-            # Setup pixmap with the acquired image
-            live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.width(), self.ui.label_liveView.height(),
-                                                     QtCore.Qt.KeepAspectRatio)
-            # Set the pixmap onto the label
-            self.ui.label_liveView.setPixmap(live_img_scaled)
-            # Align the label to center
-            self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
+                # Setup pixmap with the acquired image
+                live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.width(),
+                                                         self.ui.label_liveView.height(),
+                                                         QtCore.Qt.KeepAspectRatio)
+                # Set the pixmap onto the label
+                self.ui.label_liveView.setPixmap(live_img_scaled)
+                # Align the label to center
+                self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
+            except AttributeError:
+                print("Live view ended")
+        self.ui.label_liveView.setText("Live view disabled.")
+
+    # DSLR settings
+
+    def set_shutterspeed(self):
+        self.cam.set_shutterspeed(self.ui.comboBox_shutterSpeed.currentText())
+        self.log_info("Set shutter speed to " + self.ui.comboBox_shutterSpeed.currentText())
+
+    def set_aperture(self):
+        self.cam.set_aperture(self.ui.comboBox_aperture.currentText())
+        self.log_info("Set aperture to " + self.ui.comboBox_aperture.currentText())
+
+    def set_iso(self):
+        self.cam.set_iso(self.ui.comboBox_iso.currentText())
+        self.log_info("Set iso to " + self.ui.comboBox_iso.currentText())
+
+    def set_whitebalance(self):
+        self.cam.set_whitebalance(self.ui.comboBox_whiteBalance.currentText())
+        self.log_info("Set white balance to " + self.ui.comboBox_whiteBalance.currentText())
+
+    def set_compression(self):
+        self.cam.set_compression(self.ui.comboBox_compression.currentText())
+        self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
+
+    def get_DSLR_file_ending(self):
+        # first get the current compression setting
+        compression_setting = self.cam.get_current_setting("compression")
+        if compression_setting.split(" ")[0] == "JPEG":
+            self.file_format = ".jpg"
+        elif compression_setting.split(" ")[0] == "RAW":
+            # different cameras use different RAW format endings
+            brand = self.camera_model.split(" ")[0]
+            # Nikon cameras are simply named D###
+            if brand[0] == "D":
+                self.file_format = ".nef"
+            # Canon cameras use their brand name directly
+            elif brand == "Canon":
+                self.file_format = ".CR2"
+        else:
+            self.file_format = ".jpg"
+            self.log_warning("Unknown image file format! Using JPEG as default!")
+        # Info & Threading functions
 
     def log_info(self, info):
         now = datetime.datetime.now()
-        self.ui.listWidget_log.addItem("[INFO] " + now.strftime("%H:%M:%S") + "  " + info)
+        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
+        self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
+
+    def log_warning(self, warning):
+        now = datetime.datetime.now()
+        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
 
     def thread_complete(self):
@@ -567,21 +648,30 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info("Began camera live view")
             self.ui.pushButton_startLiveView.setText("Stop Live View")
             self.liveView = True
-            worker = Worker(self.update_live_view)
 
-            self.threadpool.start(worker)
+            if self.camera_type == "FLIR":
+                worker = Worker(self.update_live_view)
+                self.threadpool.start(worker)
+            else:
+                # starts live view in external Window
+                self.ui.label_liveView.setText("Live view opened in external DCC window!")
+                self.cam.start_live_view()
 
         else:
+            self.ui.label_liveView.setText("Live view disabled.")
             self.ui.pushButton_startLiveView.setText("Start Live View")
             self.log_info("Ended camera live view")
             self.liveView = False
+
+            if self.camera_type == "DSLR":
+                self.cam.stop_live_view()
 
     def capture_image(self):
         now = datetime.datetime.now()
 
         self.create_output_folders()
         # create unique filename
-        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_" + ".tif")))
+        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_" + self.file_format)))
         self.cam.capture_image(file_name)
         self.log_info("Captured " + file_name)
 
@@ -623,43 +713,69 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             config_location = Path(config_location)
             config = ymlRW.read_config_file(config_location)
 
+            # check if the camera type in the config file matches the connected/selected camera type
+            if config["general"]["camera_type"] != self.camera_type:
+                self.log_warning("The selected config file was generated for a different camera type!")
+                QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
+                                               "The selected config file was generated for a different camera type!")
+                return
+
             # camera_settings:
-            self.ui.doubleSpinBox_exposureTime.setValue(config["camera_settings"]["exposure_time"])
-            if config["camera_settings"]["exposure_auto"]:
-                self.ui.checkBox_exposureAuto.setChecked(True)
+
+            if config["general"]["camera_type"] == "FLIR":
+                # FLIR
+                self.ui.doubleSpinBox_exposureTime.setValue(config["camera_settings"]["exposure_time"])
+                if config["camera_settings"]["exposure_auto"]:
+                    self.ui.checkBox_exposureAuto.setChecked(True)
+                else:
+                    self.set_exposure_manual()
+
+                self.ui.doubleSpinBox_gainLevel.setValue(config["camera_settings"]["gain_level"])
+                if config["camera_settings"]["gain_auto"]:
+                    self.ui.checkBox_gainAuto.setChecked(True)
+                else:
+                    self.ui.checkBox_gainAuto.setChecked(False)
+
+                self.ui.doubleSpinBox_gamma.setValue(config["camera_settings"]["gamma"])
+                self.set_gamma()
+
+                self.ui.doubleSpinBox_balanceRatioRed.setValue(config["camera_settings"]["balance_ratio_red"])
+                self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
+                self.set_balance_ratio()
+
+                # self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
+                # self.set_black_level()
             else:
-                self.set_exposure_manual()
+                # DSLR
+                self.ui.comboBox_shutterSpeed.setCurrentIndex(
+                    self.ui.comboBox_shutterSpeed.findText(str(config["camera_settings"]["shutterspeed"])))
+                self.ui.comboBox_aperture.setCurrentIndex(
+                    self.ui.comboBox_aperture.findText(str(config["camera_settings"]["aperture"])))
+                self.ui.comboBox_iso.setCurrentIndex(
+                    self.ui.comboBox_iso.findText(str(config["camera_settings"]["iso"])))
+                self.ui.comboBox_whiteBalance.setCurrentIndex(
+                    self.ui.comboBox_whiteBalance.findText(str(config["camera_settings"]["whitebalance"])))
+                self.ui.comboBox_compression.setCurrentIndex(
+                    self.ui.comboBox_compression.findText(str(config["camera_settings"]["compression"])))
 
-            self.ui.doubleSpinBox_gainLevel.setValue(config["camera_settings"]["gain_level"])
-            if config["camera_settings"]["gain_auto"]:
-                self.ui.checkBox_gainAuto.setChecked(True)
+            if self.scanner_initialised:
+
+                # scanner_settings
+                self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
+                self.ui.doubleSpinBox_yMin.setValue(config["scanner_settings"]["y_min"])
+                self.ui.doubleSpinBox_zMin.setValue(config["scanner_settings"]["z_min"])
+
+                self.ui.doubleSpinBox_xMax.setValue(config["scanner_settings"]["x_max"])
+                self.ui.doubleSpinBox_yMax.setValue(config["scanner_settings"]["y_max"])
+                self.ui.doubleSpinBox_zMax.setValue(config["scanner_settings"]["z_max"])
+
+                self.ui.doubleSpinBox_xStep.setValue(config["scanner_settings"]["x_step"])
+                self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
+                self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
+
+                self.setScannerRange()
             else:
-                self.ui.checkBox_gainAuto.setChecked(False)
-
-            self.ui.doubleSpinBox_gamma.setValue(config["camera_settings"]["gamma"])
-            self.set_gamma()
-
-            self.ui.doubleSpinBox_balanceRatioRed.setValue(config["camera_settings"]["balance_ratio_red"])
-            self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
-            self.set_balance_ratio()
-
-            # self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
-            # self.set_black_level()
-
-            # scanner_settings
-            self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
-            self.ui.doubleSpinBox_yMin.setValue(config["scanner_settings"]["y_min"])
-            self.ui.doubleSpinBox_zMin.setValue(config["scanner_settings"]["z_min"])
-
-            self.ui.doubleSpinBox_xMax.setValue(config["scanner_settings"]["x_max"])
-            self.ui.doubleSpinBox_yMax.setValue(config["scanner_settings"]["y_max"])
-            self.ui.doubleSpinBox_zMax.setValue(config["scanner_settings"]["z_max"])
-
-            self.ui.doubleSpinBox_xStep.setValue(config["scanner_settings"]["x_step"])
-            self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
-            self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
-
-            self.setScannerRange()
+                self.log_warning("Stepper controllers are not connected!")
 
             # stacking
             self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
@@ -714,11 +830,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                       'balance_ratio_red': self.ui.doubleSpinBox_balanceRatioRed.value(),
                                       'balance_ratio_blue': self.ui.doubleSpinBox_balanceRatioBlue.value(),
                                       # values specific to DSLR cameras
-                                      'shutterspeed': "",
-                                      'aperture': "",
-                                      'iso': "",
-                                      'whitebalance': "",
-                                      'compression': ""
+                                      'shutterspeed': self.ui.comboBox_shutterSpeed.currentText(),
+                                      'aperture': self.ui.comboBox_aperture.currentText(),
+                                      'iso': self.ui.comboBox_iso.currentText(),
+                                      'whitebalance': self.ui.comboBox_whiteBalance.currentText(),
+                                      'compression': self.ui.comboBox_compression.currentText()
                                       },
                   'scanner_settings': {'x_min': self.ui.doubleSpinBox_xMin.value(),
                                        'x_max': self.ui.doubleSpinBox_xMax.value(),
@@ -815,6 +931,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def enable_FLIR_inputs(self):
+        self.ui.stacked_camera_settings.setCurrentIndex(0)
         self.ui.checkBox_exposureAuto.setEnabled(True)
         self.ui.doubleSpinBox_exposureTime.setEnabled(True)
         self.ui.checkBox_gainAuto.setEnabled(True)
@@ -829,12 +946,64 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def enable_DSLR_inputs(self):
+        # set the index of the stacked widget to 1 to access DSLR settings
+        self.ui.stacked_camera_settings.setCurrentIndex(1)
+        # set retrieved values as combo box entries for each setting.
+        # Clear each combo box in case different options are available for different cameras
+        self.ui.comboBox_shutterSpeed.clear()
+        for shutterspeed in self.cam.all_shutterspeed_vals:
+            self.ui.comboBox_shutterSpeed.addItem(shutterspeed)
+        # set current value to the selected item
+        self.ui.comboBox_shutterSpeed.setCurrentIndex(
+            self.ui.comboBox_shutterSpeed.findText(self.cam.shutterspeed))
+        self.ui.comboBox_shutterSpeed.setEnabled(True)
+
+        self.ui.comboBox_aperture.clear()
+        for aperture in self.cam.all_aperture_vals:
+            self.ui.comboBox_aperture.addItem(aperture)
+        # set current value to the selected item
+        self.ui.comboBox_aperture.setCurrentIndex(
+            self.ui.comboBox_aperture.findText(self.cam.aperture))
+        self.ui.comboBox_aperture.setEnabled(True)
+
+        self.ui.comboBox_iso.clear()
+        for iso in self.cam.all_iso_vals:
+            self.ui.comboBox_iso.addItem(iso)
+        # set current value to the selected item
+        self.ui.comboBox_iso.setCurrentIndex(
+            self.ui.comboBox_iso.findText(self.cam.iso))
+        self.ui.comboBox_iso.setEnabled(True)
+
+        self.ui.comboBox_whiteBalance.clear()
+        for whitebalance in self.cam.all_whitebalance_vals:
+            self.ui.comboBox_whiteBalance.addItem(whitebalance)
+        # set current value to the selected item
+        self.ui.comboBox_whiteBalance.setCurrentIndex(
+            self.ui.comboBox_whiteBalance.findText(self.cam.whitebalance))
+        self.ui.comboBox_whiteBalance.setEnabled(True)
+
+        self.ui.comboBox_compression.clear()
+        for compression in self.cam.all_compression_vals:
+            self.ui.comboBox_compression.addItem(compression)
+        # set current value to the selected item
+        self.ui.comboBox_compression.setCurrentIndex(
+            self.ui.comboBox_compression.findText(self.cam.compression))
+        # TODO currently tested cameras do not respond to changes in chosen compression
+        # self.ui.comboBox_compression.setEnabled(True)
+
+        # enable live_view/capture/scanning
+        self.ui.pushButton_startLiveView.setEnabled(True)
         self.ui.pushButton_startScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
 
     def disable_DSLR_inputs(self):
         self.ui.pushButton_startScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.comboBox_shutterSpeed.setEnabled(False)
+        self.ui.comboBox_aperture.setEnabled(False)
+        self.ui.comboBox_iso.setEnabled(False)
+        self.ui.comboBox_compression.setEnabled(False)
+        self.ui.comboBox_whiteBalance.setEnabled(False)
 
     def changeInputState(self):
         enableInputs = True
@@ -844,6 +1013,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             print("enabling inputs!")
         # disable panels that could interfere with the scan
+        # stepper motor inputs
         self.ui.horizontalSlider_xAxis.setEnabled(enableInputs)
         self.ui.horizontalSlider_yAxis.setEnabled(enableInputs)
         self.ui.horizontalSlider_zAxis.setEnabled(enableInputs)
@@ -859,10 +1029,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_xMax.setEnabled(enableInputs)
         self.ui.doubleSpinBox_yMax.setEnabled(enableInputs)
         self.ui.doubleSpinBox_zMax.setEnabled(enableInputs)
-
         self.ui.pushButton_Energise.setEnabled(enableInputs)
         self.ui.pushButton_stepperDeEnergise.setEnabled(enableInputs)
 
+        # camera selection
+        self.ui.comboBox_selectCamera.setEnabled(enableInputs)
+
+        # FLIR inputs
         self.ui.checkBox_exposureAuto.setEnabled(enableInputs)
         self.ui.doubleSpinBox_exposureTime.setEnabled(enableInputs)
         self.ui.checkBox_gainAuto.setEnabled(enableInputs)
@@ -872,9 +1045,22 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(enableInputs)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(enableInputs)
 
+        # DSLR inputs
+        self.ui.comboBox_shutterSpeed.setEnabled(enableInputs)
+        self.ui.comboBox_aperture.setEnabled(enableInputs)
+        self.ui.comboBox_iso.setEnabled(enableInputs)
+        self.ui.comboBox_compression.setEnabled(enableInputs)
+        self.ui.comboBox_whiteBalance.setEnabled(enableInputs)
+
+        # project name
         self.ui.lineEdit_projectName.setEnabled(enableInputs)
 
     def runScanAndReport(self):
+        if not self.scanner_initialised:
+            self.log_warning("No stepper drivers set up! Aborting scan!")
+            self.abortScan = True
+            return
+        
         if not self.scanInProgress:
             # create output folder
             self.create_output_folders()
@@ -901,7 +1087,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                     self.threadpool.start(worker)
                 else:
-                    self.log_info("Steppers are still moving!")
+                    self.log_warning("Steppers are still moving!")
             else:
                 self.log_info("Steppers need to be homed before scanning!")
         else:
@@ -941,10 +1127,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                                                         "_x_" + self.scanner.correctName(posX)
                                                                         + "_y_" + self.scanner.correctName(posY)
                                                                         + "_step_" + self.scanner.correctName(
-                                                                            posZ) + "_.tif"))
+                                                                            posZ) + "_" + self.file_format))
                     stackName.append(img_name)
 
-                    self.cam.capture_image(img_name=img_name)
+                    self.cam.capture_image(img_name)
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ
@@ -1001,11 +1187,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print("de energising stepper motors")
             # de energise steppers
             self.scanner.deEnergise()
+
         # report the program is to be closed so threads can be exited
         self.exit_program = True
 
         # stop the live view if currently in use
-        if self.liveView and self.camera_type == "FLIR":
+        if self.liveView:
             self.begin_live_view()  # sets live view false if already running
 
         if self.camera_type == "FLIR":
@@ -1013,13 +1200,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.exit_cam()
 
         print("Application Closed!")
-        exit()
 
 
-app = QtWidgets.QApplication([])
+if __name__ == "__main__":
+    # (for debugging only, to report errors to the console)
+    cgitb.enable(format='text')
 
-application = scAnt_mainWindow()
+    app = QtWidgets.QApplication([])
 
-application.show()
+    application = scAnt_mainWindow()
 
-sys.exit(app.exec())
+    application.show()
+
+    sys.exit(app.exec())

@@ -17,3 +17,4 @@ dependencies:
   - imutils
   - pillow
   - scikit-image
+  - psutil
