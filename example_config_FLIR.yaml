@@ -1,7 +1,7 @@
 general:
   project_name: test_project
-  camera_type: DSLR
-  camera_model: D850
+  camera_type: FLIR
+  camera_model: BFS-U3-200S6C-C
 camera_settings:
   exposure_auto: false
   exposure_time: 90000.0

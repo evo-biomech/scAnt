@@ -1,7 +1,7 @@
 general:
   project_name: test_project
   camera_type: DSLR
-  camera_model: D850
+  camera_model: D7000
 camera_settings:
   exposure_auto: ''
   exposure_time: ''
@@ -38,12 +38,12 @@ masking:
   min_artifact_size_black: 1000
   min_artifact_size_white: 2000
 exif_data:
-  Make: NIKON
-  Model: D850
-  SerialNumber: '18382947'
+  Make: NIKON CORPORATION
+  Model: NIKON D7000
+  SerialNumber: '6174198'
   Lens: Nikkor
-  CameraSerialNumber: '18382947'
-  LensManufacturer: Computar
-  LensModel: 35.0 f / 2.2
-  FocalLength: '35.0'
-  FocalLengthIn35mmFormat: '95.0'
+  CameraSerialNumber: '6174198'
+  LensManufacturer: Nikon
+  LensModel: 18 - 105 f / 3.5
+  FocalLength: '18'
+  FocalLengthIn35mmFormat: '27.0'
