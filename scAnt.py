@@ -104,6 +104,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(scAnt_mainWindow, self).__init__()
 
+        self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
+
         self.liveView = False
 
         self.exit_program = False
@@ -146,9 +148,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.camera_model = self.cam.device_names[0][0]
             self.FLIR_found = True
         except IndexError:
-            warning = "No FLIR camera found!"
-            self.log_warning(warning)
-            print(warning)
+            message = "No FLIR camera found!"
+            self.log_info(message)
+            print(message)
             self.FLIR_found = False
             self.disable_FLIR_inputs()
 
