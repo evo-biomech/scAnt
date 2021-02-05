@@ -1,4 +1,5 @@
 import datetime
+import time
 import sys
 import traceback
 import os
@@ -126,6 +127,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.camera_type = None
         self.camera_model = None
         self.file_format = ".tif"
+        self.DSLR_read_out = False
 
         # Find FLIR cameras, if attached
         try:
@@ -589,28 +591,33 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     # DSLR settings
 
     def set_shutterspeed(self):
-        self.cam.set_shutterspeed(self.ui.comboBox_shutterSpeed.currentText())
-        self.log_info("Set shutter speed to " + self.ui.comboBox_shutterSpeed.currentText())
+        if not self.DSLR_read_out:
+            self.cam.set_shutterspeed(self.ui.comboBox_shutterSpeed.currentText())
+            self.log_info("Set shutter speed to " + self.ui.comboBox_shutterSpeed.currentText())
 
     def set_aperture(self):
-        self.cam.set_aperture(self.ui.comboBox_aperture.currentText())
-        self.log_info("Set aperture to " + self.ui.comboBox_aperture.currentText())
+        if not self.DSLR_read_out:
+            self.cam.set_aperture(self.ui.comboBox_aperture.currentText())
+            self.log_info("Set aperture to " + self.ui.comboBox_aperture.currentText())
 
     def set_iso(self):
-        self.cam.set_iso(self.ui.comboBox_iso.currentText())
-        self.log_info("Set iso to " + self.ui.comboBox_iso.currentText())
+        if not self.DSLR_read_out:
+            self.cam.set_iso(self.ui.comboBox_iso.currentText())
+            self.log_info("Set iso to " + self.ui.comboBox_iso.currentText())
 
     def set_whitebalance(self):
-        self.cam.set_whitebalance(self.ui.comboBox_whiteBalance.currentText())
-        self.log_info("Set white balance to " + self.ui.comboBox_whiteBalance.currentText())
+        if not self.DSLR_read_out:
+            self.cam.set_whitebalance(self.ui.comboBox_whiteBalance.currentText())
+            self.log_info("Set white balance to " + self.ui.comboBox_whiteBalance.currentText())
 
     def set_compression(self):
-        self.cam.set_compression(self.ui.comboBox_compression.currentText())
-        self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
+        if not self.DSLR_read_out:
+            self.cam.set_compression(self.ui.comboBox_compression.currentText())
+            self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
 
     def get_DSLR_file_ending(self):
         # first get the current compression setting
-        compression_setting = self.cam.get_current_setting("compression")
+        compression_setting = self.cam.get_current_setting("compressionsetting")
         if compression_setting.split(" ")[0] == "JPEG":
             self.file_format = ".jpg"
         elif compression_setting.split(" ")[0] == "RAW":
@@ -818,6 +825,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         elif self.ui.comboBox_stackingMethod.currentIndex() == 2:
             stacking_method = "mask"
 
+        if self.camera_type == "DSLR":
+            self.get_DSLR_file_ending()
+
         config = {'general': {'project_name': self.ui.lineEdit_projectName.text(),
                               'camera_type': self.camera_type,
                               'camera_model': self.camera_model,
@@ -946,6 +956,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def enable_DSLR_inputs(self):
+        # disable setting changes based on read out values:
+        self.DSLR_read_out = True
         # set the index of the stacked widget to 1 to access DSLR settings
         self.ui.stacked_camera_settings.setCurrentIndex(1)
         # set retrieved values as combo box entries for each setting.
@@ -956,7 +968,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # set current value to the selected item
         self.ui.comboBox_shutterSpeed.setCurrentIndex(
             self.ui.comboBox_shutterSpeed.findText(self.cam.shutterspeed))
-        self.ui.comboBox_shutterSpeed.setEnabled(True)
 
         self.ui.comboBox_aperture.clear()
         for aperture in self.cam.all_aperture_vals:
@@ -964,7 +975,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # set current value to the selected item
         self.ui.comboBox_aperture.setCurrentIndex(
             self.ui.comboBox_aperture.findText(self.cam.aperture))
-        self.ui.comboBox_aperture.setEnabled(True)
 
         self.ui.comboBox_iso.clear()
         for iso in self.cam.all_iso_vals:
@@ -972,7 +982,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # set current value to the selected item
         self.ui.comboBox_iso.setCurrentIndex(
             self.ui.comboBox_iso.findText(self.cam.iso))
-        self.ui.comboBox_iso.setEnabled(True)
 
         self.ui.comboBox_whiteBalance.clear()
         for whitebalance in self.cam.all_whitebalance_vals:
@@ -980,7 +989,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # set current value to the selected item
         self.ui.comboBox_whiteBalance.setCurrentIndex(
             self.ui.comboBox_whiteBalance.findText(self.cam.whitebalance))
-        self.ui.comboBox_whiteBalance.setEnabled(True)
 
         self.ui.comboBox_compression.clear()
         for compression in self.cam.all_compression_vals:
@@ -988,13 +996,20 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # set current value to the selected item
         self.ui.comboBox_compression.setCurrentIndex(
             self.ui.comboBox_compression.findText(self.cam.compression))
-        # TODO currently tested cameras do not respond to changes in chosen compression
-        # self.ui.comboBox_compression.setEnabled(True)
 
         # enable live_view/capture/scanning
         self.ui.pushButton_startLiveView.setEnabled(True)
         self.ui.pushButton_startScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
+
+        # allow for changes to the setting boxes to affect the camera
+        self.DSLR_read_out = False
+
+        self.ui.comboBox_shutterSpeed.setEnabled(True)
+        self.ui.comboBox_aperture.setEnabled(True)
+        self.ui.comboBox_iso.setEnabled(True)
+        self.ui.comboBox_whiteBalance.setEnabled(True)
+        self.ui.comboBox_compression.setEnabled(True)
 
     def disable_DSLR_inputs(self):
         self.ui.pushButton_startScan.setEnabled(False)
@@ -1060,7 +1075,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_warning("No stepper drivers set up! Aborting scan!")
             self.abortScan = True
             return
-        
+
+        # if the used camera is a DSLR, adjust the file ending.
+        if self.camera_type == "DSLR":
+            self.get_DSLR_file_ending()
+
         if not self.scanInProgress:
             # create output folder
             self.create_output_folders()
@@ -1131,11 +1150,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     stackName.append(img_name)
 
                     self.cam.capture_image(img_name)
+                    if self.camera_type == "DSLR":
+                        # wait for the camera to capture the image before moving further
+                        time.sleep(1)
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
 
+                if self.camera_type == "DSLR":
+                    # TODO this is a temporary fix to ensure images are fully saved to the computer before stacking
+                    time.sleep(2)
                 self.stackList.append(stackName)
 
                 self.scanner.completedStacks += 1

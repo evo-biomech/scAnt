@@ -121,7 +121,7 @@ class customDSLR():
                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     def set_compression(self, compression):
-        subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c set compression " + compression,
+        subprocess.Popen('"' + str(digi_cam_remote_path) + '"' + " /c set compressionsetting " + compression,
                          stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
     def start_live_view(self):

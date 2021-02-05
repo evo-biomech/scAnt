@@ -13,7 +13,7 @@ camera_settings:
   shutterspeed: 1/50
   aperture: 3.5
   iso: 500
-  whitebalance: KELVIN
+  whitebalance: Auto
   compression: JPEG (FINE)
 scanner_settings:
   x_min: 0.0
