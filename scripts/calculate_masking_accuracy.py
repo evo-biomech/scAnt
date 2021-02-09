@@ -47,4 +47,4 @@ if __name__ == '__main__':
     generated_mask_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\orig_backlight_masked.png"
 
     accuracy = calculate_masking_accuracy(ground_truth=ground_truth_file_loc, generated_mask=generated_mask_file_loc)
-    print("INFO:  Masking accuracy:", accuracy)
+    print("\nINFO:  Masking accuracy:", accuracy)
