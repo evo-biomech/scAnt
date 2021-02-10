@@ -8,8 +8,12 @@ All structural components of the scanner can be manufactured using 3D-printing a
 
 ![](images/scanner_3D_comp.png)
 
+## Updates
+**scAnt 1.1** now supports the use of **DSLR** cameras on **Windows 10**, in combination with [DigiCamControl](http://digicamcontrol.com/). **Ubuntu** support will be added soon. An updated version of the scanner construction files will be made available on our [Thingiverse](https://www.thingiverse.com/thing:4694713) page.  
+
+
 ## Installation
-**scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04** (newer releases of Ubuntu will likely work but have not been tested). The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras, and [Pololu USB Stepper drivers](https://www.pololu.com/category/212/tic-stepper-motor-controllers). Adding support for other cameras is not overly demanding, and we plan to do so in the future if the demand is high. Please refer to our [thingiverse](https://www.thingiverse.com/fabianplum/designs) page for a full list of components.
+**scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04** (newer releases of Ubuntu will likely work but have not been tested). The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras, and [Pololu USB Stepper drivers](https://www.pololu.com/category/212/tic-stepper-motor-controllers). Adding support for other cameras is not overly demanding, and we plan to do so in the future if the demand is high. Please refer to our [Thingiverse](https://www.thingiverse.com/thing:4694713) page for a full list of components.
 
 The easiest way to get your scanner up and running is through installation of our pre-configured anaconda environment:
 
@@ -152,6 +156,7 @@ sudo apt install libimage-exiftool-perl
 
 ### Windows 10
 
+(Instructions for using **DSLR** cameras in the section below. You can skip the **FLIR** installation section, if you are not planning on using **FLIR** cameras.) 
 Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
 
 [meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
@@ -188,6 +193,37 @@ python Live_view_FLIR.py
 ```
 
 If a live preview of the camera appears for a few seconds and an example image is saved (within the GUI folder), all camera drivers and libraries have been installed correctly.
+
+
+**DSLR setup**
+
+To use scAnt with DSLR cameras, instead of FLIR machine vision cameras, you need to install [DigiCamControl](http://digicamcontrol.com/) from the following website:
+
+[digiCamControl Stable Version](http://digicamcontrol.com/download)
+
+Follow the installation instructions and note the **installation path**. By default the path should be:
+
+```bash
+'C:Program Files (x86)/digiCamControl'
+```
+
+If your installation **path is different**, you will need to add the updated folder path to **GUI/Live_view_DSLR.py**
+
+```python
+# Update with the path to CameraControlCmd.exe file.
+digi_cam_path = join('C:' + sep, 'Program Files (x86)', 'digiCamControl')
+```
+
+To check whether the installation and setup was successful, connect your DSLR camera to the computer (must be in MANUAL mode) and run the following commands:
+
+```bash
+conda activate scAnt
+cd GUI
+python Live_view_DSLR.py
+```
+
+The script will launch an instance of **digiCamControl**, read the current camera settings, and capture three images at different ISO values.
+
 
 **Stepper driver setup**
 
