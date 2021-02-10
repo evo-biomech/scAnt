@@ -1,9 +1,7 @@
 from os.path import join, sep
-from os import system
 import subprocess
 from pathlib import Path
 from time import sleep
-import psutil
 
 # Update with the path to CameraControlCmd.exe file.
 digi_cam_path = join('C:' + sep, 'Program Files (x86)', 'digiCamControl')
