@@ -157,7 +157,7 @@ def process_stack(threadName, q):
                           + "OUT" + data)
             else:
                 # use additional external files under windows to execute alignment via hugin
-                os.system(str(path_to_external) + " align_image_stack -m -x -c 100 -a " + str(
+                os.system(str(path_to_external) + "\\align_image_stack -m -x -c 100 -a " + str(
                     temp_output_folder.joinpath(stack_name))
                           + "OUT" + data)
 
@@ -225,6 +225,8 @@ if __name__ == '__main__':
     ### Loading image paths into queue from disk ###
     """
 
+    start = time.time()
+
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--images", required=True,
@@ -269,7 +271,7 @@ if __name__ == '__main__':
 
     if args["focus_check"] == True:
         blurry_removed = False
-        print("processing single stack")
+        print("Discarding out-of-focus images enabled")
     else:
         blurry_removed = True
         print("Processing all stacks found in target directory")
@@ -361,7 +363,11 @@ if __name__ == '__main__':
         print("No images suitable for focus stacking found!")
         exit()
 
-    path_to_external = Path.cwd().joinpath("../external")
+    # as the script can be executed from the parent or "scripts" directory check where the external files are located
+    path_to_external = Path.cwd().joinpath("external")
+    print(path_to_external)
+    if not os.path.exists(path_to_external):
+        path_to_external = Path.cwd().parent.joinpath("external")
 
     output_folder = images.parent.joinpath("stacked")
 
@@ -458,3 +464,4 @@ if __name__ == '__main__':
         print("removed  ...", stack_name)
 
     print("Stacking finalised!")
+    print("Time elapsed:", time.time() - start)

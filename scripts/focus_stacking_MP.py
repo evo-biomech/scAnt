@@ -286,6 +286,8 @@ if __name__ == '__main__':
     ### extracting "in-focus" images for further processing ###
     """
 
+    start = time.time()
+
     if blurry_removed != "y":
 
         # Create new threads
@@ -429,3 +431,4 @@ if __name__ == '__main__':
         print("removed  ...", stack_name)
 
     print("Stacking finalised!")
+    print("Time elapsed:", time.time() - start)

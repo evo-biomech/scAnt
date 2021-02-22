@@ -12,7 +12,7 @@ def generate_backlight_mask(orig_file_loc, backlit_file_loc, threshold=250):
     print("INFO:  Imported images...")
 
     # binarise
-    ret, image_bin = cv2.threshold(backlit, threshold, 255, cv2.THRESH_BINARY_INV)
+    ret, image_bin = cv2.threshold(backlit, threshold, 255, cv2.THRESH_BINARY)
     image_bin[image_bin < 127] = 0
     image_bin[image_bin > 127] = 1
 
@@ -36,7 +36,7 @@ def generate_backlight_mask(orig_file_loc, backlit_file_loc, threshold=250):
 
 
 if __name__ == '__main__':
-    orig_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\orig.jpg"
-    backlit_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\backlit.jpg"
+    orig_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\_x_00190_y_00000_orig.jpg"
+    backlit_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\ground_truth.png"
 
-    generate_backlight_mask(orig_file_loc=orig_file_loc, backlit_file_loc=backlit_file_loc, threshold=250)
+    generate_backlight_mask(orig_file_loc=orig_file_loc, backlit_file_loc=backlit_file_loc, threshold=240)

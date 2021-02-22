@@ -265,6 +265,9 @@ A number of open source tools are used for processing the RAW images captured by
 
 ***
 
+## Quick Start Guide
+
+***
 ## Meshroom Guide
 
 **Add your camera to the sensor database**

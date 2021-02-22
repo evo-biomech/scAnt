@@ -43,8 +43,8 @@ def calculate_masking_accuracy(ground_truth, generated_mask):
 
 
 if __name__ == '__main__':
-    ground_truth_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\ground_truth.png"
-    generated_mask_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\orig_backlight_masked.png"
+    ground_truth_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\masking_comp\\ground_truth_mask.png"
+    generated_mask_file_loc = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\masking_comp\\random_forest_masked.png"
 
     accuracy = calculate_masking_accuracy(ground_truth=ground_truth_file_loc, generated_mask=generated_mask_file_loc)
     print("\nINFO:  Masking accuracy:", accuracy)

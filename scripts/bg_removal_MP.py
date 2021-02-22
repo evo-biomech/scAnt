@@ -8,7 +8,6 @@ import time
 import sys
 from imutils import paths
 from skimage import measure
-from skimage import filters
 
 import platform
 
@@ -118,16 +117,16 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     Similar to Adobe's "Clarity" option which also amplifies local contrast and thus pronounces edges, reduces haze.
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
+    blurred_gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=4.2, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=3.3, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
     img_pil = Image.fromarray(cl1)
 
     enhancer = ImageEnhance.Sharpness(img_pil)
-    sharpened = enhancer.enhance(31)
+    sharpened = enhancer.enhance(25)
 
     # sharpened.save(source + "\\enhanced.png")
 
@@ -250,8 +249,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
             # upper_gray = np.array([215, 215, 215])
             # front light only
-            lower_gray = np.array([189, 177, 177])  # [R value, G value, B value]
-            upper_gray = np.array([204, 203, 203])
+            lower_gray = np.array([145, 145, 145])  # [R value, G value, B value]
+            upper_gray = np.array([178, 178, 178])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
 
@@ -268,7 +267,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # remove black artifacts
             blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-            image_cleaned = remove_holes(blobs_labels, min_num_pixel=20000)
+            # retain holes bigger than X pixels
+            image_cleaned = remove_holes(blobs_labels, min_num_pixel=500)
 
             image_cleaned_inv = 1 - image_cleaned
 
@@ -277,7 +277,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # remove white artifacts
             blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
-            image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=15000)
+            # retain added patches, bigger than Y pixels
+            image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=500)
 
             cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
@@ -286,7 +287,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
                 cutout = cv2.imread(data)
                 # create the image with an alpha channel
                 # smooth masks prevent sharp features along the outlines from being falsely matched
-                smooth_mask = cv2.GaussianBlur(image_cleaned_white, (19, 19), 0)
+                smooth_mask = cv2.GaussianBlur(image_cleaned_white, (5, 5), 0)
                 rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
 
                 # assign the mask to the last channel of the image
@@ -299,7 +300,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
-    source = "J:\\Orthomeria_versicolor\\stacked"
+    start = time.time()
+    source = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\rando_for"
 
     print("Using images from", source)
 
@@ -315,7 +317,7 @@ if __name__ == '__main__':
     queueLock_alpha = threading.Lock()
 
     # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-    file_type = "tif"
+    file_type = "jpg"
     all_image_paths = []
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder
@@ -351,4 +353,4 @@ if __name__ == '__main__':
     for t in threads:
         t.join()
     print("All images processed!\nExiting Main Thread")
-    exit()
+    print("Time elapsed:", time.time() - start)
