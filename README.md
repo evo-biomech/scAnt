@@ -267,7 +267,7 @@ A number of open source tools are used for processing the RAW images captured by
 
 ## Quick Start Guide
 
-After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI. While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the camera**, **(2) configuring the stepper motors**, and **(3) Configuring the scanning process**, i.e. saving the project as well as starting the scan.
+After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI. While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the Camera**, **(2) configuring the Stepper Motors**, and **(3) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
 
 ![](images/scAnt_GUI.png)
 
