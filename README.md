@@ -1,8 +1,12 @@
 # scAnt - Open Source 3D Scanner
 
-**scAnt** is an open-source, low-cost macro 3D scanner, designed to automate the creation of digital 3D models of insects of various sizes in full colour. **scAnt** provides example configurations for the scanning process, as well as scripts for stacking and masking of images to prepare them for the photogrammetry software of your choice. Some examples of models generated with **scAnt** can be found on http://bit.ly/ScAnt-3D as well as on our [Sketchfab Collection](https://sketchfab.com/EvoBiomech/collections/scant-collection)!
+[**scAnt**](https://peerj.com/articles/11155/) is an open-source, low-cost macro 3D scanner, designed to automate the creation of digital 3D models of insects of various sizes in full colour. **scAnt** provides example configurations for the scanning process, as well as scripts for stacking and masking of images to prepare them for the photogrammetry software of your choice. Some examples of models generated with **scAnt** can be found on http://bit.ly/ScAnt-3D as well as on our [Sketchfab Collection](https://sketchfab.com/EvoBiomech/collections/scant-collection)!
 
 ![](images/model_collection_showcase_04_updated.jpg)
+
+The [**scAnt**](https://peerj.com/articles/11155/) paper can be found [here](https://peerj.com/articles/11155/):
+
+Plum F, Labonte D. 2021. scAnt—an open-source platform for the creation of 3D models of arthropods (and other small objects) PeerJ 9:e11155 https://doi.org/10.7717/peerj.11155
 
 All structural components of the scanner can be manufactured using 3D-printing and laser cutting; the required files are available for download in .ipt, .iam, .stl, and .svg format on our [thingiverse](https://www.thingiverse.com/thing:4694713) page.
 
@@ -426,6 +430,9 @@ All outputs within Meshroom are automatically saved in the project’s environme
 
 
 ***
+## Original paper
+Plum F, Labonte D. 2021. scAnt—an open-source platform for the creation of 3D models of arthropods (and other small objects) 
+PeerJ 9:e11155 https://doi.org/10.7717/peerj.11155
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
