@@ -81,13 +81,27 @@ Unpack all files in a folder of your choice. Then proceed with the following ste
 sudo apt-get install libavcodec57 libavformat57 libswscale4 libswresample2 libavutil55 libusb-1.0-0 libgtkmm-2.4-dev
 ```
 
-2. Install spinnaker from its extracted folder. During installation, ensure to add your user to the user-group and accept increasing allocated USB-FS memory size to 1000 MB in order to increase the video stream buffer size
+2. Install spinnaker from its extracted folder. During installation, ensure to add your user to the user-group and accept increasing allocated USB-FS memory size to 1000 MB in order to increase the video stream buffer size.
 
 ```bash
 sudo sh install_spinnaker.sh
 ```
 
 3. **Reboot** your computer
+
+In some cases the installer will not be able to update the allocated memory automatically. Check that the memory is set to at least **1000** MB by running:
+
+```bash
+cat /sys/module/usbcore/parameters/usbfs_memory_mb
+```
+
+In case the **memory allocation** has **not been updated**, you can either increase it temporarily by running
+
+```bash
+sudo sh -c 'echo 1000 > /sys/module/usbcore/parameters/usbfs_memory_mb'
+```
+
+or permanently, by following the instructions outlined in the **README** file of the downloaded **Spinnaker installation** folder.
 
 4. Launch spinview and connect your FLIR camera to verify your installation (if the application is already launched when plugging in your camera, refresh the list)
 
