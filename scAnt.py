@@ -178,6 +178,29 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info("No DSLR camera found!")
             self.DSLR_found = False
 
+        # Find FLIR cameras, if attached
+        try:
+            from GUI.Live_view_WEBCAM import customWEBCAM
+            self.WEBCAM = customWEBCAM()
+            # camera needs to be initialised before use (self.cam.initialise_camera)
+            # all detected FLIR cameras are listed in self.cam.device_names
+            # by default, use the first camera found in the list
+            self.cam = self.WEBCAM
+            self.cam.initialise_camera(select_cam=0)
+            # now retrieve the name of all found FLIR cameras and add them to the camera selection
+            for cam in self.cam.device_names:
+                self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
+            self.camera_type = "FLIR"
+            # cam.device_names contains both model and serial number
+            self.camera_model = self.cam.device_names[0][0]
+            self.WEBCAM_found = True
+        except IndexError:
+            message = "No WEBCAM camera found!"
+            self.log_info(message)
+            print(message)
+            self.WEBCAM_found = False
+            self.disable_FLIR_inputs()
+
         # connect camera selection combo box to respective function
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
 
