@@ -49,18 +49,24 @@ class customWEBCAM():
         # initialise camera, apply settings and begin acquisition
         # Initialize camera
         self.cam = cv2.VideoCapture(self.cam_list[select_cam], cv2.CAP_DSHOW)
+        self.default_settings = self.get_all_settings()
 
     def deinitialise_camera(self):
         self.cam.release()
 
-    def configure_exposure(self, exposure_time_to_set=100000):
-        pass
+    def configure_exposure(self, exposure_time_to_set=-3):
+        # TODO: error handling
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+        success = self.cam.set(cv2.CAP_PROP_EXPOSURE, exposure_time_to_set)
+        return success
 
     def set_gain(self, gain=1.83):
-        pass
+        success = self.cam.set(cv2.CAP_PROP_GAIN, gain)
+        return success
 
     def set_gamma(self, gamma=0.8):
-        pass
+        success = self.cam.set(cv2.CAP_PROP_GAMMA , gamma)
+        return success
 
     def set_white_balance(self, red=1.58, blue=1.79):
         pass
@@ -69,13 +75,29 @@ class customWEBCAM():
         pass
 
     def reset_exposure(self):
-        pass
+        # TODO autoexposure is broke
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
+        success = self.cam.set(cv2.CAP_PROP_EXPOSURE, self.default_settings[3])
+        return success
 
     def reset_gain(self):
-        pass
+        # TODO autoexposure is broke
+        # self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
+        success = self.cam.set(cv2.CAP_PROP_GAIN, self.default_settings[2])
+        return success
 
     def print_device_info(self):
         pass
+
+    def get_all_settings(self):
+        settings = []
+        for i in [3,4,14,15,21,22]:
+            settings.append(self.cam.get(i))
+
+        return settings
+
+    def get_current_setting(self, setting):
+        return self.cam.get(setting)
 
     def live_view(self):
         """
@@ -119,8 +141,8 @@ class customWEBCAM():
 
         else:
             # Print image information
-            width = self.cam.get(3)
-            height = self.cam.get(4)
+            width = self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+            height = self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
             print('Captured Image with width = %d, height = %d' % (width, height))
 
