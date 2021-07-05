@@ -5,11 +5,6 @@ import numpy as np
 # as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
 used_plattform = platform.system()
 
-if used_plattform == "Linux":
-    import PySpin
-else:
-    from PySpin import PySpin  # to run on windows
-
 
 class customWEBCAM():
 
@@ -18,11 +13,12 @@ class customWEBCAM():
         # check the number of connected working webcams
         check_port = 0
         self.cam_list = []
+        is_working = True
         while is_working:
-            test_camera = cv2.VideoCapture(check_port)
+            test_camera = cv2.VideoCapture(check_port, cv2.CAP_DSHOW)
             if not test_camera.isOpened():
                 is_working = False
-                print("Port %s is not working." %check_port)
+                print("Camera at port %s is not working/does not exist." %check_port)
             else:
                 is_reading, img = test_camera.read()
                 if is_reading:
@@ -31,8 +27,8 @@ class customWEBCAM():
                     print("Detected camera port", self.cam_list[-1])
             check_port +=1
 
-        # by default, use the first camera in the retrieved list
-        self.cam = self.cam_list[0]
+        # # by default, use the first camera in the retrieved list
+        # self.cam = cv2.VideoCapture(self.cam_list[0], cv2.CAP_DSHOW)
 
         num_cameras = len(self.cam_list)
 
@@ -43,7 +39,7 @@ class customWEBCAM():
 
             print('Not enough cameras!')
             input('Done! Press Enter to exit...')
-            return False
+            # return False
 
         print("\nExecute CustomWEBCAM.initialise_camera and pass the number of the listed camera, "
               "in case more than one has been detected!\n")
@@ -52,153 +48,31 @@ class customWEBCAM():
         # overwrite the selected cam at initialisation if desired
         # initialise camera, apply settings and begin acquisition
         # Initialize camera
-        self.cam = cv2.VideoCapture(self.cam_list[select_cam])
-
-        # Set acquisition mode to continuous
-        if self.cam.AcquisitionMode.GetAccessMode() != PySpin.RW:
-            print('Unable to set acquisition mode to continuous. Aborting...')
-            return False
-
-        # always retrieve the newest captured image for the live view
-        self.cam.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestOnly)
-        self.cam.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
-        print('Acquisition mode set to continuous...')
-
-        self.set_gain(gain=1.83)
-        self.set_gamma(gamma=0.8)
-        self.set_white_balance(red=1.58, blue=1.79)
-        self.configure_exposure(exposure_time_to_set=90000)
-
-        # Begin Acquisition of image stream
-        self.cam.BeginAcquisition()
+        self.cam = cv2.VideoCapture(self.cam_list[select_cam], cv2.CAP_DSHOW)
 
     def deinitialise_camera(self):
         self.cam.release()
 
     def configure_exposure(self, exposure_time_to_set=100000):
-        """
-         This function configures a custom exposure time. Automatic exposure is turned
-         off in order to allow for the customization, and then the custom setting is
-         applied.
-
-         :param cam: Camera to configure exposure for.
-         :type cam: CameraPtr
-         :return: True if successful, False otherwise.
-         :rtype: bool
-        """
-
-        print('*** CONFIGURING EXPOSURE ***\n')
-
-        try:
-            result = True
-
-            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
-                print('Unable to disable automatic exposure. Aborting...')
-                return False
-
-            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
-            print('Automatic exposure disabled...')
-
-            if self.cam.ExposureTime.GetAccessMode() != PySpin.RW:
-                print('Unable to set exposure time. Aborting...')
-                return False
-
-            # Ensure desired exposure time does not exceed the maximum
-            # 90000  # with grey backdrop and full illumination
-            # 200751  # with grey backdrop and half illumination
-            exposure_time_to_set = min(self.cam.ExposureTime.GetMax(), exposure_time_to_set)
-            self.cam.ExposureTime.SetValue(exposure_time_to_set)
-            print('Shutter time set to %s us...\n' % exposure_time_to_set)
-
-
-        except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex)
-            result = False
-
-        return result
+        pass
 
     def set_gain(self, gain=1.83):
-        self.cam.GainAuto.SetValue(PySpin.GainAuto_Off)
-        self.cam.Gain.SetValue(gain)
+        pass
 
     def set_gamma(self, gamma=0.8):
-        self.cam.Gamma.SetValue(gamma)
+        pass
 
     def set_white_balance(self, red=1.58, blue=1.79):
-        self.cam.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
-        self.cam.BalanceRatioSelector.SetValue(PySpin.BalanceRatioSelector_Red)
-        self.cam.BalanceRatio.SetValue(red)
-        self.cam.BalanceRatioSelector.SetValue(PySpin.BalanceRatioSelector_Blue)
-        self.cam.BalanceRatio.SetValue(blue)
+        pass
 
     def set_black_level(self, level):
         pass
-        ### TODO
-        # self.cam.BlackLevelRaw.SetValue(level)
 
     def reset_exposure(self):
-        """
-        This function returns the camera to a normal state by re-enabling automatic exposure.
-
-        :param cam: Camera to reset exposure on.
-        :type cam: CameraPtr
-        :return: True if successful, False otherwise.
-        :rtype: bool
-        """
-        try:
-            result = True
-
-            # Turn automatic exposure back on
-            #
-            # *** NOTES ***
-            # Automatic exposure is turned on in order to return the camera to its
-            # default state.
-
-            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
-                print('Unable to enable automatic exposure (node retrieval). Non-fatal error...')
-                return False
-
-            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
-
-            print('Automatic exposure enabled...')
-
-        except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex)
-            result = False
-
-        return result
+        pass
 
     def reset_gain(self):
-        """
-        This function returns the camera to a normal state by re-enabling automatic exposure.
-
-        :param cam: Camera to reset exposure on.
-        :type cam: CameraPtr
-        :return: True if successful, False otherwise.
-        :rtype: bool
-        """
-        try:
-            result = True
-
-            # Turn automatic exposure back on
-            #
-            # *** NOTES ***
-            # Automatic exposure is turned on in order to return the camera to its
-            # default state.
-
-            if self.cam.GainAuto.GetAccessMode() != PySpin.RW:
-                print('Unable to enable automatic gain (node retrieval). Non-fatal error...')
-                return False
-
-            self.cam.GainAuto.SetValue(PySpin.GainAuto_Continuous)
-
-            print('Automatic gain enabled...')
-
-        except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex)
-            result = False
-
-        return result
+        pass
 
     def print_device_info(self):
         pass
@@ -226,7 +100,7 @@ class customWEBCAM():
             width = self.cam.get(3)
             height = self.cam.get(4)
 
-            scale_percent = 15  # percent of original size
+            scale_percent = 80  # percent of original size
             width = int(width * scale_percent / 100)
             height = int(height * scale_percent / 100)
             dim = (width, height)

@@ -3,7 +3,6 @@ from time import time
 import datetime
 import os
 import numpy as np
-from GUI.Live_view_FLIR import customFLIR
 from pathlib import Path
 
 """
@@ -212,6 +211,8 @@ class ScannerController:
 
 
 if __name__ == '__main__':
+    from GUI.Live_view_FLIR import customFLIR
+    
     print("Testing funcitonality of components")
     scAnt = ScannerController()
     scAnt.initCam(customFLIR())
