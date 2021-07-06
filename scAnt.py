@@ -525,13 +525,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         elif self.camera_type == "WEBCAM":
             self.cam = self.WEBCAM
             self.camera_type = "WEBCAM"
-            self.cam.initialise_camera()
+            self.cam.initialise_camera(select_cam=int(selected_camera))
             self.WEBCAM_initialised = True
-            self.log_info("Camera works i think")
             self.begin_live_view()
-            self.camera_model = self.cam.cam_list[0]
+            self.camera_model = self.cam.cam_list[int(selected_camera)]
             self.enable_WEBCAM_inputs()
-            self.file_format = ".jpg"
+            self.file_format = ".tif"
 
     def launch_DCC_threaded(self, progress_callback):
         self.cam.initialise_camera()
