@@ -68,12 +68,6 @@ class customWEBCAM():
         success = self.cam.set(cv2.CAP_PROP_GAMMA , gamma)
         return success
 
-    def set_white_balance(self, red=1.58, blue=1.79):
-        pass
-
-    def set_black_level(self, level):
-        pass
-
     def reset_exposure(self):
         # TODO autoexposure is broke
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
@@ -85,9 +79,6 @@ class customWEBCAM():
         # self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
         success = self.cam.set(cv2.CAP_PROP_GAIN, self.default_settings[2])
         return success
-
-    def print_device_info(self):
-        pass
 
     def get_all_settings(self):
         settings = []
