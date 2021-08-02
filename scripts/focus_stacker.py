@@ -194,7 +194,7 @@ def process_stack(threadName, q):
                           "--hard-mask --contrast-edge-scale=1 --output=" +
                           output_path + image_str_focus)
             else:
-                os.system(path_to_external + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                os.system(str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
                           "--hard-mask --contrast-edge-scale=1 --output=" +
                           output_path + image_str_focus)
 
