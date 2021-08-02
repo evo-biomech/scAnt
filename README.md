@@ -148,14 +148,6 @@ self.stepperY_ID = "YYYYYYYY"
 self.stepperZ_ID = "ZZZZZZZZ"
 ```
 
-7. Now that your camera and steppers are all set up, you can run a complete functionality check of the scanner by running the **Scanner_Controller.py** script.
-
-```bash
-cd scAnt/scripts
-python Scanner_Controller.py
-```
-- the scanner will then home all axes, drive to a set of example positions and capture images as it would during scanning for a very coarse grid.
-- If no errors appear, images will be saved and “Demo completed successfully” is printed to the console
 
 **Image Processing**
 
@@ -186,7 +178,7 @@ Download the drivers and python bindings for **Spinnaker & Pyspin** from the off
 
 **FLIR Support / Spinnaker / Windows / python**
 
-*depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m_linux_x86_64.tar.gz***
+*depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m-win_amd64.zip***
 
 
 Unpack all files in a folder of your choice. Then proceed with the following steps:
@@ -266,15 +258,6 @@ self.stepperX_ID = "XXXXXXXX"
 self.stepperY_ID = "YYYYYYYY"
 self.stepperZ_ID = "ZZZZZZZZ"
 ```
-
-5. Now that your camera and steppers are all set up, you can run a complete functionality check of the scanner by running the **Scanner_Controller.py** script.
-
-```bash
-cd scAnt/scripts
-python Scanner_Controller.py
-```
-- the scanner will then home all axes, drive to a set of example positions and capture images as it would during scanning for a very coarse grid.
-- If no errors appear, images will be saved and “Demo completed successfully” is printed to the console
 
 
 **Image Processing**
