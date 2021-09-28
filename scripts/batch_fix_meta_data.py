@@ -1,11 +1,10 @@
-from scripts.write_meta_data import write_exif_to_img
-from scripts.project_manager import read_config_file
+from write_meta_data import write_exif_to_img
+from project_manager import read_config_file
 from pathlib import Path
 import os
 import cv2
 import numpy as np
-import time
-from scripts.mask_generator import apply_local_contrast
+from mask_generator import apply_local_contrast
 
 # enter the folder to your project here
 folder = Path("C:\\Users\\Legos\\Desktop\\3D_scans\\0050_um\\RAW_stacked")
