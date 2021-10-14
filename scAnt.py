@@ -6,6 +6,7 @@ import os
 import cgitb
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
+import numpy as np
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 
@@ -147,7 +148,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # cam.device_names contains both model and serial number
             self.camera_model = self.cam.device_names[0][0]
             self.FLIR_found = True
-        except IndexError:
+        except:
             message = "No FLIR camera found!"
             self.log_info(message)
             print(message)
@@ -173,10 +174,32 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 worker.signals.finished.connect(self.finished_DCC_launch)
 
                 self.threadpool.start(worker)
-
         except:
             self.log_info("No DSLR camera found!")
             self.DSLR_found = False
+
+        # Find Webcam cameras, if attached
+        try:
+            from GUI.Live_view_WEBCAM import customWEBCAM
+            self.WEBCAM = customWEBCAM()
+            # camera needs to be initialised before use (self.cam.initialise_camera)
+            # all detected FLIR cameras are listed in self.cam.device_names
+            # by default, use the first camera found in the list
+            self.cam = self.WEBCAM
+            self.cam.initialise_camera(select_cam=0)
+            # now retrieve the name of all found FLIR cameras and add them to the camera selection
+            for cam in self.cam.cam_list:
+                self.ui.comboBox_selectCamera.addItem(str(cam))
+            self.camera_type = "WEBCAM"
+            # cam.device_names contains both model and serial number
+            self.camera_model = self.cam.cam_list[0]
+            self.WEBCAM_found = True
+            self.enable_WEBCAM_inputs()
+        except:
+            message = "No WEBCAM camera found!"
+            self.log_info(message)
+            print(message)
+            self.WEBCAM_found = False
 
         # connect camera selection combo box to respective function
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
@@ -461,6 +484,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def select_camera(self):
         self.disable_FLIR_inputs()
         self.disable_DSLR_inputs()
+        self.disable_WEBCAM_inputs()
         selected_camera = self.ui.comboBox_selectCamera.currentText()
         self.log_info("Selected camera: " + str(selected_camera))
 
@@ -487,7 +511,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.file_format = ".tif"
 
         # new camera -> DSLR
-        else:
+        elif self.camera_type == "DSLR":
             self.cam = self.DSLR
             self.camera_type = "DSLR"
             self.camera_model = self.DSLR.camera_model
@@ -497,6 +521,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             self.threadpool.start(worker)
 
+        # new camera -> WEBCAM
+        elif self.camera_type == "WEBCAM":
+            self.cam = self.WEBCAM
+            self.camera_type = "WEBCAM"
+            self.cam.initialise_camera(select_cam=int(selected_camera))
+            self.WEBCAM_initialised = True
+            self.begin_live_view()
+            self.camera_model = self.cam.cam_list[int(selected_camera)]
+            self.enable_WEBCAM_inputs()
+            self.file_format = ".tif"
+
     def launch_DCC_threaded(self, progress_callback):
         self.cam.initialise_camera()
         self.DSLR_initialised = True
@@ -505,7 +540,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Launched DCC and retrieved camera settings")
         self.enable_DSLR_inputs()
 
-    # FLIR Settings
+    # FLIR and WEBCAM Settings
 
     def check_exposure(self):
         if self.ui.checkBox_exposureAuto.isChecked():
@@ -524,6 +559,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_exposureTime.setEnabled(True)
         value = self.ui.doubleSpinBox_exposureTime.value()
         if value is not None:
+            if self.camera_type == "WEBCAM":
+                value = round(np.log2(value/10**6))
+                # self.ui.doubleSpinBox_exposureTime.setValue(10**6*2**value)
             self.log_info("Exposure time set to " + str(value) + " [us]")
             self.cam.configure_exposure(float(value))
 
@@ -568,7 +606,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.set_black_level(float(value))
 
     def update_live_view(self, progress_callback):
-        while self.liveView and self.camera_type == "FLIR":
+        while self.liveView and (self.camera_type == "FLIR" or self.camera_type == "WEBCAM"):
             try:
                 img = self.cam.live_view()
                 # if enabled, display exposure as histogram and highlight over exposed areas
@@ -588,6 +626,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
             except AttributeError:
                 print("Live view ended")
+
         self.ui.label_liveView.setText("Live view disabled.")
 
     # DSLR settings
@@ -661,10 +700,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.camera_type == "FLIR":
                 worker = Worker(self.update_live_view)
                 self.threadpool.start(worker)
-            else:
+            elif self.camera_type == "DSLR":
                 # starts live view in external Window
                 self.ui.label_liveView.setText("Live view opened in external DCC window!")
                 self.cam.start_live_view()
+            elif self.camera_type == "WEBCAM":
+                # starts live view in external Window
+                worker = Worker(self.update_live_view)
+                self.threadpool.start(worker)
 
         else:
             self.ui.label_liveView.setText("Live view disabled.")
@@ -674,6 +717,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.camera_type == "DSLR":
                 self.cam.stop_live_view()
+                # TOOOODOOOOO
+            # elif self.camera_type == "WEBCAM":
+            #     # starts live view in external Window
+            #     self.cam.live_view()
 
     def capture_image(self):
         now = datetime.datetime.now()
@@ -1021,6 +1068,40 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_iso.setEnabled(False)
         self.ui.comboBox_compression.setEnabled(False)
         self.ui.comboBox_whiteBalance.setEnabled(False)
+
+    def disable_WEBCAM_inputs(self):
+        self.ui.checkBox_exposureAuto.setEnabled(False)
+        self.ui.doubleSpinBox_exposureTime.setEnabled(False)
+        self.ui.checkBox_gainAuto.setEnabled(False)
+        self.ui.doubleSpinBox_gainLevel.setEnabled(False)
+        self.ui.doubleSpinBox_gamma.setEnabled(False)
+        self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(False)
+        self.ui.doubleSpinBox_balanceRatioRed.setEnabled(False)
+        self.ui.pushButton_startLiveView.setEnabled(False)
+        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.checkBox_highlightExposure.setEnabled(False)
+        self.ui.comboBox_shutterSpeed.setEnabled(False)
+        self.ui.comboBox_aperture.setEnabled(False)
+        self.ui.comboBox_iso.setEnabled(False)
+        self.ui.comboBox_compression.setEnabled(False)
+        self.ui.comboBox_whiteBalance.setEnabled(False)
+        # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
+
+    def enable_WEBCAM_inputs(self):
+        self.ui.stacked_camera_settings.setCurrentIndex(0)
+        self.ui.checkBox_exposureAuto.setEnabled(True)
+        self.ui.doubleSpinBox_exposureTime.setEnabled(True)
+        self.ui.checkBox_gainAuto.setEnabled(True)
+        self.ui.doubleSpinBox_gainLevel.setEnabled(True)
+        self.ui.doubleSpinBox_gamma.setEnabled(True)
+        # self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(True)
+        # self.ui.doubleSpinBox_balanceRatioRed.setEnabled(True)
+        self.ui.pushButton_startLiveView.setEnabled(True)
+        self.ui.pushButton_startScan.setEnabled(True)
+        self.ui.pushButton_captureImage.setEnabled(True)
+        # self.ui.checkBox_highlightExposure.setEnabled(True)
+        # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def changeInputState(self):
         enableInputs = True
