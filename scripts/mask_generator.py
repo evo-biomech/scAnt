@@ -109,7 +109,7 @@ def remove_holes(img, min_num_pixel):
     return cleaned_img
 
 
-def apply_local_contrast(img, grid_size=(7, 7)):
+def apply_local_contrast(img, grid_size=(7, 7), clip_limit=3.0):
     """
     ### CLAHE (Contrast limited Adaptive Histogram Equalisation) ###
 
@@ -121,7 +121,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
@@ -148,7 +148,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             src = cv2.imread(data, 1)
 
-            img_enhanced = apply_local_contrast(src)
+            img_enhanced = apply_local_contrast(src, clip_limit=args["CLAHE"])
 
             # reduce noise in the image before detecting edges
             blurred = cv2.GaussianBlur(img_enhanced, (5, 5), 0)
@@ -315,6 +315,8 @@ if __name__ == '__main__':
                     help="process all images in the specified folder [True / False]")
     ap.add_argument("-c", "--create_cutout", type=bool, default=False,
                     help="create cutout of input image from generated mask")
+    ap.add_argument("-cl", "--CLAHE", type=float, default=3.0,
+                    help="set the clip-limit for Contrast Limited Adaptive Histogram Equilisation")
 
     args = vars(ap.parse_args())
 
@@ -338,7 +340,7 @@ if __name__ == '__main__':
     # setup half as many threads as there are (virtual) CPUs
     exitFlag_alpha = 0
     num_virtual_cores = getThreads()
-    threadList = createThreadList(int(num_virtual_cores / 2))
+    threadList = createThreadList(int(num_virtual_cores / 4))
     print("Found", num_virtual_cores, "(virtual) cores...")
     queueLock_alpha = threading.Lock()
 
