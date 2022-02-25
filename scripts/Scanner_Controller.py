@@ -1,12 +1,5 @@
-from time import sleep
-from time import time
-import datetime
 import os
 import numpy as np
-try:
-    from GUI.Live_view_FLIR import customFLIR
-except ModuleNotFoundError:
-    print("WARNING: PySpin module not found! You can ignore this message when not using FLIR cameras.")
 from pathlib import Path
 
 """
@@ -215,6 +208,10 @@ class ScannerController:
 
 
 if __name__ == '__main__':
+    try:
+        from GUI.Live_view_FLIR import customFLIR
+    except ModuleNotFoundError:
+        print("WARNING: PySpin module not found! You can ignore this message when not using FLIR cameras.")
     print("Testing funcitonality of components")
     scAnt = ScannerController()
     scAnt.initCam(customFLIR())
