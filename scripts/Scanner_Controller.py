@@ -3,7 +3,10 @@ from time import time
 import datetime
 import os
 import numpy as np
-from GUI.Live_view_FLIR import customFLIR
+try:
+    from GUI.Live_view_FLIR import customFLIR
+except ModuleNotFoundError:
+    print("WARNING: PySpin module not found! You can ignore this message when not using FLIR cameras.")
 from pathlib import Path
 
 """
