@@ -21,7 +21,7 @@ class ScannerController:
         self.stepper_home = ['rev', None, 'fwd']
         self.stepper_home_pos = [-1000, 0, 50000]
         self.stepper_maxAccel = [10000, 20000, 100000]
-        self.stepper_maxVelocity = [800000, 1000000, 40000000]
+        self.stepper_maxVelocity = [800000, 1000000, 60000000]
         self.stepper_stepModes = [8, 8, 8]
         self.stepper_currents = [174, 174, 343]
 
