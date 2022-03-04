@@ -2,7 +2,10 @@ import subprocess
 import time
 from pathlib import Path
 import platform
-from scripts.project_manager import read_config_file
+try:
+    from scripts.project_manager import read_config_file
+except ModuleNotFoundError:
+    from project_manager import read_config_file
 import os
 
 
