@@ -1,6 +1,7 @@
 import cv2
 import platform
 import numpy as np
+import time
 
 # as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
 used_plattform = platform.system()
@@ -303,7 +304,7 @@ class customFLIR():
 
         return resized
 
-    def capture_image(self, img_name="example.tif"):
+    def capture_image(self, img_name="example.tif", return_image=False):
         try:
             try:
                 # Retrieve next received image and ensure image completion
@@ -320,13 +321,19 @@ class customFLIR():
 
                     # Create a unique filename
                     filename = img_name
-                    # Save RAW image
-                    image_result.Save(filename)
 
-                    print('Image saved as %s' % filename)
+                    # NEW
+                    if return_image:
+                        return image_result
+                    else:
+                        # Save RAW image
+                        image_result.Save(filename)
+
+                        print('Image saved as %s' % filename)
 
                 # Release image
                 image_result.Release()
+
 
             except PySpin.SpinnakerException as ex:
                 print('Error: %s' % ex)
