@@ -119,7 +119,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=3.3, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=4.2, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
@@ -249,8 +249,8 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
             # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
             # upper_gray = np.array([215, 215, 215])
             # front light only
-            lower_gray = np.array([145, 145, 145])  # [R value, G value, B value]
-            upper_gray = np.array([178, 178, 178])
+            lower_gray = np.array([108, 108, 108])  # [R value, G value, B value]
+            upper_gray = np.array([144, 144, 144])
 
             mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
 
@@ -301,7 +301,7 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 if __name__ == '__main__':
     # pip install opencv-contrib-python==3.4.5.20
     start = time.time()
-    source = "I:\\3D_Scanner\\Manuscript\\Revision\\masking_comparison\\rando_for"
+    source = "C:\\Users\\Legos\\Desktop\\3D_scans\\leptoglossus_phyloppus\\stacked"
 
     print("Using images from", source)
 
@@ -317,7 +317,7 @@ if __name__ == '__main__':
     queueLock_alpha = threading.Lock()
 
     # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-    file_type = "jpg"
+    file_type = "tif"
     all_image_paths = []
     for imagePath in sorted(paths.list_images(source)):
         # create an alpha mask for all TIF images in the source folder

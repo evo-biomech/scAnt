@@ -194,9 +194,10 @@ def process_stack(threadName, q):
                           "--hard-mask --contrast-edge-scale=1 --output=" +
                           output_path + image_str_focus)
             else:
-                os.system(str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                          "--hard-mask --contrast-edge-scale=1 --output=" +
-                          output_path + image_str_focus)
+                os.system(
+                    str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                    "--hard-mask --gray-projector=l-star --contrast-edge-scale=1 --output=" +
+                    output_path + image_str_focus)
 
             print("Stacked image saved as", output_path)
 
@@ -422,7 +423,7 @@ if __name__ == '__main__':
     # setup as many threads as there are (virtual) CPUs
     exitFlag_stacking = 0
     # only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
-    threadList_stacking = createThreadList(int(num_virtual_cores / 4))
+    threadList_stacking = createThreadList(int(min([num_virtual_cores / 4, 3])))
     print("Using", len(threadList_stacking), "threads for stacking...")
     queueLock = threading.Lock()
 
