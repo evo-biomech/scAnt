@@ -332,8 +332,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
 
         # stack and mask images
-        self.maxStackThreads = max(min([int(getThreads() / 6), 3]), 1)
+        self.maxStackThreads = max(min([int(getThreads() / 6), 2]), 1)
         # run no more than 3 stacking threads simultaneously but no less than 1
+        self.postScanStacking = False
         self.activeThreads = 0
         self.stackList = []
 
@@ -1107,7 +1108,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                     # check for images in the saving & stacking Queue
                     print("Started background processing queue...")
-                    self.timerStack.start(1000)
+                    # prioritise writing images over stacking until the scan is either completed or aborted
+                    self.postScanStacking = False
+                    self.timerStack.start(500)
 
                     self.threadpool.start(worker)
                 else:
@@ -1117,6 +1120,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.abortScan = True
             self.log_info("SCAN ABORTED!")
+            if self.stackImages:
+                self.postScanStacking = True
 
     def runScanAndReport_threaded(self, progress_callback):
         # number of images taken over the number of images to take
@@ -1176,6 +1181,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.scanner.completedRotations += 1
         # return to default position
         # reset settings
+        self.log_info("Scan completed! Homing scanner...")
+        if self.stackImages:
+            self.log_info("Stacking remaining images in queue...")
+            self.postScanStacking = True
         self.images_taken = 0
         self.deEnergise()
         self.homeX()
@@ -1216,12 +1225,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.stackImages:
                 if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
-                    print("OH GOTTA STACK FAST")
                     worker = Worker(self.processStack)
                     self.activeThreads += 1
                     self.threadpool.start(worker)
 
             self.ActiveSavingProcess = False
+
+        # additionally ensure that stacking is continued when capture finishes
+        if self.postScanStacking:
+            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
+                worker = Worker(self.processStack)
+                self.activeThreads += 1
+                self.threadpool.start(worker)
 
     def processStack(self, progress_callback):
         stack = self.stackList[0]
