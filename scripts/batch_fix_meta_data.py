@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     for img in os.listdir(str(folder)):
         print(img)
-        if img[-5:] == "_.tif":
+        if img[-4:] == ".tif" or img[-4:] == ".jpg":
             img_tif = cv2.imread(str(folder.joinpath(img)), cv2.IMREAD_UNCHANGED)
 
             if args["cutout"]:
