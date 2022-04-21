@@ -155,6 +155,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print(message)
             self.FLIR_found = False
             self.disable_FLIR_inputs()
+        except ModuleNotFoundError:
+            message = "PYSPIN has not been installed - Disabling FLIR camera inputs"
+            self.log_info(message)
+            print(message)
+            self.FLIR_found = False
+            self.disable_FLIR_inputs()
 
         try:
             # TODO add support for the selection of multiple connected DSLR cameras
