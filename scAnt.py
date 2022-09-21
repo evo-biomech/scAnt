@@ -1249,18 +1249,23 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         del self.stackList[0]
         # stack images
         print("\nSTACKING: \n\n", stack)
+        # using try / except to continue stacking with other images in case an error occurs
+        try:
+            stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold,
+                                          sharpen=self.stackSharpen,
+                                          stacking_method=self.stackMethod)
 
-        stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold, sharpen=self.stackSharpen,
-                                      stacking_method=self.stackMethod)
+            write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
-        write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
+            if self.maskImages:
+                mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
+                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
 
-        if self.maskImages:
-            mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
-                        min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
+                if self.createCutout:
+                    write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
 
-            if self.createCutout:
-                write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
+        except Exception as e:
+            print(e)
 
         self.activeThreads -= 1
 
