@@ -201,8 +201,8 @@ def process_stack(threadName, q):
 
             print("Stacked image saved as", output_path)
 
-            stacked = Image.open(output_path)
             if additional_sharpening:
+                stacked = Image.open(output_path)
                 enhancer = ImageEnhance.Sharpness(stacked)
                 sharpened = enhancer.enhance(1.5)
                 sharpened.save(output_path)
