@@ -60,9 +60,16 @@ Additional drivers and libraries for the camera and stepper drivers need to be i
 
 ### Ubuntu 18.04
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
+**FLIR setup**
 
-[meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+***
+
+**NOTE** The latest version (3.0 and above) of **Spinnaker** & **PySpin** causes the **scAnt** application to freeze for some capture commands. 
+For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
+
+***
+
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
 
 
 **FLIR Support / Spinnaker / Linux Ubuntu / Ubuntu 18.04**
@@ -167,10 +174,18 @@ sudo apt install libimage-exiftool-perl
 
 ### Windows 10
 
-(Instructions for using **DSLR** cameras in the section below. You can skip the **FLIR** installation section, if you are not planning on using **FLIR** cameras.) 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page:
+**FLIR setup**
 
-[meta.box.lenovo.com](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+(Instructions for using **DSLR** cameras in the section below. You can skip the **FLIR** installation section, if you are not planning on using **FLIR** cameras.) 
+
+***
+
+**NOTE** The latest version (3.0 and above) of **Spinnaker** & **PySpin** causes the **scAnt** application to freeze for some capture commands. 
+For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
+
+***
+
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
 
 
 **FLIR Support / Spinnaker / Windows**
