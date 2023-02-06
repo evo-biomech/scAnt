@@ -148,7 +148,23 @@ ticcmd --list
 
 This should output a list of all connected USB stepper drivers.
 
-6. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
+6. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. 
+
+Double check your end-stop cables are connected to the correct pins on the pololu-tic board:
+
+**GND**: Black
+**TX**: Green
+**RX**: Red
+
+Then the setup should be:
+
+**for the Z-axis (camera slider)**
+
+![](images/stepper_set_up.png)
+
+The TX of the limit switch of the **Z-axis** (camera slider) needs to be set to *"limit switch forward"* and to *"limit switch reverse"* for the **X-axis** (gimbal).
+
+From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
 
 ```python
 self.stepperX_ID = "XXXXXXXX"
