@@ -152,9 +152,9 @@ This should output a list of all connected USB stepper drivers.
 
 Double check your end-stop cables are connected to the correct pins on the pololu-tic board:
 
-**GND**: Black
-**TX**: Green
-**RX**: Red
+- **GND**: Black
+- **TX**: Green
+- **RX**: Red
 
 Then the setup should be:
 
