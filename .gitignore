@@ -1,0 +1,9 @@
+# python environment specific
+*.pyc
+.idea/*
+GUI/.idea/*
+GUI/__pycache__/*
+
+
+# jupyter related
+.ipynb_checkpoints/*
