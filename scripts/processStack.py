@@ -76,7 +76,7 @@ def checkFocus(image_path, threshold, usable_images, rejected_images):
     return usable_images, rejected_images
 
 
-def process_stack(data, output_folder, path_to_external, sharpen):
+def process_stack(data, output_folder, path_to_external, sharpen, use_experimental_stacking=True):
     stack_name = data.split(" ")[1]
     stack_name = Path(stack_name).name[:-15]
 
@@ -84,57 +84,63 @@ def process_stack(data, output_folder, path_to_external, sharpen):
 
     used_platform = platform.system()
 
-    if used_platform == "Linux":
-        os.system("align_image_stack -m -x -c 100 -a " + str(
-            temp_output_folder.joinpath(stack_name))
-                  + "OUT" + data)
-    else:
-        # use additional external files under windows to execute alignment via hugin
-        os.system(str(path_to_external) + "\\align_image_stack -m -x -c 100 -a " + str(
-            temp_output_folder.joinpath(stack_name))
-                  + "OUT" + data)
-
-    image_str_focus = ""
-    temp_files = []
-    print("\nFocus stacking...")
-
-    num_images_in_stack = len(data.split(" ")) - 1
-
-    # go through list in reverse order (better results of focus stacking)
-    for img in range(num_images_in_stack):
-        if img < 10:
-            path = str(temp_output_folder.joinpath(stack_name)) + "OUT000" + str(img) + ".tif"
-        elif img < 100:
-            path = str(temp_output_folder.joinpath(stack_name)) + "OUT00" + str(img) + ".tif"
-        elif img < 1000:
-            path = str(temp_output_folder.joinpath(stack_name)) + "OUT0" + str(img) + ".tif"
-        else:
-            path = str(temp_output_folder.joinpath(stack_name)) + "OUT" + str(img) + ".tif"
-
-        temp_files.append(path)
-        image_str_focus += " " + path
-
     output_path = str(output_folder.joinpath(stack_name)) + ".tif"
     print(output_path)
 
-    print("generating:", image_str_focus + "\n")
-
-    # --save-masks     to save soft and hard masks
-    # --gray-projector=l-star alternative stacking method
-
-    if used_platform == "Linux":
-        os.system("enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                  "--hard-mask --contrast-edge-scale=1 --output=" +
-                  output_path + image_str_focus)
+    if used_platform != "Linux" and use_experimental_stacking:
+        os.system(
+            str(path_to_external) + "\\focus-stack\\focus-stack " +
+            data + " --output=" + output_path
+        )
     else:
-        os.system(str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                  "--hard-mask --contrast-edge-scale=1 --output=" +
-                  output_path + image_str_focus)
+        if used_platform == "Linux":
+            os.system("align_image_stack -m -x -c 200 -a " + str(
+                temp_output_folder.joinpath(stack_name))
+                      + "OUT" + data)
+        else:
+            # use additional external files under windows to execute alignment via hugin
+            os.system(str(path_to_external) + "\\align_image_stack -m -x -c 200 -a " + str(
+                temp_output_folder.joinpath(stack_name))
+                      + "OUT" + data)
 
-    print("Stacked image saved as", output_path)
+        image_str_focus = ""
+        temp_files = []
+        print("\nFocus stacking...")
 
-    stacked = Image.open(output_path)
+        num_images_in_stack = len(data.split(" ")) - 1
+
+        # go through list in reverse order (better results of focus stacking)
+        for img in range(num_images_in_stack):
+            if img < 10:
+                path = str(temp_output_folder.joinpath(stack_name)) + "OUT000" + str(img) + ".tif"
+            elif img < 100:
+                path = str(temp_output_folder.joinpath(stack_name)) + "OUT00" + str(img) + ".tif"
+            elif img < 1000:
+                path = str(temp_output_folder.joinpath(stack_name)) + "OUT0" + str(img) + ".tif"
+            else:
+                path = str(temp_output_folder.joinpath(stack_name)) + "OUT" + str(img) + ".tif"
+
+            temp_files.append(path)
+            image_str_focus += " " + path
+
+        print("generating:", image_str_focus + "\n")
+
+        # --save-masks     to save soft and hard masks
+        # --gray-projector=l-star alternative stacking method
+
+        if used_platform == "Linux":
+            os.system("enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                      "--hard-mask --contrast-edge-scale=1 --output=" +
+                      output_path + image_str_focus)
+        else:
+            os.system(str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                      "--hard-mask --contrast-edge-scale=1 --output=" +
+                      output_path + image_str_focus)
+
+        print("Stacked image saved as", output_path)
+
     if sharpen:
+        stacked = Image.open(output_path)
         enhancer = ImageEnhance.Sharpness(stacked)
         sharpened = enhancer.enhance(1.5)
         sharpened.save(output_path)
