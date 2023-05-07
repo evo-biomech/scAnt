@@ -151,71 +151,80 @@ def process_stack(threadName, q):
 
             used_plattform = platform.system()
 
-            if used_plattform == "Linux":
-                os.system("align_image_stack -m -x -c 100 -a " + str(
-                    temp_output_folder.joinpath(stack_name))
-                          + "OUT" + data)
-            else:
-                # use additional external files under windows to execute alignment via hugin
-                os.system(str(path_to_external) + "\\align_image_stack -m -x -c 100 -a " + str(
-                    temp_output_folder.joinpath(stack_name))
-                          + "OUT" + data)
-
-            image_str_focus = ""
-            temp_files = []
-            print("\nFocus stacking...")
-
-            num_images_in_stack = len(data.split(" ")) - 1
-
-            # go through list in reverse order (better results of focus stacking)
-            for img in range(num_images_in_stack):
-                if img < 10:
-                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT000" + str(img) + ".tif"
-                elif img < 100:
-                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT00" + str(img) + ".tif"
-                elif img < 1000:
-                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT0" + str(img) + ".tif"
-                else:
-                    path = str(temp_output_folder.joinpath(stack_name)) + "OUT" + str(img) + ".tif"
-
-                temp_files.append(path)
-                image_str_focus += " " + path
-
             output_path = str(output_folder.joinpath(stack_name)) + ".tif"
-            print(output_path)
 
-            print("generating:", image_str_focus + "\n")
-
-            # --save-masks     to save soft and hard masks
-            # --gray-projector=l-star alternative stacking method
-
-            if used_plattform == "Linux":
-                os.system("enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                          "--hard-mask --contrast-edge-scale=1 --output=" +
-                          output_path + image_str_focus)
-            else:
+            if args["use_experimental_stacking"]:
                 os.system(
-                    str(path_to_external) + "\\enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
-                    "--hard-mask --gray-projector=l-star --contrast-edge-scale=1 --output=" +
-                    output_path + image_str_focus)
-
-            print("Stacked image saved as", output_path)
-
-            if additional_sharpening:
-                stacked = Image.open(output_path)
-                enhancer = ImageEnhance.Sharpness(stacked)
-                sharpened = enhancer.enhance(1.5)
-                sharpened.save(output_path)
-
-                print("Sharpened", output_path)
-
-            for temp_img in temp_files:
+                    str(path_to_external) + "\\focus-stack\\focus-stack " +
+                    data + " --output=" + output_path
+                )
+            else:
                 if used_plattform == "Linux":
-                    os.system("rm " + str(temp_img))
+                    os.system("align_image_stack -m -x -c 1000 -a " + str(
+                        temp_output_folder.joinpath(stack_name))
+                              + "OUT" + data)
                 else:
-                    os.system("del " + str(temp_img))
+                    # use additional external files under windows to execute alignment via hugin
+                    os.system(str(path_to_external) + "\\align_image_stack -m -x -c 1000 -a " + str(
+                        temp_output_folder.joinpath(stack_name))
+                              + "OUT" + data)
 
-            print("Deleted temporary files of stack", data)
+                image_str_focus = ""
+                temp_files = []
+                print("\nFocus stacking...")
+
+                num_images_in_stack = len(data.split(" ")) - 1
+
+                # go through list in reverse order (better results of focus stacking)
+                for img in range(num_images_in_stack):
+                    if img < 10:
+                        path = str(temp_output_folder.joinpath(stack_name)) + "OUT000" + str(img) + ".tif"
+                    elif img < 100:
+                        path = str(temp_output_folder.joinpath(stack_name)) + "OUT00" + str(img) + ".tif"
+                    elif img < 1000:
+                        path = str(temp_output_folder.joinpath(stack_name)) + "OUT0" + str(img) + ".tif"
+                    else:
+                        path = str(temp_output_folder.joinpath(stack_name)) + "OUT" + str(img) + ".tif"
+
+                    temp_files.append(path)
+                    image_str_focus += " " + path
+
+                print(output_path)
+
+                print("generating:", image_str_focus + "\n")
+
+                # --save-masks     to save soft and hard masks
+                # --gray-projector=l-star alternative stacking method
+
+                if used_plattform == "Linux":
+                    os.system("enfuse --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 " +
+                              "--hard-mask --contrast-edge-scale=1 --output=" +
+                              output_path + image_str_focus
+                              )
+                else:
+                    os.system(
+                        str(path_to_external) + "\\enfuse --contrast-weight=1.0 --exposure-weight=0.0" +
+                        " --saturation-weight=0.0 --hard-mask --output=" +
+                        output_path + image_str_focus
+                    )
+
+                print("Stacked image saved as", output_path)
+
+                if additional_sharpening:
+                    stacked = Image.open(output_path)
+                    enhancer = ImageEnhance.Sharpness(stacked)
+                    sharpened = enhancer.enhance(1.5)
+                    sharpened.save(output_path)
+
+                    print("Sharpened", output_path)
+
+                for temp_img in temp_files:
+                    if used_plattform == "Linux":
+                        os.system("rm " + str(temp_img))
+                    else:
+                        os.system("del " + str(temp_img))
+
+                print("Deleted temporary files of stack", data)
         else:
             queueLock.release()
 
@@ -240,10 +249,12 @@ if __name__ == '__main__':
                     help="show images with displayed focus score [True / False]")
     ap.add_argument("-b", "--single_stack", type=bool, default=False,
                     help="process all images in the specified folder [True / False]")
-    ap.add_argument("-f", "--focus_check", type=bool, default=True,
+    ap.add_argument("-f", "--focus_check", type=bool, default=False,
                     help="check whether out-of-focus images should be discarded before stacking")
     ap.add_argument("-m", "--method", type=str, default="Default",
                     help="blending method (Default, 1-Star, Masks)")
+    ap.add_argument("-x", "--use_experimental_stacking", type=bool, default=True,
+                    help="Using experimental stacking method")
     args = vars(ap.parse_args())
 
     print("Using a laplacian variance threshold of", args["threshold"], "for discarding out-of-focus images")
@@ -392,11 +403,15 @@ if __name__ == '__main__':
         current_stack_name = usable_images[0][:-15]
         print("Created stack:", current_stack_name)
 
+        """
+        # only needed when using hugin-enfuse
+        
         if not os.path.exists(output_folder.joinpath(current_stack_name)):
             os.makedirs(output_folder.joinpath(current_stack_name))
             print("made corresponding temporary folder!")
         else:
             print("corresponding temporary folder already exists!")
+        """
 
         path_num = 0
         for path in usable_images:
@@ -456,6 +471,9 @@ if __name__ == '__main__':
     for t in threads:
         t.join()
     print("Exiting Main Stacking Thread")
+
+    """
+    # only needed with hugin-enfuse, so disabled for new experimental stacking
     print("Deleting temporary folders")
 
     for stack in stacks:
@@ -463,6 +481,8 @@ if __name__ == '__main__':
         stack_name = Path(stack_name).name[:-15]
         os.rmdir(output_folder.joinpath(stack_name))
         print("removed  ...", stack_name)
+    
+    """
 
     print("Stacking finalised!")
     print("Time elapsed:", time.time() - start)
