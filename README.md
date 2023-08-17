@@ -69,17 +69,11 @@ For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
 
-
-**FLIR Support / Spinnaker / Linux Ubuntu / Ubuntu 18.04**
-
-*download the tar.gz file for your architecture (usually amd64)*
-
-**FLIR Support / Spinnaker / Linux Ubuntu / Python / Ubuntu 18.04 / x64**
-
-*depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m_linux_x86_64.tar.gz***
-
+Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
+Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
+Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
 Unpack all files in a folder of your choice. Then proceed with the following steps:
 
@@ -116,7 +110,7 @@ or permanently, by following the instructions outlined in the **README** file of
 5. Next, install the downloaded **.whl** file for your python environment. Ensure you activate your python environment before running the **pip install** command below.
 
 ```bash
-pip install spinnaker_python-1.x.x.x-cp37-cp37m-linux_x86_64.whl
+pip install spinnaker_python-2.7.x.x-cp37-cp37m-linux_x86_64.whl
 ```
 
 6. To verify everything has been installed correctly, run **Live_view_FLIR.py** from the GUI folder. 
@@ -190,7 +184,9 @@ sudo apt install libimage-exiftool-perl
 
 ### Windows 10
 
-**FLIR setup**
+#### FLIR setup
+
+(**Optional**: you only need to install the software required for your respective camera)
 
 (Instructions for using **DSLR** cameras in the section below. You can skip the **FLIR** installation section, if you are not planning on using **FLIR** cameras.) 
 
@@ -201,27 +197,21 @@ For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://meta.box.lenovo.com/v/link/view/a1995795ffba47dbbe45771477319cc3)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
 
-
-**FLIR Support / Spinnaker / Windows**
-
-*download the SpinnakerSDK_FULL_x.x.x.x_x64.exe file for your architecture (usually x64)*
-
-**FLIR Support / Spinnaker / Windows / python**
-
-*depending on your python version, download the respective file. For our conda environment download **...cp37-cp37m-win_amd64.zip***
-
+Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
+Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
+Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
 Unpack all files in a folder of your choice. Then proceed with the following steps:
 
-1. Install the SpinnakerSDK...exe:
+1. Install the SpinnakerSDK...exe (likely the x64 version):
 * choose **Application Development** in the installation profile.
 * if you have **not** installed Visual Studio, choose the latest version shown in the installer and the recommeneded packages
 * select "I will use GigE cameras" if applicable (we use a USB 3.0 version of the FLIR BFS) 
 * no need to participate in any evaluation programs if you don't want to
 
-2. Next, install the downloaded **.whl** file for your python environment. Ensure you activate your python environment before running the **pip install** command below. Ensure your python environment is active.
+2. Next, install the downloaded **.whl** file for your python environment. Ensure you activate your python environment before running the **pip install** command below. Ensure your python environment is active and that it corresponds to the version of the chosen **.whl** file, e.g. ```python version 3.7 -> spinnaker_python-2.7.0.128-cp37-cp37m-win_amd64.whl```.
 
 ```bash
 pip install spinnaker_python-x.x.x.x-cpX-cpXm-win_amd64.whl
@@ -237,8 +227,9 @@ python Live_view_FLIR.py
 If a live preview of the camera appears for a few seconds and an example image is saved (within the GUI folder), all camera drivers and libraries have been installed correctly.
 
 
-**DSLR setup**
+#### DSLR setup
 
+(**Optional**: you only need to install the software required for your respective camera)
 To use scAnt with DSLR cameras, instead of FLIR machine vision cameras, you need to install [DigiCamControl](http://digicamcontrol.com/) from the following website:
 
 [digiCamControl Stable Version](http://digicamcontrol.com/download)
@@ -283,7 +274,23 @@ ticcmd --list
 
 This should output a list of all connected USB stepper drivers.
 
-4. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
+4. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. 
+
+Double check your end-stop cables are connected to the correct pins on the pololu-tic board:
+
+- **GND**: Black
+- **TX**: Green
+- **RX**: Red
+
+Then the setup should be:
+
+**for the Z-axis (camera slider)**
+
+![](images/stepper_set_up.png)
+
+The TX of the limit switch of the **Z-axis** (camera slider) needs to be set to *"limit switch forward"* and to *"limit switch reverse"* for the **X-axis** (gimbal).
+
+From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
 
 ```python
 self.stepperX_ID = "XXXXXXXX"
@@ -291,10 +298,9 @@ self.stepperY_ID = "YYYYYYYY"
 self.stepperZ_ID = "ZZZZZZZZ"
 ```
 
-
 **Image Processing**
 
-A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each access to their source code, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/) documentation. For windows, we provide a set of precombpiled executable files of the required applications in **/external**.
+A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each access to their source code, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/), as well as PetteriAimonen's [focus-stack](https://github.com/PetteriAimonen/focus-stack) documentation. For Windows, we provide a set of precombiled executable files of the required applications in **/external**.
 
 ***
 
