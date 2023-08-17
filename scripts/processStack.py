@@ -139,6 +139,14 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
 
         print("Stacked image saved as", output_path)
 
+        for temp_img in temp_files:
+            if used_platform == "Linux":
+                os.system("rm " + str(temp_img))
+            else:
+                os.system("del " + str(temp_img))
+
+        print("Deleted temporary files of stack", data)
+
     if sharpen:
         stacked = Image.open(output_path)
         enhancer = ImageEnhance.Sharpness(stacked)
@@ -147,13 +155,6 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
 
         print("Sharpened", output_path)
 
-    for temp_img in temp_files:
-        if used_platform == "Linux":
-            os.system("rm " + str(temp_img))
-        else:
-            os.system("del " + str(temp_img))
-
-    print("Deleted temporary files of stack", data)
 
     return output_path
 
