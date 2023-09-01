@@ -4,6 +4,7 @@ import sys
 import traceback
 import os
 import cgitb
+from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
 
@@ -117,10 +118,22 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.set_project_title()
 
         self.ui.pushButton_startLiveView.pressed.connect(self.begin_live_view)
+        self.ui.pushButton_startLiveViewPost.pressed.connect(self.begin_live_view)
 
         self.ui.pushButton_captureImage.pressed.connect(self.capture_image)
+        self.ui.pushButton_captureImagePost.pressed.connect(self.capture_image)
 
         self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
+
+        self.configPath = ""
+
+        self.path_to_external = Path.cwd().joinpath("external")
+
+        #Add camera makes to combobox
+        with open(self.path_to_external.joinpath("cameraMakes.txt"), "r") as f:
+            self.makes = [make[:-1] for make in f.readlines()]
+
+        self.ui.comboBox_make.addItems(self.makes)
 
         # start thread pool
         self.threadpool = QtCore.QThreadPool()
@@ -253,6 +266,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.horizontalSlider_zAxis.valueChanged.connect(self.updateDisplayZ)
 
+        #Camera Info
+
+        self.ui.comboBox_make.currentIndexChanged.connect(self.change_make)
+
+        self.ui.comboBox_model.currentIndexChanged.connect(self.change_model)
+
+        self.ui.lineEdit_focalLength.textChanged.connect(self.update_focal_length)
+
         if self.scanner_initialised:
             # disable stepper control before they have been homed (except for y axis)
             self.deEnergise()
@@ -333,9 +354,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # use config file
         self.loadedConfig = False
-        self.ui.pushButton_browsePresets.pressed.connect(self.loadConfig)
+        #self.ui.pushButton_browsePresets.pressed.connect(self.loadConfig)
+        self.ui.action_loadConfig.triggered.connect(self.loadConfig)
 
-        self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
+        #self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
+        self.ui.action_save.triggered.connect(self.writeConfig)
+
+        self.ui.action_openProject.triggered.connect(self.openProject)
 
         # stack and mask images
         self.maxStackThreads = max(min([int(getThreads() / 6), 2]), 1)
@@ -515,6 +540,37 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Launched DCC and retrieved camera settings")
         self.enable_DSLR_inputs()
 
+    #Camera Info
+
+    def change_make(self):
+        self.ui.comboBox_model.clear()
+        self.make = self.ui.comboBox_make.currentText()
+        if self.make in self.makes:
+            with open(self.path_to_external.joinpath("cameraSensors.txt"), "r") as file:
+                for line in file:
+                    if line.startswith(self.make):
+                        self.ui.comboBox_model.addItem(line.split(";")[1])
+                    
+    
+    def change_model(self):
+        self.model = self.ui.comboBox_model.currentText()
+        with open(self.path_to_external.joinpath("cameraSensors.txt"), "r") as file:
+            for line in file:
+                data = line.split(";")
+                if data[1] == self.model:
+                    self.sensor_width = data[2]
+        self.ui.lineEdit_sensorWidth.setText(self.sensor_width)
+        self.update_focal_length()
+
+    def update_focal_length(self):
+        focal_length = self.ui.lineEdit_focalLength.text()
+        if focal_length and self.model:
+            try:
+                standard_fl = floor(36 * float(focal_length) / float(self.sensor_width))
+                self.ui.lineEdit_focalLengthIn35mmFormat.setText(str(standard_fl))
+            except Exception as error_sensorWidth:
+                print(error_sensorWidth)
+
     # FLIR Settings
 
     def check_exposure(self):
@@ -596,9 +652,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.ui.label_liveView.setPixmap(live_img_scaled)
                 # Align the label to center
                 self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
+
+                # Set the pixmap onto the post processing tab label
+                self.ui.label_liveViewPost.setPixmap(live_img_scaled)
+                # Align the label to center
+                self.ui.label_liveViewPost.setAlignment(QtCore.Qt.AlignCenter)
+
             except AttributeError:
                 print("Live view ended")
         self.ui.label_liveView.setText("Live view disabled.")
+        self.ui.label_liveViewPost.setText("Live view disabled.")
 
     # DSLR settings
 
@@ -644,7 +707,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.file_format = ".jpg"
             self.log_warning("Unknown image file format! Using JPEG as default!")
-        # Info & Threading functions
+    # Info & Threading functions
 
     def log_info(self, info):
         now = datetime.datetime.now()
@@ -666,6 +729,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if not self.liveView:
             self.log_info("Began camera live view")
             self.ui.pushButton_startLiveView.setText("Stop Live View")
+            self.ui.pushButton_startLiveViewPost.setText("Stop Live View")
             self.liveView = True
 
             if self.camera_type == "FLIR":
@@ -679,6 +743,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.ui.label_liveView.setText("Live view disabled.")
             self.ui.pushButton_startLiveView.setText("Start Live View")
+            self.ui.pushButton_startLiveViewPost.setText("Start Live View")
             self.log_info("Ended camera live view")
             self.liveView = False
 
@@ -724,9 +789,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.update_output_location()
 
     def loadConfig(self):
-        file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
-                                                     str(Path.cwd()), "config file (*.yaml)")
-        config_location = file[0]
+        if self.configPath == "":
+            file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
+                                                        str(Path.cwd()), "config file (*.yaml)")
+            config_location = file[0]
+        else:
+            config_location = self.configPath
+        
         if config_location:
             # if a file has been selected, convert it into a Path object
             config_location = Path(config_location)
@@ -822,8 +891,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
 
             # meta data (exif)
+            self.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
+            self.ui.comboBox_model.setCurrentText(config["exif_data"]["Model"])
+            self.ui.lineEdit_serialNumber.setText(config["exif_data"]["SerialNumber"])
+            self.ui.lineEdit_lens.setText(config["exif_data"]["Lens"])
+            self.ui.lineEdit_lensManufacturer.setText(config["exif_data"]["LensManufacturer"])
+            self.ui.lineEdit_lensModel.setText(config["exif_data"]["LensModel"])
+            self.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
+            self.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
             self.exif = config["exif_data"]
-
+            
             self.loadedConfig = True
             self.log_info("Loaded config-file successfully!")
 
@@ -839,6 +916,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         if self.camera_type == "DSLR":
             self.get_DSLR_file_ending()
+
+        self.exif = {"Make": self.ui.comboBox_make.currentText(),
+                "Model": self.ui.comboBox_model.currentText(),
+                "SerialNumber": self.ui.lineEdit_serialNumber.text(),
+                "Lens": self.ui.lineEdit_lens.text(),
+                "LensManufacturer": self.ui.lineEdit_lensManufacturer.text(),
+                "LensModel": self.ui.lineEdit_lensModel.text(),
+                "FocalLength": self.ui.lineEdit_focalLength.text(),
+                "FocalLengthIn35mmFormat": self.ui.lineEdit_focalLengthIn35mmFormat.text()}
 
         config = {'general': {'project_name': self.ui.lineEdit_projectName.text(),
                               'camera_type': self.camera_type,
@@ -882,6 +968,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.create_output_folders()
         ymlRW.write_config_file(config, Path(self.output_location_folder))
         self.log_info("Exported config_file successfully!")
+
+    def openProject(self):
+        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path.cwd()))
+        dir = Path(dir)
+        for file in os.listdir(dir):
+
+            if file.lower().endswith(".yaml"):
+                self.ui.lineEdit_projectName.setText(os.path.basename(dir))
+                self.configPath = str(dir.joinpath(file))
+                self.loadConfig()
+                self.output_location = str(dir.parent.absolute())
+                self.update_output_location()
+                self.configPath = ""
 
     def update_output_location(self):
         self.ui.lineEdit_outputLocation.setText(self.output_location)
@@ -947,8 +1046,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(False)
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(False)
         self.ui.pushButton_startLiveView.setEnabled(False)
+        self.ui.pushButton_startLiveViewPost.setEnabled(False)
         self.ui.pushButton_startScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.pushButton_captureImagePost.setEnabled(False)
         self.ui.checkBox_highlightExposure.setEnabled(False)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
@@ -962,8 +1063,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(True)
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(True)
         self.ui.pushButton_startLiveView.setEnabled(True)
+        self.ui.pushButton_startLiveViewPost.setEnabled(True)
         self.ui.pushButton_startScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
+        self.ui.pushButton_captureImagePost.setEnabled(True)
         self.ui.checkBox_highlightExposure.setEnabled(True)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
@@ -1011,9 +1114,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # enable live_view/capture/scanning
         self.ui.pushButton_startLiveView.setEnabled(True)
+        self.ui.pushButton_startLiveViewPost.setEnabled(True)
         self.ui.pushButton_startScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
-
+        self.ui.pushButton_captureImagePost.setEnabled(True)
+        
         # allow for changes to the setting boxes to affect the camera
         self.DSLR_read_out = False
 
@@ -1026,6 +1131,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def disable_DSLR_inputs(self):
         self.ui.pushButton_startScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.pushButton_captureImagePost.setEnabled(False)
         self.ui.comboBox_shutterSpeed.setEnabled(False)
         self.ui.comboBox_aperture.setEnabled(False)
         self.ui.comboBox_iso.setEnabled(False)
