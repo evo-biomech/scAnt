@@ -461,8 +461,57 @@ Now click on **start** and watch the magic happen. Actually, this is the best ti
 
 All outputs within Meshroom are automatically saved in the project’s environment. By right clicking on the **Texturing node** and choosing “**Open Folder**” the location of the created mesh (**.obj** file) is shown.
 
+***
 
+## Todos
 
+### Software updates / fixes
+
+#### bug fixes
+
+* compile all current requests / issues on the main scAnt Github to see where actual issues need to be addressed and where it is an improved documentation that is required)
+* fix masking issue with new stacking method (on some systems, only stacks but not masks are created during capture)
+* fix issues related to updating meta-data from camera config post stacking. Currently, when masking fails, no meta-data is written to the stacked files, so the order should be changed to ```stacking > meta-data writing > masking```
+
+#### scAnt GUI updates
+
+* additional Window in scAnt GUI for post-processing, including previewing parameter choices, showing histogram, background colour suggestions to dial in the range, overlay option to show thresholding result, etc.
+  * add an option to run post-processing from here, pointing to a folder, config, and go
+* check the use of experimental stacking on Linux (disable for now)
+* reflect new stacking method in GUI (we should discuss whether to keep the Hugin implementation or move entirely to the new workflow)
+* add a checkboxfor "discard out-of-focus images" (now relevant as new stacking method is much faster and less prone to suffer from out-of-focus images as all alignment happends in batches of neighbouring photos rather than a single reference which can be harder to align)
+* grey-out "threshold" when "discard-out-of-focus" images is not enabled
+* add "overlay focus score" to pick the threshold
+* add checkbox option under stacking for "crop to in-focus area" (Currently, stacking returns a cropped image of "only in focus regions" which can be enabled / disabled via the CLI command sent to the new stacking routine. While it generally helps the masking process to exclude the out-of-focus borders, it can lead to issues during reconstruction as the camera intrinsics no longer correspond to the image dimensions and the image centre may be shifted)
+
+#### scAnt general functionality & documentation
+
+* write a calibration routine (and later add to scAnt GUI, potentially in separate calibration Window from which additional calibration options like stacking, masking, camera intrinsics can be set by the user)
+  * select stepper drivers and assign them to axes
+  * check for the option to configure end-stop connection and location (front vs back)
+* add support for generic USB stepper driver via 3D printer board / custom scAnt board (tbd)
+* Add DSLR support through gphoto2 under Linux
+* code-clean-up: remove all old post-processing code, make a single python file that contains all post-processing functions that can be both used from the scAnt GUI as well as a standalone command line-based script
+* update documentation on anaconda environment use
+
+#### make scAnt operating system agnostic
+  * start by ensuring all file paths use path handling via (e.g.) ```os.Path``` rather than mixed use of ```\``` and ```//```
+  * compile a list of features that are specific to certain operating systems and cannot be supported via the same methods, e.g. DSLR use via DigiCamControl (Windows) vs gphoto (Ubuntu)
+  * bundle all dependencies to create installer / binary versions of the scAnt software stack
+  * create "install wizard" for scAnt (starting with Windows first, as that's the largest user base)
+
+### Hardware design and manufacturing
+
+* use geared stepper for X axis or build geared stepper
+* Research cost of making custom PCBs with ATmega based chipset and RAMPS for control, instead of expensive Pololu stepper drivers
+  * check for the cost to manufacture PCBs
+  * check for the cost of ATmega controllers
+  * check which stepper drivers are needed (standard RAMP will likely suffice)
+  * add controllable outputs for high voltage high amperage lights (that can be turned on and off via scAnt GUI / scanning routine)
+  * add a connection for end stops and proper sockets to make everything plug-and-play
+  * add clear separation between high and low power circuit for 24V 5A power supply
+* Design interchangeable DSLR/FLIR mount
+* Move the end-stop to the opposite side for the Z-axis (safer and more universally applicable)
 
 ***
 ## Original paper

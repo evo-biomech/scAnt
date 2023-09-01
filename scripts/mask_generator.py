@@ -113,7 +113,7 @@ def apply_local_contrast(img, grid_size=(7, 7), clip_limit=3.0):
     """
     ### CLAHE (Contrast limited Adaptive Histogram Equalisation) ###
 
-    Advanced application of local contrast. Adaptive histogram equalization is used to locally increase the contrast,
+    Advanced application of local contrast. Adaptive histogram equalisation is used to locally increase the contrast,
     rather than globally, so bright areas are not pushed into over exposed areas of the histogram. The image is tiled
     into a fixed size grid. Noise needs to be removed prior to this process, as it would be greatly amplified otherwise.
     Similar to Adobe's "Clarity" option which also amplifies local contrast and thus pronounces edges and reduces haze.
@@ -128,7 +128,7 @@ def apply_local_contrast(img, grid_size=(7, 7), clip_limit=3.0):
     img_pil = Image.fromarray(cl1)
 
     enhancer = ImageEnhance.Sharpness(img_pil)
-    sharpened = enhancer.enhance(31)
+    sharpened = enhancer.enhance(15)
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
@@ -148,10 +148,22 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             src = cv2.imread(data, 1)
 
+            if not args["full_resolution"]:
+                print("Using downscaled image for mask generation at 1500 px x 1500 px...")
+                orig_res = src.shape
+                kernel_gauss = (5, 5)
+                print("Original resolution:", orig_res)
+                src = cv2.resize(src, (1500, 1500), interpolation=cv2.INTER_AREA)
+            else:
+                print("Using full resolution input image for mask generation [potentially significantly slower]")
+                orig_res = src.shape
+                kernel_gauss = (5, 5)
+                print("Original resolution:", orig_res)
+
             img_enhanced = apply_local_contrast(src, clip_limit=args["CLAHE"])
 
             # reduce noise in the image before detecting edges
-            blurred = cv2.GaussianBlur(img_enhanced, (5, 5), 0)
+            blurred = cv2.GaussianBlur(img_enhanced, kernel_gauss, 0)
 
             # turn image into float array
             blurred_float = blurred.astype(np.float32) / 255.0
@@ -280,6 +292,12 @@ def createAlphaMask(threadName, q, edgeDetector, create_cutout=False):
 
             image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=float(args["min_artifact_size_white"]))
 
+            if not args["full_resolution"]:
+                # up-scaling masks to original resolution
+                image_cleaned_white = cv2.resize(image_cleaned_white,
+                                                 (orig_res[1], orig_res[0]),
+                                                 interpolation=cv2.INTER_AREA)
+
             cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
             if args["create_cutout"]:
@@ -315,8 +333,11 @@ if __name__ == '__main__':
                     help="process all images in the specified folder [True / False]")
     ap.add_argument("-c", "--create_cutout", type=bool, default=False,
                     help="create cutout of input image from generated mask")
-    ap.add_argument("-cl", "--CLAHE", type=float, default=3.0,
+    ap.add_argument("-cl", "--CLAHE", type=float, default=1.0,
                     help="set the clip-limit for Contrast Limited Adaptive Histogram Equilisation")
+    ap.add_argument("-fr", "--full_resolution", type=bool, default=False,
+                    help="enable to run masking on the full resolution image. By default all images are downscaled " +
+                         "to 1024 x 1024 and the generated masks are up-scaled to the original image resolution.")
 
     args = vars(ap.parse_args())
 
