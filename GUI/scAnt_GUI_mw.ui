@@ -12,8 +12,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1631</width>
-    <height>988</height>
+    <width>1627</width>
+    <height>979</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,7 +94,52 @@
        <attribute name="title">
         <string>Scan Parameters</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_9">
+       <layout class="QGridLayout" name="gridLayout_15">
+        <item row="0" column="0" rowspan="2">
+         <widget class="QFrame" name="frame">
+          <property name="minimumSize">
+           <size>
+            <width>720</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_7">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_liveView">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>690</width>
+               <height>460</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <italic>false</italic>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Live view disabled.</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QFrame" name="frame_outputSettings">
           <property name="frameShape">
@@ -206,7 +251,502 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="0">
+        <item row="1" column="1" rowspan="2">
+         <widget class="QFrame" name="frame_cameraSettings">
+          <property name="minimumSize">
+           <size>
+            <width>370</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="4" column="0">
+            <widget class="QPushButton" name="pushButton_startLiveView">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Start Live View</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_cameraSettings">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>40</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>50</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Camera Settings</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_selectCamera">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>  Select Camera</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0" colspan="2">
+            <widget class="QStackedWidget" name="stacked_camera_settings">
+             <property name="accessibleDescription">
+              <string/>
+             </property>
+             <property name="currentIndex">
+              <number>0</number>
+             </property>
+             <widget class="QWidget" name="FLIR">
+              <layout class="QGridLayout" name="gridLayout_3">
+               <item row="7" column="0">
+                <widget class="QLabel" name="label_highlightExposure">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Highlight Exposure</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_balanceRatioRed">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="decimals">
+                  <number>2</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0.250000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>4.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>1.580000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="1">
+                <widget class="QCheckBox" name="checkBox_highlightExposure">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_balanceRatioBlue">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="decimals">
+                  <number>2</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0.250000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>4.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>1.790000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_gainLevel">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="decimals">
+                  <number>2</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>25.000000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>1.830000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_gamma">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Gamma</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_gainAuto">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Gain Auto</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_gamma">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="decimals">
+                  <number>2</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>4.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>0.800000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QCheckBox" name="checkBox_exposureAuto">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_gainLevel">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Gain Level [dB]</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="label_balanceRatioRed">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Balance Ratio (red)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_exposureTime">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="decimals">
+                  <number>0</number>
+                 </property>
+                 <property name="minimum">
+                  <double>100.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>1000000.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>1000.000000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>90000.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QCheckBox" name="checkBox_gainAuto">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="label_balanceRatioBlue">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Balance Ratio (blue)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_exposureTime">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Exposure time [us]</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_exposureAuto">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Exposure Auto</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="DSLR">
+              <layout class="QGridLayout" name="gridLayout_4">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_shutterSpeed">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Shutter speed [s]</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="comboBox_shutterSpeed"/>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_aperture">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Aperture (F Stop)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="comboBox_aperture"/>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_iso">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>ISO</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="comboBox_iso"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_whiteBalance">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>White Balance</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QComboBox" name="comboBox_whiteBalance"/>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_compression">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Compression</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QComboBox" name="comboBox_compression"/>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QPushButton" name="pushButton_captureImage">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Capture Image</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="comboBox_selectCamera"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0" rowspan="2">
          <widget class="QFrame" name="frame_stepperControl">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -1264,11 +1804,11 @@
           </layout>
          </widget>
         </item>
-        <item row="0" column="0" rowspan="2">
-         <widget class="QFrame" name="frame">
+        <item row="3" column="1">
+         <widget class="QFrame" name="frame_info">
           <property name="minimumSize">
            <size>
-            <width>720</width>
+            <width>0</width>
             <height>0</height>
            </size>
           </property>
@@ -1278,70 +1818,98 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QGridLayout" name="gridLayout_7">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_liveView">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>690</width>
-               <height>460</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>11</pointsize>
-               <weight>75</weight>
-               <italic>false</italic>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Live view disabled.</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="1" column="1" rowspan="2">
-         <widget class="QFrame" name="frame_cameraSettings">
-          <property name="minimumSize">
-           <size>
-            <width>370</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Box</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="0" column="0" colspan="2">
-            <widget class="QLabel" name="label_cameraSettings">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
+          <layout class="QGridLayout" name="gridLayout_9">
+           <item row="5" column="0">
+            <widget class="QListWidget" name="listWidget_log">
              <property name="minimumSize">
               <size>
                <width>0</width>
-               <height>40</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
+               <width>1400</width>
+               <height>600</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>8</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="flow">
+              <enum>QListView::TopToBottom</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QProgressBar" name="progressBar_total">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
                <width>16777215</width>
-               <height>50</height>
+               <height>40</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_progressTotal">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Progress</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_log">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Log</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_info">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
               </size>
              </property>
              <property name="font">
@@ -1349,456 +1917,11 @@
                <pointsize>11</pointsize>
                <weight>75</weight>
                <bold>true</bold>
-               <kerning>true</kerning>
               </font>
              </property>
              <property name="text">
-              <string>Camera Settings</string>
+              <string>Info</string>
              </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QPushButton" name="pushButton_captureImage">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Capture Image</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QComboBox" name="comboBox_selectCamera"/>
-           </item>
-           <item row="4" column="0">
-            <widget class="QPushButton" name="pushButton_startLiveView">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Start Live View</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_selectCamera">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>  Select Camera</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0" colspan="2">
-            <widget class="QStackedWidget" name="stacked_camera_settings">
-             <property name="accessibleDescription">
-              <string/>
-             </property>
-             <property name="currentIndex">
-              <number>0</number>
-             </property>
-             <widget class="QWidget" name="FLIR">
-              <layout class="QGridLayout" name="gridLayout_3">
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_exposureTime">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Exposure time [us]</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_balanceRatioRed">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>2</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.250000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>4.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>1.580000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="1">
-                <widget class="QCheckBox" name="checkBox_highlightExposure">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_gainLevel">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Gain Level [dB]</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="0">
-                <widget class="QLabel" name="label_balanceRatioRed">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Balance Ratio (red)</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_balanceRatioBlue">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>2</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.250000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>4.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>1.790000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_gainLevel">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>2</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>25.000000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>1.830000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_gamma">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>2</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>4.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>0.800000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_exposureAuto">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Exposure Auto</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QCheckBox" name="checkBox_exposureAuto">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                 <property name="checked">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_gamma">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Gamma</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_exposureTime">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>0</number>
-                 </property>
-                 <property name="minimum">
-                  <double>100.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>1000000.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>1000.000000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>90000.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QCheckBox" name="checkBox_gainAuto">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="label_balanceRatioBlue">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Balance Ratio (blue)</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="0">
-                <widget class="QLabel" name="label_highlightExposure">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Highlight Exposure</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_gainAuto">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Gain Auto</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="DSLR">
-              <layout class="QGridLayout" name="gridLayout_4">
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_shutterSpeed">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Shutter speed [s]</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="comboBox_shutterSpeed"/>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_aperture">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Aperture (F Stop)</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QComboBox" name="comboBox_aperture"/>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_iso">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>ISO</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QComboBox" name="comboBox_iso"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_whiteBalance">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>White Balance</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QComboBox" name="comboBox_whiteBalance"/>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_compression">
-                 <property name="font">
-                  <font>
-                   <pointsize>10</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Compression</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QComboBox" name="comboBox_compression"/>
-               </item>
-              </layout>
-             </widget>
             </widget>
            </item>
           </layout>
@@ -1811,7 +1934,7 @@
         <string>Post Processing</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_14">
-        <item row="0" column="0" colspan="2">
+        <item row="0" column="0">
          <widget class="QFrame" name="frame_live_view">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -1821,8 +1944,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>720</width>
-            <height>0</height>
+            <width>696</width>
+            <height>486</height>
            </size>
           </property>
           <property name="frameShape">
@@ -1839,7 +1962,7 @@
              </property>
              <property name="minimumSize">
               <size>
-               <width>690</width>
+               <width>670</width>
                <height>460</height>
               </size>
              </property>
@@ -1862,12 +1985,12 @@
           </layout>
          </widget>
         </item>
-        <item row="0" column="4">
+        <item row="0" column="2">
          <widget class="QFrame" name="frame_exinf">
           <property name="minimumSize">
            <size>
-            <width>0</width>
-            <height>0</height>
+            <width>505</width>
+            <height>486</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -1886,6 +2009,12 @@
            <enum>QFrame::Raised</enum>
           </property>
           <layout class="QGridLayout" name="gridLayout_13">
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="lineEdit_lensModel"/>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLineEdit" name="lineEdit_lensManufacturer"/>
+           </item>
            <item row="7" column="0">
             <widget class="QLabel" name="label_focalLength">
              <property name="font">
@@ -1897,112 +2026,6 @@
              </property>
              <property name="text">
               <string>Focal Length</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_model">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Model</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_lensManufacturer">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Lens Manufacturer</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
-            <widget class="QLineEdit" name="lineEdit_focalLength"/>
-           </item>
-           <item row="6" column="0">
-            <widget class="QLabel" name="label_lensModel">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Lens Model</string>
-             </property>
-            </widget>
-           </item>
-           <item row="9" column="0">
-            <widget class="QLabel" name="label_focalLengthIn35mmFormat">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Focal Length in 35mm Format</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QLineEdit" name="lineEdit_lensManufacturer"/>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_serialNumber">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Serial Number</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="QLineEdit" name="lineEdit_lensModel"/>
-           </item>
-           <item row="9" column="1">
-            <widget class="QLineEdit" name="lineEdit_focalLengthIn35mmFormat">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QLineEdit" name="lineEdit_serialNumber"/>
-           </item>
-           <item row="4" column="1">
-            <widget class="QLineEdit" name="lineEdit_lens"/>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_make">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Make</string>
              </property>
             </widget>
            </item>
@@ -2020,23 +2043,83 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>18</height>
-              </size>
+           <item row="9" column="1">
+            <widget class="QLineEdit" name="lineEdit_focalLengthIn35mmFormat">
+             <property name="enabled">
+              <bool>true</bool>
              </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_model">
              <property name="font">
               <font>
-               <pointsize>11</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
              <property name="text">
-              <string>Camera and Lens Info</string>
+              <string>Model</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_serialNumber">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Serial Number</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QLineEdit" name="lineEdit_focalLength"/>
+           </item>
+           <item row="8" column="1">
+            <widget class="QLineEdit" name="lineEdit_sensorWidth">
+             <property name="clearButtonEnabled">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_make">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Make</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="comboBox_make">
+             <property name="editable">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_lensManufacturer">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Lens Manufacturer</string>
              </property>
             </widget>
            </item>
@@ -2060,17 +2143,17 @@
              </property>
             </widget>
            </item>
-           <item row="8" column="1">
-            <widget class="QLineEdit" name="lineEdit_sensorWidth">
-             <property name="clearButtonEnabled">
-              <bool>false</bool>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_lensModel">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
              </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QComboBox" name="comboBox_make">
-             <property name="editable">
-              <bool>false</bool>
+             <property name="text">
+              <string>Lens Model</string>
              </property>
             </widget>
            </item>
@@ -2081,11 +2164,57 @@
              </property>
             </widget>
            </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="lineEdit_lens"/>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="lineEdit_serialNumber"/>
+           </item>
+           <item row="9" column="0">
+            <widget class="QLabel" name="label_focalLengthIn35mmFormat">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Focal Length in 35mm Format</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>18</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Camera and Lens Info</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
-        <item row="0" column="3">
+        <item row="0" column="1">
          <widget class="QFrame" name="frame_post_processing_2">
+          <property name="minimumSize">
+           <size>
+            <width>362</width>
+            <height>486</height>
+           </size>
+          </property>
           <property name="frameShape">
            <enum>QFrame::Box</enum>
           </property>
@@ -2093,8 +2222,42 @@
            <enum>QFrame::Raised</enum>
           </property>
           <layout class="QGridLayout" name="gridLayout_10">
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_maskImages">
+           <item row="6" column="4">
+            <widget class="QSpinBox" name="spinBox_thresholdMax">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="maximum">
+              <number>254</number>
+             </property>
+             <property name="value">
+              <number>215</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QCheckBox" name="checkBox_stackImages">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_thresholdFocus">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -2106,11 +2269,120 @@
               </font>
              </property>
              <property name="text">
-              <string>Mask images</string>
+              <string>Threshold (focus)</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="1" colspan="2">
+           <item row="3" column="2">
+            <widget class="QSpinBox" name="spinBox_thresholdFocus">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="maximum">
+              <number>500</number>
+             </property>
+             <property name="value">
+              <number>10</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_stackingMethod">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Stacking method</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2" colspan="2">
+            <widget class="QPushButton" name="pushButton_captureImagePost">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Capture Image</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="3" alignment="Qt::AlignRight">
+            <widget class="QLabel" name="label_thresholdMaskingMin">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>min</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="3" alignment="Qt::AlignRight">
+            <widget class="QLabel" name="label_thresholdMaskingMax">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>max</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="4">
+            <widget class="QSpinBox" name="spinBox_thresholdMin">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="maximum">
+              <number>254</number>
+             </property>
+             <property name="value">
+              <number>175</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2" colspan="3">
             <widget class="QComboBox" name="comboBox_stackingMethod">
              <property name="enabled">
               <bool>false</bool>
@@ -2135,8 +2407,8 @@
              </item>
             </widget>
            </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_thresholdFocus">
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_maskImages">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -2148,63 +2420,27 @@
               </font>
              </property>
              <property name="text">
-              <string>Threshold (focus)</string>
+              <string>Mask images</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="2">
-            <widget class="QSpinBox" name="spinBox_thresholdMin">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>9</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="maximum">
-              <number>254</number>
-             </property>
-             <property name="value">
-              <number>175</number>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QSpinBox" name="spinBox_thresholdFocus">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>9</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="maximum">
-              <number>500</number>
-             </property>
-             <property name="value">
-              <number>10</number>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QLabel" name="label_thresholdMaskingMin">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
+           <item row="0" column="0" colspan="3">
+            <widget class="QLabel" name="label_2">
              <property name="maximumSize">
               <size>
                <width>16777215</width>
                <height>20</height>
               </size>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
              <property name="text">
-              <string>min</string>
+              <string>Post Processing Parameters</string>
              </property>
             </widget>
            </item>
@@ -2222,8 +2458,11 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="checkBox_stackImages">
+           <item row="4" column="2">
+            <widget class="QCheckBox" name="checkBox_maskImages">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="font">
               <font>
                <pointsize>10</pointsize>
@@ -2233,26 +2472,6 @@
              </property>
              <property name="text">
               <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="2">
-            <widget class="QSpinBox" name="spinBox_thresholdMax">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>9</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="maximum">
-              <number>254</number>
-             </property>
-             <property name="value">
-              <number>215</number>
              </property>
             </widget>
            </item>
@@ -2273,77 +2492,7 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_2">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>20</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>11</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Post Processing Parameters</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="checkBox_maskImages">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_stackingMethod">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Stacking method</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
-            <widget class="QLabel" name="label_thresholdMaskingMax">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>20</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>max</string>
-             </property>
-            </widget>
-           </item>
-           <item row="9" column="0">
+           <item row="7" column="0">
             <widget class="QPushButton" name="pushButton_startLiveViewPost">
              <property name="minimumSize">
               <size>
@@ -2363,154 +2512,38 @@
              </property>
             </widget>
            </item>
-           <item row="9" column="1" colspan="2">
-            <widget class="QPushButton" name="pushButton_captureImagePost">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>30</height>
-              </size>
+           <item row="6" column="2">
+            <widget class="QCheckBox" name="checkBox_suggestedValues">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0" colspan="2">
+            <widget class="QLabel" name="label_suggestedValues">
+             <property name="enabled">
+              <bool>false</bool>
              </property>
              <property name="font">
               <font>
-               <pointsize>10</pointsize>
+               <pointsize>9</pointsize>
                <weight>50</weight>
                <bold>false</bold>
               </font>
              </property>
              <property name="text">
-              <string>Capture Image</string>
+              <string>Suggested Values</string>
              </property>
             </widget>
            </item>
           </layout>
          </widget>
         </item>
-        <item row="1" column="1" colspan="4">
-         <widget class="QFrame" name="frame_info">
-          <property name="minimumSize">
-           <size>
-            <width>1071</width>
-            <height>351</height>
-           </size>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Box</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_8">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_info">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>11</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Info</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_progressTotal">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>12</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Progress</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QListWidget" name="listWidget_log">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>200</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>1400</width>
-               <height>600</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>8</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="flow">
-              <enum>QListView::TopToBottom</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QProgressBar" name="progressBar_total">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>40</height>
-              </size>
-             </property>
-             <property name="value">
-              <number>0</number>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_log">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>12</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Log</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QFrame" name="frame_post_processing">
+        <item row="1" column="2">
+         <widget class="QFrame" name="frame_startScan">
           <property name="enabled">
            <bool>true</bool>
           </property>
@@ -2522,8 +2555,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>501</width>
-            <height>351</height>
+            <width>505</width>
+            <height>380</height>
            </size>
           </property>
           <property name="frameShape">
@@ -2556,6 +2589,135 @@
           </layout>
          </widget>
         </item>
+        <item row="1" column="0" colspan="2">
+         <widget class="QFrame" name="frame_infoPost">
+          <property name="minimumSize">
+           <size>
+            <width>300</width>
+            <height>351</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_8">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_infoPost">
+             <property name="minimumSize">
+              <size>
+               <width>1039</width>
+               <height>18</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Info</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_progressTotalPost">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Progress</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_logPost">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Log</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QListWidget" name="listWidget_logPost">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>200</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>1400</width>
+               <height>600</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>8</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="flow">
+              <enum>QListView::TopToBottom</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QProgressBar" name="progressBar_totalPost">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>40</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>
@@ -2568,7 +2730,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1631</width>
+     <width>1627</width>
      <height>21</height>
     </rect>
    </property>

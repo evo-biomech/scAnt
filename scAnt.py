@@ -242,6 +242,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.comboBox_compression.currentTextChanged.connect(self.set_compression)
 
+        self.ui.checkBox_suggestedValues.stateChanged.connect(self.suggest_values)
+
         # Stepper settings
 
         self.ui.pushButton_xHome.pressed.connect(self.homeX)
@@ -273,6 +275,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_model.currentIndexChanged.connect(self.change_model)
 
         self.ui.lineEdit_focalLength.textChanged.connect(self.update_focal_length)
+
+        # Update make and model in camera and lens info if cam found
+
+        if self.FLIR_found or self.DSLR_found:
+            with open(self.path_to_external.joinpath("cameraSensors.txt"), "r") as f:
+                for line in f:
+                    data = line.split(";")
+                    model = data[1]
+                    if data[0] == "FLIR":
+                        data[1] = data[1][:-2]
+                    if data[1].lower().strip() in self.camera_model.lower().strip():
+                        self.ui.comboBox_make.setCurrentText(data[0])
+                        self.ui.comboBox_model.setCurrentText(model)
 
         if self.scanner_initialised:
             # disable stepper control before they have been homed (except for y axis)
@@ -690,6 +705,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.set_compression(self.ui.comboBox_compression.currentText())
             self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
 
+    def suggest_values(self):
+        img = self.cam.live_view()
+        if self.ui.checkBox_suggestedValues.isChecked():
+            (min_val, max_val) = self.cam.suggest_values(img)
+            self.ui.spinBox_thresholdMin.setValue(min_val)
+            self.ui.spinBox_thresholdMax.setValue(max_val)
+
     def get_DSLR_file_ending(self):
         # first get the current compression setting
         compression_setting = self.cam.get_current_setting("compressionsetting")
@@ -1003,6 +1025,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.label_thresholdMaskingMax.setEnabled(self.maskImages)
         self.ui.spinBox_thresholdMin.setEnabled(self.maskImages)
         self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
+        self.ui.label_suggestedValues.setEnabled(self.maskImages)
+        self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
 
     def displayProgress(self, progress):
         print("Displaying progress!")

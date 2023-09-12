@@ -136,6 +136,27 @@ class customFLIR():
 
         return result
 
+    def suggest_values(self, img):
+        overall_min = 255
+        overall_max = 0
+        mask = np.zeros(img.shape[:2], dtype="uint8")
+        cv2.rectangle(mask, (500, 500), (5000, 3000), 255, -1)
+        mask = cv2.bitwise_not(mask)
+        for i in range(3):    
+            hist=cv2.calcHist([img], [i], mask,[256],[0,256])
+            thresh_val = round(0.02*np.max(hist))
+            hist[0] = 0
+            min_val = np.min(np.where(hist > thresh_val)[0])
+            if min_val < overall_min:
+                overall_min = min_val
+            max_val = np.max(np.where(hist > thresh_val)[0])
+            if max_val > overall_max:
+                overall_max = max_val
+        min_bgr = round(overall_min - 0.05 * overall_min)
+        max_bgr = round(overall_max + 0.05 * overall_max)   
+
+        return (min_bgr, max_bgr)
+
     def set_gain(self, gain=1.83):
         self.cam.GainAuto.SetValue(PySpin.GainAuto_Off)
         self.cam.Gain.SetValue(gain)
