@@ -204,7 +204,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         try:
             self.scanner = ScannerController()
+            self.homeX()
+            self.homeZ()
             self.scanner_initialised = True
+
         except IndexError:
             self.scanner_initialised = False
             self.disable_stepper_inputs()
@@ -359,6 +362,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskArtifactSizeBlack = 1000
         self.maskArtifactSizeWhite = 2000
         self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
+
+        self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
+        self.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
 
         # once the scan has been started check if new sets of images are available for stacking
         self.timerStack = QtCore.QTimer(self)
@@ -810,6 +816,72 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_output_location()
 
+    def set_post_location(self):
+        
+        new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
+                                                                  str(Path.cwd()))
+        if new_location:
+            self.post_location = new_location
+
+        self.update_post_location()
+
+    def run_post_processing(self):
+        config_present = False
+        raw_folder_loc = self.post_location
+        parent = Path(raw_folder_loc).parent
+        for file in os.listdir(parent):
+            if file.endswith(".yaml"):
+                config_present = True
+                config_file = file
+        if config_present:
+            config_location = parent.joinpath(config_file)
+
+            config = ymlRW.read_config_file(config_location)
+
+            focus_threshold = config["stacking"]["threshold"]
+            sharpen = config["stacking"]["additional_sharpening"]
+            stack_method = config["stacking"]["stacking_method"]
+            exif = config["exif_data"]
+            mask_images_check = config["masking"]["mask_images"]
+            mask_thresh_min = config["masking"]["mask_thresh_min"]
+            mask_thresh_max = config["masking"]["mask_thresh_max"]
+            mask_artifact_size_black = config["masking"]["min_artifact_size_black"]
+            mask_artifact_size_white = config["masking"]["min_artifact_size_white"]
+
+
+            stacks = []
+            stack = []
+            prev_xy = ""
+            for i,file in enumerate(os.listdir(raw_folder_loc)):
+                xy_pos = file[:-10]
+                if xy_pos != prev_xy and i != 0:
+                    stacks.append(stack)    
+                    stack = []
+
+
+                stack.append(str(Path(raw_folder_loc).joinpath(file)))
+                prev_xy = xy_pos
+            
+            for stack in stacks:
+                try:
+                    stacked_output = stack_images(input_paths=stack, threshold=focus_threshold,
+                                                sharpen=sharpen,
+                                                stacking_method=stack_method)
+
+                    write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
+
+                    if mask_images_check:
+                        mask_images(input_paths=stacked_output, min_rgb=mask_thresh_min, max_rgb=mask_thresh_max,
+                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True)
+
+                        if self.createCutout:
+                            write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
+                except Exception as e:
+                    print(e)
+            
+        else:
+            print("No config file found!")
+
     def loadConfig(self):
         if self.configPath == "":
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
@@ -1006,6 +1078,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def update_output_location(self):
         self.ui.lineEdit_outputLocation.setText(self.output_location)
+    
+    def update_post_location(self):
+        self.ui.lineEdit_processingFolder.setText(self.post_location)
 
     def enableStacking(self, set_to=False):
         self.stackImages = self.ui.checkBox_stackImages.isChecked()
