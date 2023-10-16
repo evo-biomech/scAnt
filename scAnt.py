@@ -348,6 +348,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
 
+        self.post_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
+
         # processing
         self.stackImages = False
         self.stackMethod = "Default"
@@ -375,13 +377,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # use config file
         self.loadedConfig = False
-        #self.ui.pushButton_browsePresets.pressed.connect(self.loadConfig)
         self.ui.action_loadConfig.triggered.connect(self.loadConfig)
 
-        #self.ui.pushButton_saveConfig.pressed.connect(self.writeConfig)
         self.ui.action_save.triggered.connect(self.writeConfig)
 
         self.ui.action_openProject.triggered.connect(self.openProject)
+
+        self.ui.action_darkMode.triggered.connect(self.darkMode)
+
+        self.ui.action_lightMode.triggered.connect(self.lightMode)
 
         # stack and mask images
         self.maxStackThreads = max(min([int(getThreads() / 6), 2]), 1)
@@ -668,7 +672,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 # Setup pixmap with the acquired image
                 live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.width(),
                                                          self.ui.label_liveView.height(),
-                                                         QtCore.Qt.KeepAspectRatio)
+                                                         QtCore.Qt.KeepAspectRatioByExpanding)
                 # Set the pixmap onto the label
                 self.ui.label_liveView.setPixmap(live_img_scaled)
                 # Align the label to center
@@ -712,11 +716,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
 
     def suggest_values(self):
-        img = self.cam.live_view()
-        if self.ui.checkBox_suggestedValues.isChecked():
-            (min_val, max_val) = self.cam.suggest_values(img)
-            self.ui.spinBox_thresholdMin.setValue(min_val)
-            self.ui.spinBox_thresholdMax.setValue(max_val)
+        try:
+            img = self.cam.live_view()
+            if self.ui.checkBox_suggestedValues.isChecked():
+                (min_val, max_val) = self.cam.suggest_values(img)
+                self.ui.spinBox_thresholdMin.setValue(min_val)
+                self.ui.spinBox_thresholdMax.setValue(max_val)
+        except:
+            print("No camera found!")
 
     def get_DSLR_file_ending(self):
         # first get the current compression setting
@@ -742,10 +749,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
 
+        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
+        self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
+
     def log_warning(self, warning):
         now = datetime.datetime.now()
-        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
-        self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
+        self.ui.listWidget_logPost.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
+        self.ui.listWidget_logPost.sortItems(QtCore.Qt.DescendingOrder)
 
     def thread_complete(self):
         self.ui.pushButton_startScan.setText("Start Scan")
@@ -1076,6 +1086,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.update_output_location()
                 self.configPath = ""
 
+    def darkMode(self):
+        self.setStyleSheet(Path(r"GUI\dark_blue\style.qss").read_text())
+    
+    def lightMode(self):
+        self.setStyleSheet("")
+
     def update_output_location(self):
         self.ui.lineEdit_outputLocation.setText(self.output_location)
     
@@ -1106,6 +1122,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def displayProgress(self, progress):
         print("Displaying progress!")
         self.ui.progressBar_total.setValue(int(progress))
+        self.ui.progressBar_totalPost.setValue(int(progress))
         self.ui.horizontalSlider_xAxis.setValue(self.posX)
         self.ui.horizontalSlider_yAxis.setValue(self.posY)
         self.ui.horizontalSlider_zAxis.setValue(self.posZ)
@@ -1305,6 +1322,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # enable and show progress
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
+            self.ui.progressBar_totalPost.setEnabled(True)
+            self.ui.label_progressTotalPost.setEnabled(True)
 
             worker = Worker(self.runScanAndReport_threaded)
             worker.signals.progress.connect(self.displayProgress)
