@@ -306,9 +306,10 @@ A number of open source tools are used for processing the RAW images captured by
 
 ## Quick Start Guide
 
-After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI. While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the Camera**, **(2) configuring the Stepper Motors**, and **(3) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
+After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI (python scAnt.py). While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the Camera**, **(2) configuring the Stepper Motors**, and **(3) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
 
-![](images/scAnt_GUI.png)
+![](images/GUIScanTab.png)
+![](images/GUIPostProcess.png)
 
 **Configuring the Camera**
 
@@ -332,6 +333,8 @@ From the first box in the Camera Settings box, **select your connected camera**.
 
 4. Correct the white balance of the image by adjusting the red and blue **Balance Ratio**, respectively. You can use the colour curves displayed in the **Live View** as a rough guide by aligning the blue and red curves with the green curve, as the neutrally grey background makes up the largest number of image pixels. If you cannot find suitable settings or the specimen appears discoloured, remove it from the illumination chamber, and calibrate the white balance only based on the background. For a finer colour calibration and correction, refer to the official [OpenCV documentation](https://docs.opencv.org/master/d1/dc1/tutorial_ccm_color_correction_model.html) or your camera's manufacturer.
 
+5. In the Post Processing tab, choose your camera's make and model if it hasn't automatically updated and fill in the lens and camera details (most importantly the focal length of your lens - the corresponding focal length in 35mm format should update automatically)
+
 **Configuring the Stepper Motors**
 
 The most critical parameters that need to be configured for the scan are the step sizes for each axis and the Min **[Z axis]** and Max **[Z axis]** values. 
@@ -344,17 +347,17 @@ The most critical parameters that need to be configured for the scan are the ste
 
 **Configuring the Scanning Process**
 
-1. Choose an **Output Folder** location by clicking the browse button in the **Scanner Setup** section.
+1. Choose an **Output Folder** location by clicking the browse button in the **Scanner Setup** section. Or open an existing scAnt project using ctrl+o.
 2. Pick an easily identifiable name for your project, such as the species of your scanned specimen. When capturing an image, saving your configuration, or starting a scan, the GUI will generate a folder with your project name in the output folder you have chosen.
 3. Next, configure which processing steps you want to execute in parallel with the scan. The number of threads run in the background will be automatically determined based on the number of (virtual) threads your computer suppports.
 
 [OPTIONAL]
 
-All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or as standalone scripts (scAnt/scripts). The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
+All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or through the standalone script (processStack.py). You can also choose to run all post processing steps from the GUI by selecting a RAW image folder and hitting **Run Post Processing** in the Post Processing tab. The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
 
-4. Enabling **Stack images** will cause scAnt to automatically process the captured files into EDOF images. The default stacking method usually produces decent results. However, if halos around the specimen's outlines are prominent in the resulting EDOF image, *1-star* may provide better results. The **Threshold (focus)** is a scalar value representing the Laplacian variance of each image required for it to be considered *"sharp enough for stacking"*. Simply put, this is used to discard images that appear entirely out of focus. This parameter is sensitive to image noise, resolution, and specimen size. Pay close attention to the messages **printed in the console**. To anticipate the results to some degree, you can use the standalone script **(scripts/focus_stacker.py)** to monitor the process.
+4. Enabling **Stack images** will cause scAnt to automatically process the captured files into EDOF images. Information on the default stacking method can be found [here](https://github.com/PetteriAimonen/focus-stack).  The **Threshold (focus)** is a scalar value representing the Laplacian variance of each image required for it to be considered *"sharp enough for stacking"*. Simply put, this is used to discard images that appear entirely out of focus. This parameter is sensitive to image noise, resolution, and specimen size. Pay close attention to the messages **printed in the console**. To anticipate the results to some degree, you can use stacking option in the standalone script **(processStack.py)** to monitor the process.
 
-5. Enabling **Mask Images** will generate an alpha mask for each stacked EDOF image. While the outline is extracted using a pretrained [random forest](https://docs.opencv.org/3.1.0/d0/da5/tutorial_ximgproc_prediction.html), the infill is removed using a simple adaptive thresholding step where pixels of a specific brightness are removed from the mask, before being cleaned up using [connected component labelling]( https://aishack.in/tutorials/connected-component-labelling/). The upper and lower bounds of the threshold need to be defined here. The easiest way to find suitable values is to capture an image of your specimen (in the Camera Settings section, click on **Capture image**) and open it in an image editor of your choice (*e.g. GIMP, MS Paint, Photoshop*). Use the **colour picker tool** to return the RGB value from various background locations, ideally close to the specimen. Note the lowest and highest values out of all channels and fill them into the respective box. Again, you can use its standalone script (**/scripts/mask_generator**) to verify your tests before conducting a full scan. We are planning on implementing a function to determine these parameters automatically soon.
+5. Enabling **Mask Images** will generate an alpha mask for each stacked EDOF image. While the outline is extracted using a pretrained [random forest](https://docs.opencv.org/3.1.0/d0/da5/tutorial_ximgproc_prediction.html), the infill is removed using a simple adaptive thresholding step where pixels of a specific brightness are removed from the mask, before being cleaned up using [connected component labelling]( https://aishack.in/tutorials/connected-component-labelling/). The upper and lower bounds of the threshold need to be defined here. The easiest way to find suitable values is to capture an image of your specimen (in the Camera Settings section, click on **Capture image**) and open it in an image editor of your choice (*e.g. GIMP, MS Paint, Photoshop*). Use the **colour picker tool** to return the RGB value from various background locations, ideally close to the specimen.  Note the lowest and highest values out of all channels and fill them into the respective box. You could also do this with a system-wide color picking tool such as the one in [Microsoft PowerToys](https://learn.microsoft.com/en-us/windows/powertoys/), in which case the values can be selected from the live view in the GUI. Again, you can use the masking function of the standalone script **(processStack.py)** to verify your tests before conducting a full scan. 
 
 6. Once everything is set up to your liking, hit **Start Scan**, and grab a cup of coffee/tea/beer, depending on the time of day.
 
@@ -469,13 +472,11 @@ All outputs within Meshroom are automatically saved in the project’s environme
 
 #### bug fixes
 
-* compile all current requests / issues on the main scAnt Github to see where actual issues need to be addressed and where it is an improved documentation that is required)
-* fix masking issue with new stacking method (on some systems, only stacks but not masks are created during capture)
+* compile all current requests / issues on the main scAnt Github to see where actual issues need to be addressed and where it is an improved documentation that is required
 
 #### scAnt GUI updates
 
 * check the use of experimental stacking on Linux (disable for now)
-* add "overlay focus score" to pick the threshold
 * add checkbox option under stacking for "crop to in-focus area" (Currently, stacking returns a cropped image of "only in focus regions" which can be enabled / disabled via the CLI command sent to the new stacking routine. While it generally helps the masking process to exclude the out-of-focus borders, it can lead to issues during reconstruction as the camera intrinsics no longer correspond to the image dimensions and the image centre may be shifted)
 
 #### scAnt general functionality & documentation

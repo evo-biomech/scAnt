@@ -12,7 +12,7 @@ from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 
 import scripts.project_manager as ymlRW
 from scripts.Scanner_Controller import ScannerController
-from scripts.processStack import getThreads, stack_images, mask_images
+from processStack import getThreads, stack_images, mask_images
 from scripts.write_meta_data import write_exif_to_img, get_default_values
 
 """
@@ -277,7 +277,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.comboBox_model.currentIndexChanged.connect(self.change_model)
 
-        self.ui.lineEdit_focalLength.textChanged.connect(self.update_focal_length)
+        self.ui.lineEdit_focalLength.editingFinished.connect(self.update_focal_length)
 
         # Update make and model in camera and lens info if cam found
 
@@ -348,15 +348,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
 
+        self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
         self.post_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
 
         # processing
         self.stackImages = False
-        self.stackMethod = "Default"
+        self.thresholdImages = False
         self.stackFocusThreshold = 10.0
         self.stackDisplayFocus = False
         self.stackSharpen = False
         self.ui.checkBox_stackImages.stateChanged.connect(self.enableStacking)
+        self.ui.checkBox_threshold.stateChanged.connect(self.enableThresholding)
+
 
         self.maskImages = False
         self.maskThreshMin = 215
@@ -365,7 +368,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskArtifactSizeWhite = 2000
         self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
 
-        self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
         self.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
 
         # once the scan has been started check if new sets of images are available for stacking
@@ -662,9 +664,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         while self.liveView and self.camera_type == "FLIR":
             try:
                 img = self.cam.live_view()
+                #keep refence to original image
+                temp = img
                 # if enabled, display exposure as histogram and highlight over exposed areas
                 if self.ui.checkBox_highlightExposure.isChecked():
                     img = self.cam.showExposure(img)
+                #if enabled, display focus score overlay
+                if self.ui.checkBox_focusOverlay.isChecked():
+                    img = self.cam.showFocus(temp, img)
 
                 live_img = QtGui.QImage(img, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
                 live_img_pixmap = QtGui.QPixmap.fromImage(live_img)
@@ -672,15 +679,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 # Setup pixmap with the acquired image
                 live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.width(),
                                                          self.ui.label_liveView.height(),
-                                                         QtCore.Qt.KeepAspectRatioByExpanding)
+                                                         QtCore.Qt.KeepAspectRatio)
+                
+                live_img_scaled_post = live_img_pixmap.scaled(self.ui.label_liveViewPost.width(),
+                                                         self.ui.label_liveViewPost.height(),
+                                                         QtCore.Qt.KeepAspectRatio)
                 # Set the pixmap onto the label
                 self.ui.label_liveView.setPixmap(live_img_scaled)
                 # Align the label to center
                 self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
 
-                # Set the pixmap onto the post processing tab label
-                self.ui.label_liveViewPost.setPixmap(live_img_scaled)
-                # Align the label to center
+                # Set the post processing pixmap onto the post processing tab label
+                self.ui.label_liveViewPost.setPixmap(live_img_scaled_post)
+  
                 self.ui.label_liveViewPost.setAlignment(QtCore.Qt.AlignCenter)
 
             except AttributeError:
@@ -749,11 +760,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
 
-        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
-        self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
+        self.ui.listWidget_logPost.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
+        self.ui.listWidget_logPost.sortItems(QtCore.Qt.DescendingOrder)
 
     def log_warning(self, warning):
         now = datetime.datetime.now()
+
+        self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
+        self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
+        
         self.ui.listWidget_logPost.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
         self.ui.listWidget_logPost.sortItems(QtCore.Qt.DescendingOrder)
 
@@ -850,7 +865,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             focus_threshold = config["stacking"]["threshold"]
             sharpen = config["stacking"]["additional_sharpening"]
-            stack_method = config["stacking"]["stacking_method"]
             exif = config["exif_data"]
             mask_images_check = config["masking"]["mask_images"]
             mask_thresh_min = config["masking"]["mask_thresh_min"]
@@ -875,8 +889,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             for stack in stacks:
                 try:
                     stacked_output = stack_images(input_paths=stack, threshold=focus_threshold,
-                                                sharpen=sharpen,
-                                                stacking_method=stack_method)
+                                                sharpen=sharpen)
 
                     write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
 
@@ -888,6 +901,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                             write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
                 except Exception as e:
                     print(e)
+            print("Post Processing Completed")
             
         else:
             print("No config file found!")
@@ -972,13 +986,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # stacking
             self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
 
-            if config["stacking"]["stacking_method"] == "default":
-                self.ui.comboBox_stackingMethod.setCurrentIndex(0)
-            elif config["stacking"]["stacking_method"] == "1-star":
-                self.ui.comboBox_stackingMethod.setCurrentIndex(1)
-            elif config["stacking"]["stacking_method"] == "masks":
-                self.ui.comboBox_stackingMethod.setCurrentIndex(2)
-
+            self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
             self.stackFocusThreshold = config["stacking"]["threshold"]
             self.ui.spinBox_thresholdFocus.setValue(self.stackFocusThreshold)
 
@@ -1011,12 +1019,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print(config)
 
     def writeConfig(self):
-        if self.ui.comboBox_stackingMethod.currentIndex() == 0:
-            stacking_method = "default"
-        elif self.ui.comboBox_stackingMethod.currentIndex() == 1:
-            stacking_method = "1-star"
-        elif self.ui.comboBox_stackingMethod.currentIndex() == 2:
-            stacking_method = "mask"
 
         if self.camera_type == "DSLR":
             self.get_DSLR_file_ending()
@@ -1058,7 +1060,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                        'z_max': self.ui.doubleSpinBox_zMax.value(),
                                        'z_step': self.ui.doubleSpinBox_zStep.value()},
                   'stacking': {'stack_images': self.ui.checkBox_stackImages.isChecked(),
-                               'stacking_method': stacking_method,
+                               'threshold_images': self.ui.checkBox_threshold.isChecked(),
                                'threshold': self.ui.spinBox_thresholdFocus.value(),
                                'display_focus_check': self.stackDisplayFocus,
                                'additional_sharpening': self.stackSharpen},
@@ -1101,12 +1103,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def enableStacking(self, set_to=False):
         self.stackImages = self.ui.checkBox_stackImages.isChecked()
 
-        self.ui.label_stackingMethod.setEnabled(self.stackImages)
-        self.ui.comboBox_stackingMethod.setEnabled(self.stackImages)
-        self.ui.label_thresholdFocus.setEnabled(self.stackImages)
-        self.ui.spinBox_thresholdFocus.setEnabled(self.stackImages)
+        self.ui.label_threshold.setEnabled(self.stackImages)
+        self.ui.checkBox_threshold.setEnabled(self.stackImages)
         self.ui.label_maskImages.setEnabled(self.stackImages)
         self.ui.checkBox_maskImages.setEnabled(self.stackImages)
+
+
+    def enableThresholding(self):
+        self.thresholdImages = self.ui.checkBox_threshold.isChecked()
+
+        self.ui.label_thresholdFocus.setEnabled(self.thresholdImages)
+        self.ui.spinBox_thresholdFocus.setEnabled(self.thresholdImages)
+        self.ui.label_focusOverlay.setEnabled(self.thresholdImages)
+        self.ui.checkBox_focusOverlay.setEnabled(self.thresholdImages)
 
     def enableMasking(self, set_to=False):
         self.maskImages = self.ui.checkBox_maskImages.isChecked()
@@ -1476,8 +1485,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # using try / except to continue stacking with other images in case an error occurs
         try:
             stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold,
-                                          sharpen=self.stackSharpen,
-                                          stacking_method=self.stackMethod)
+                                          sharpen=self.stackSharpen)
 
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
@@ -1508,9 +1516,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.begin_live_view()  # sets live view false if already running
 
         if self.camera_type == "FLIR":
-            # release camera
-            self.cam.exit_cam()
-
+            try:
+                #    release camera
+                self.cam.exit_cam()
+            except Exception:
+                pass
         print("Application Closed!")
 
 
