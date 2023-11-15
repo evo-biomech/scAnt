@@ -291,6 +291,12 @@ class customFLIR():
                     dim = (width, height)
                     # resize image
 
+                    # ensure dims are even to prevent diagonal cut in resized image
+                    if (width % 2) != 0:
+                        width = (width + 1)
+                    if (height % 2) != 0:
+                        height = (height + 1)
+
                     resized = cv2.resize(img_conv.GetNDArray(), dim, interpolation=cv2.INTER_AREA)
 
                     # Release image
