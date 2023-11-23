@@ -204,8 +204,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         try:
             self.scanner = ScannerController()
-            self.homeX()
-            self.homeZ()
+            # Uncomment if prefered homing on startup
+            # self.homeX()
+            # self.homeZ()
             self.scanner_initialised = True
 
         except IndexError:

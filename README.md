@@ -486,7 +486,6 @@ All outputs within Meshroom are automatically saved in the project’s environme
   * check for the option to configure end-stop connection and location (front vs back)
 * add support for generic USB stepper driver via 3D printer board / custom scAnt board (tbd)
 * Add DSLR support through gphoto2 under Linux
-* code-clean-up: remove all old post-processing code, make a single python file that contains all post-processing functions that can be both used from the scAnt GUI as well as a standalone command line-based script
 * update documentation on anaconda environment use
 
 #### make scAnt operating system agnostic
