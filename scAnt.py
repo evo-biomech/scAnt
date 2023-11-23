@@ -986,8 +986,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             # stacking
             self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
-
-            self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
+            
+            try:
+                self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
+            except:
+                print("No \"threshold_images\" check found")
+            
             self.stackFocusThreshold = config["stacking"]["threshold"]
             self.ui.spinBox_thresholdFocus.setValue(self.stackFocusThreshold)
 
