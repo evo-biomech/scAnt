@@ -12,8 +12,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1438</width>
-    <height>944</height>
+    <width>1434</width>
+    <height>935</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -2883,8 +2883,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1438</width>
-     <height>21</height>
+     <width>1434</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuScanner">
