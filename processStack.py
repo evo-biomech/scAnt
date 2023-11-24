@@ -6,19 +6,78 @@ import os
 
 from PIL import Image, ImageEnhance
 from skimage import measure
+from imutils import paths
 import sys
 import numpy as np
 from pathlib import Path
 import platform
+import argparse
+import queue
+import threading
+import time
 
+class FocusCheckingThread(threading.Thread):
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print("Starting " + self.name)
+        process_data(self.name, self.q)
+        print("Exiting " + self.name)
+
+
+class StackingThread(threading.Thread):
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print("Starting " + self.name)
+        process_stack_threaded(self.name, self.q)
+        print("Exiting " + self.name)
+
+def process_data(threadName, q):
+    while not exitFlag:
+        queueLock.acquire()
+        if not workQueue.empty():
+            data = q.get()
+            queueLock.release()
+            print("%s processing %s" % (threadName, data))
+            checkFocus_threaded(images.joinpath(data))
+        else:
+            queueLock.release()
+
+class AlphaExtractionThread(threading.Thread):
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print("Starting " + self.name)
+        createAlphaMask_threaded(self.name, self.q, edgeDetector=edgeDetector, create_cutout=False)
+        print("Exiting " + self.name)
 
 def getThreads():
-    """ Returns the number of available threads on a linux/win based system """
+    """ Returns the number of available threads on a posix/win based system """
     if sys.platform == 'win32':
         return int(os.environ['NUMBER_OF_PROCESSORS'])
     else:
         return int(os.popen('grep -c cores /proc/cpuinfo').read())
 
+
+def createThreadList(num_threads):
+    threadNames = []
+    for t in range(num_threads):
+        threadNames.append("Thread_" + str(t))
+
+    return threadNames
 
 """
 Stacking Section
@@ -44,6 +103,8 @@ def variance_of_laplacian(image):
 
     return lap_var
 
+def checkFocus_threaded(image_path):
+    checkFocus(image_path, focus_threshold, usable_images, rejected_images)
 
 def checkFocus(image_path, threshold, usable_images, rejected_images):
     image = cv2.imread(str(image_path))
@@ -75,6 +136,16 @@ def checkFocus(image_path, threshold, usable_images, rejected_images):
 
     return usable_images, rejected_images
 
+def process_stack_threaded(name, q):
+    while not exitFlag_stacking:
+        queueLock.acquire()
+        if not workQueue_stacking.empty():
+            data = q.get()
+            queueLock.release()
+
+            process_stack(data, output_folder, path_to_external, sharpen)
+        else:
+            queueLock.release()
 
 def process_stack(data, output_folder, path_to_external, sharpen, use_experimental_stacking=True):
     stack_name = data.split(" ")[1]
@@ -159,7 +230,7 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
     return output_path
 
 
-def stack_images(input_paths, threshold=10.0, sharpen=False, stacking_method="Default"):
+def stack_images(input_paths, threshold=10.0, sharpen=False):
     images = Path(input_paths[0]).parent
 
     all_image_paths = []
@@ -344,6 +415,19 @@ def apply_local_contrast(img, grid_size=(7, 7)):
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
+def createAlphaMask_threaded(threadName, q, edgeDetector, create_cutout):
+    while not exitFlag_alpha:
+        queueLock_alpha.acquire()
+        if not workQueue_alpha.empty():
+            data = q.get()
+            queueLock_alpha.release()
+            print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
+
+            createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, cutout_check)
+
+        else:
+            queueLock_alpha.release()
+
 
 def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout=True):
     """
@@ -513,3 +597,346 @@ def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout=Fal
 
     for img in input_paths:
         createAlphaMask(img, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout)
+
+if __name__ == "__main__":
+
+    start = time.time()
+
+    from scripts.write_meta_data import write_exif_to_img
+    import scripts.project_manager as ymlRW
+
+    # edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(Path("scripts").joinpath("model.yml"))
+
+    #TODO Add threading
+    
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-p", "--path", required=True, help="Path to scAnt project")
+    ap.add_argument("-s", "--stacking", default=True, help="stack RAW images [True / False] (True by default)")
+    ap.add_argument("-m", "--masking", default=True, help="mask stacked images [True / False] (True by default)")
+    ap.add_argument("-f", "--focus_check", default=False,
+                    help="check whether out-of-focus images should be discarded before stacking [True / False] (False by default)")
+    ap.add_argument("-t", "--threshold", type=float,
+                    help="focus measures that fall below this value will be considered 'blurry'")
+    ap.add_argument("-sh","--sharpen", default=False, help="help=apply sharpening to final result [True / False]")
+    ap.add_argument("-c", "--cutout", default=False, 
+                    help="create aditional cutout image that uses generated mask")
+    ap.add_argument("-min", "--mask_thresh_min", type=float,
+                    help="minimum RGB value of background for exclusion")
+    ap.add_argument("-max", "--mask_thresh_max", type=float,
+                    help="maximum RGB value of background for exclusion")
+    ap.add_argument("-meta", "--addmetadata", default=True, help="add camera metadata to images in stacked folder [True/ Fasle]")
+
+    args = vars(ap.parse_args())
+    project_dir = Path(args["path"])
+    stacked_dir = Path(project_dir.joinpath("stacked")) 
+    images = Path(project_dir.joinpath("RAW"))
+
+
+    #check if config in project dir
+    config_present = False
+    for file in os.listdir(project_dir):
+        if file.endswith(".yaml"):
+            config_present = True
+            config_file = file
+    
+
+    if config_present:
+        config_location = project_dir.joinpath(config_file)
+
+        config = ymlRW.read_config_file(config_location)
+
+        #Read important post processing parameters - if not defined from cmd
+        if args["threshold"] is not None:
+            focus_threshold = args["threshold"]
+        else:
+            focus_threshold = config["stacking"]["threshold"]
+
+        #parse boolean args
+        if args["stacking"] == "False" or not args["stacking"]:
+            stack_check=False
+        else:
+            stack_check=True
+        if args["masking"] == "False" or not args["masking"]:
+            mask_check=False
+        else:
+            mask_check=True
+        if args["focus_check"] == "False" or not args["focus_check"]:
+            focus_check=False
+        else:
+            focus_check=True
+        if args["addmetadata"] == "False" or not args["addmetadata"]:
+            metadata_check = False
+        else:
+            metadata_check = True
+        if args["cutout"] == "True" or args["cutout"]:
+            cutout_check=True
+        else:
+            cutout_check=False
+        if args["sharpen"] == "True" or args["sharpen"]:
+            sharpen = True
+        elif args["sharpen"] == "False" or not args["sharpen"]:
+            sharpen = False
+        else:
+            sharpen = config["stacking"]["additional_sharpening"]
+
+        stack_method = config["stacking"]["stacking_method"]
+        exif = config["exif_data"]
+        
+        if args["mask_thresh_min"]:
+            min_rgb = args["mask_thresh_min"]
+        else:
+            min_rgb = config["masking"]["mask_thresh_min"]
+        if args["mask_thresh_min"]:
+            max_rgb = args["mask_thresh_max"]
+        else:
+            max_rgb = config["masking"]["mask_thresh_max"]
+
+        min_bl = config["masking"]["min_artifact_size_black"]
+        min_wh = config["masking"]["min_artifact_size_white"]
+
+        if stack_check:
+
+            all_image_paths = os.listdir(images)
+
+            # setup as many threads as there are (virtual) CPUs
+            exitFlag = 0
+            num_virtual_cores = getThreads()
+            threadList = createThreadList(num_virtual_cores)
+            print("Found", num_virtual_cores, "(virtual) cores...")
+            queueLock = threading.Lock()
+
+            workQueue = queue.Queue(len(all_image_paths))
+            threads = []
+            threadID = 1
+
+            # create list of image paths classified as in-focus or blurry
+            usable_images = []
+            rejected_images = []
+
+            """
+            ### extracting "in-focus" images for further processing ###
+            """
+
+            if focus_check:
+                
+                # Create new threads
+                for tName in threadList:
+                    thread = FocusCheckingThread(threadID, tName, workQueue)
+                    thread.start()
+                    threads.append(thread)
+                    threadID += 1
+
+                cv2.ocl.setUseOpenCL(True)
+
+                # Fill the queue
+                queueLock.acquire()
+                for path in all_image_paths:
+                    workQueue.put(path)
+                queueLock.release()
+
+                # Wait for queue to empty
+                while not workQueue.empty():
+                    pass
+
+                # Notify threads it's time to exit
+                exitFlag = 1
+
+                # Wait for all threads to complete
+                for t in threads:
+                    t.join()
+                print("Exiting Main Thread")
+
+                cv2.destroyAllWindows()
+            else:
+                # if blurry images have been discarded already add all paths to "usable_images"
+                for image_path in all_image_paths:
+                    usable_images.append(image_path)
+
+            # as threads may terminate at different times the file list needs to be sorted
+            usable_images.sort()
+
+            if len(usable_images) > 1:
+                print("\nThe following images are sharp enough for focus stacking:\n")
+                for path in usable_images:
+                    print(path)
+            else:
+                print("No images suitable for focus stacking found!")
+                exit()
+
+            # as the script can be executed from the parent or "scripts" directory check where the external files are located
+            path_to_external = Path.cwd().joinpath("external")
+            print(path_to_external)
+            if not os.path.exists(path_to_external):
+                path_to_external = Path.cwd().parent.joinpath("external")
+
+            output_folder = images.parent.joinpath("stacked")
+
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+                print("made folder!")
+
+            # revert the order of images to begin with the image furthest away
+            # -> maximise field of view during alignment and leads to better blending results with less ghosting
+            usable_images.reverse()
+
+            # group images of each stack together
+            pics = len(usable_images)
+            stacks = []
+
+            print("\nSorting in-focus images into stacks...")
+            for i in range(pics):
+
+                image_str_align = ""
+
+                current_stack_name = usable_images[0][:-15]
+                print("Created stack:", current_stack_name)
+
+                """
+                # only needed when using hugin-enfuse
+                
+                if not os.path.exists(output_folder.joinpath(current_stack_name)):
+                    os.makedirs(output_folder.joinpath(current_stack_name))
+                    print("made corresponding temporary folder!")
+                else:
+                    print("corresponding temporary folder already exists!")
+                """
+
+                path_num = 0
+                for path in usable_images:
+                    if current_stack_name == str(path)[:-15]:
+                        image_str_align += " " + str(images.joinpath(path))
+                        path_num += 1
+                    else:
+                        break
+
+                del usable_images[0:path_num]
+
+                stacks.append(image_str_align)
+
+                if len(usable_images) < 2:
+                    break
+
+            # sort stacks in ascending order
+            stacks.sort()
+
+            """
+            ### Alignment and stacking of images ###
+            """
+
+            # setup as many threads as there are (virtual) CPUs
+            exitFlag_stacking = 0
+            # only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
+            threadList_stacking = createThreadList(int(min([num_virtual_cores / 4, 3])))
+            print("Using", len(threadList_stacking), "threads for stacking...")
+            queueLock = threading.Lock()
+
+            # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+            workQueue_stacking = queue.Queue(len(stacks))
+            threads = []
+            threadID = 1
+
+            # Create new threads
+            for tName in threadList_stacking:
+                thread = StackingThread(threadID, tName, workQueue_stacking)
+                thread.start()
+                threads.append(thread)
+                threadID += 1
+
+            # Fill the queue with stacks
+            queueLock.acquire()
+            for stack in stacks:
+                workQueue_stacking.put(stack)
+            queueLock.release()
+
+            # Wait for queue to empty
+            while not workQueue_stacking.empty():
+                pass
+
+            # Notify threads it's time to exit
+            exitFlag_stacking = 1
+
+            # Wait for all threads to complete
+            for t in threads:
+                t.join()
+            print("Exiting Main Stacking Thread")
+
+            """
+            # only needed with hugin-enfuse, so disabled for new experimental stacking
+            print("Deleting temporary folders")
+
+            for stack in stacks:
+                stack_name = stack.split(" ")[1]
+                stack_name = Path(stack_name).name[:-15]
+                os.rmdir(output_folder.joinpath(stack_name))
+                print("removed  ...", stack_name)
+            
+            """
+
+            print("Stacking finalised!")
+            print("Time elapsed:", time.time() - start)
+
+        if mask_check:
+
+            print("Using images from", stacked_dir)
+            # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
+            file_type = "tif"
+            all_image_paths = []
+            for imagePath in sorted(paths.list_images(stacked_dir)):
+                # create an alpha mask for all TIF images in the source folder
+                if imagePath[-3::] == file_type:
+                    all_image_paths.append(imagePath)
+                    print("added", imagePath, "to queue")
+
+            # load pre-trained edge detector model
+            edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path("scripts").joinpath("model.yml")))
+            print("loaded edge detector...")
+
+            # setup half as many threads as there are (virtual) CPUs
+            exitFlag_alpha = 0
+            num_virtual_cores = getThreads()
+            threadList = createThreadList(int(num_virtual_cores / 4))
+            print("Found", num_virtual_cores, "(virtual) cores...")
+            queueLock_alpha = threading.Lock()
+
+            workQueue_alpha = queue.Queue(len(all_image_paths))
+
+            # Create new threads
+            threads = []
+            threadID = 1
+            for tName in threadList:
+                thread = AlphaExtractionThread(threadID, tName, workQueue_alpha)
+                thread.start()
+                threads.append(thread)
+                threadID += 1
+
+            # Fill the queue
+            queueLock_alpha.acquire()
+            for path in all_image_paths:
+                workQueue_alpha.put(path)
+            queueLock_alpha.release()
+
+            # Wait for queue to empty
+            while not workQueue_alpha.empty():
+                pass
+
+            # Notify threads it's time to exit
+            exitFlag_alpha = 1
+
+            # Wait for all threads to complete
+            for t in threads:
+                t.join()
+            print("All images processed!\nExiting Main Thread")
+            exit()
+        
+        if metadata_check:
+
+            for img in os.listdir(str(stacked_dir)):
+                print(img)
+                if img[-4:] == ".tif" or img[-4:] == ".jpg":
+                    img_tif = cv2.imread(str(stacked_dir.joinpath(img)), cv2.IMREAD_UNCHANGED)
+
+                    cv2.imwrite(str(stacked_dir.joinpath(img)), img_tif)
+                    write_exif_to_img(img_path=str(stacked_dir.joinpath(img)), custom_exif_dict=exif)
+                        
+    else:
+        print("No config file found in folder!")

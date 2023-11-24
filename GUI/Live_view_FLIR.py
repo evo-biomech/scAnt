@@ -2,6 +2,7 @@ import cv2
 import platform
 import numpy as np
 import time
+from processStack import variance_of_laplacian
 
 # as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
 used_plattform = platform.system()
@@ -136,6 +137,32 @@ class customFLIR():
 
         return result
 
+    def suggest_values(self, img):
+        overall_min = 255
+        overall_max = 0
+        mask = np.zeros(img.shape[:2], dtype="uint8")
+        cv2.rectangle(mask, (500, 500), (5000, 3000), 255, -1)
+        mask = cv2.bitwise_not(mask)
+        for i in range(3):    
+            hist=cv2.calcHist([img], [i], mask,[256],[0,256])
+            thresh_val = round(0.02*np.max(hist))
+            hist[0] = 0
+            min_val = np.min(np.where(hist > thresh_val)[0])
+            if min_val < overall_min:
+                overall_min = min_val
+            max_val = np.max(np.where(hist > thresh_val)[0])
+            if max_val > overall_max:
+                overall_max = max_val
+        min_bgr = round(overall_min - 0.05 * overall_min)
+        max_bgr = round(overall_max + 0.05 * overall_max)   
+
+        return (min_bgr, max_bgr)
+    
+    def showFocus(self, raw_img, img):
+        fm = variance_of_laplacian(raw_img)
+        new_img = cv2.putText(img, "{:.2f}".format(fm), (10, 500), cv2.FONT_HERSHEY_SIMPLEX, 3 ,(255,255,255), 2, cv2.LINE_AA)
+        return new_img
+    
     def set_gain(self, gain=1.83):
         self.cam.GainAuto.SetValue(PySpin.GainAuto_Off)
         self.cam.Gain.SetValue(gain)
@@ -296,7 +323,6 @@ class customFLIR():
                         height = (height + 1)
                     
                     dim = (width, height)
-
                     # resize image
                     resized = cv2.resize(img_conv.GetNDArray(), dim, interpolation=cv2.INTER_AREA)
 
