@@ -613,8 +613,8 @@ if __name__ == "__main__":
     ap.add_argument("-p", "--path", required=True, help="Path to scAnt project")
     ap.add_argument("-s", "--stacking", default=True, help="stack RAW images [True / False] (True by default)")
     ap.add_argument("-m", "--masking", default=True, help="mask stacked images [True / False] (True by default)")
-    ap.add_argument("-f", "--focus_check", default=True,
-                    help="check whether out-of-focus images should be discarded before stacking [True / False]")
+    ap.add_argument("-f", "--focus_check", default=False,
+                    help="check whether out-of-focus images should be discarded before stacking [True / False] (False by default)")
     ap.add_argument("-t", "--threshold", type=float,
                     help="focus measures that fall below this value will be considered 'blurry'")
     ap.add_argument("-sh","--sharpen", default=False, help="help=apply sharpening to final result [True / False]")
