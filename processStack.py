@@ -230,7 +230,7 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
     return output_path
 
 
-def stack_images(input_paths, threshold=10.0, sharpen=False):
+def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
     images = Path(input_paths[0]).parent
 
     all_image_paths = []
@@ -241,7 +241,10 @@ def stack_images(input_paths, threshold=10.0, sharpen=False):
     rejected_images = []
 
     for path in all_image_paths:
-        usable_images, rejected_images = checkFocus(path, threshold, usable_images, rejected_images)
+        if check_focus:
+            usable_images, rejected_images = checkFocus(path, threshold, usable_images, rejected_images)
+        else:
+            usable_images.append(path.name)
 
     usable_images.sort()
 

@@ -889,7 +889,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             
             for stack in stacks:
                 try:
-                    stacked_output = stack_images(input_paths=stack, threshold=focus_threshold,
+                    stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
                                                 sharpen=sharpen)
 
                     write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
@@ -1489,7 +1489,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         print("\nSTACKING: \n\n", stack)
         # using try / except to continue stacking with other images in case an error occurs
         try:
-            stacked_output = stack_images(input_paths=stack, threshold=self.stackFocusThreshold,
+            stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
                                           sharpen=self.stackSharpen)
 
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
