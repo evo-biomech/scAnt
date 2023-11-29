@@ -993,7 +993,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 print("No \"threshold_images\" check found")
             
             self.stackFocusThreshold = config["stacking"]["threshold"]
-            self.ui.spinBox_thresholdFocus.setValue(self.stackFocusThreshold)
+            self.ui.doubleSpinBox_threshold.setValue(self.stackFocusThreshold)
 
             self.stackDisplayFocus = config["stacking"]["display_focus_check"]
             self.stackSharpen = config["stacking"]["additional_sharpening"]
@@ -1066,7 +1066,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                        'z_step': self.ui.doubleSpinBox_zStep.value()},
                   'stacking': {'stack_images': self.ui.checkBox_stackImages.isChecked(),
                                'threshold_images': self.ui.checkBox_threshold.isChecked(),
-                               'threshold': self.ui.spinBox_thresholdFocus.value(),
+                               'threshold': self.ui.doubleSpinBox_threshold.value(),
                                'display_focus_check': self.stackDisplayFocus,
                                'additional_sharpening': self.stackSharpen},
                   'masking': {'mask_images': self.ui.checkBox_maskImages.isChecked(),
@@ -1118,7 +1118,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.thresholdImages = self.ui.checkBox_threshold.isChecked()
 
         self.ui.label_thresholdFocus.setEnabled(self.thresholdImages)
-        self.ui.spinBox_thresholdFocus.setEnabled(self.thresholdImages)
+        self.ui.doubleSpinBox_threshold.setEnabled(self.thresholdImages)
         self.ui.label_focusOverlay.setEnabled(self.thresholdImages)
         self.ui.checkBox_focusOverlay.setEnabled(self.thresholdImages)
 
@@ -1404,10 +1404,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     if self.camera_type == "FLIR":
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
+                        # wait for the camera to capture the image before moving further
+                        time.sleep(1)
+                        
                     if self.camera_type == "DSLR":
                         self.cam.capture_image(img_name)
                         # wait for the camera to capture the image before moving further
-                        time.sleep(1)
+                        time.sleep(0.2)
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ

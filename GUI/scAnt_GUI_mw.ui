@@ -2684,73 +2684,7 @@
            <enum>QFrame::Raised</enum>
           </property>
           <layout class="QGridLayout" name="gridLayout_10">
-           <item row="7" column="4">
-            <widget class="QSpinBox" name="spinBox_thresholdMax">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>9</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="maximum">
-              <number>254</number>
-             </property>
-             <property name="value">
-              <number>215</number>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="4">
-            <widget class="QSpinBox" name="spinBox_thresholdMin">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>9</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="maximum">
-              <number>254</number>
-             </property>
-             <property name="value">
-              <number>175</number>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="3">
-            <widget class="QLabel" name="label_thresholdMaskingMax">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>20</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>max</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="2">
-            <widget class="QCheckBox" name="checkBox_suggestedValues">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="3">
+           <item row="2" column="4">
             <widget class="QCheckBox" name="checkBox_threshold">
              <property name="enabled">
               <bool>false</bool>
@@ -2760,13 +2694,10 @@
              </property>
             </widget>
            </item>
-           <item row="9" column="2" colspan="3">
-            <widget class="QPushButton" name="pushButton_captureImagePost">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>30</height>
-              </size>
+           <item row="5" column="0" colspan="2">
+            <widget class="QLabel" name="label_maskImages">
+             <property name="enabled">
+              <bool>false</bool>
              </property>
              <property name="font">
               <font>
@@ -2776,7 +2707,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Capture Image</string>
+              <string>Mask images</string>
              </property>
             </widget>
            </item>
@@ -2797,7 +2728,37 @@
              </property>
             </widget>
            </item>
-           <item row="5" column="4">
+           <item row="0" column="0" colspan="5">
+            <widget class="QLabel" name="label_2">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Post Processing Parameters</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="4">
+            <widget class="QCheckBox" name="checkBox_focusOverlay">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="5">
             <widget class="QCheckBox" name="checkBox_maskImages">
              <property name="enabled">
               <bool>false</bool>
@@ -2831,23 +2792,23 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="4">
-            <widget class="QSpinBox" name="spinBox_thresholdFocus">
-             <property name="enabled">
-              <bool>false</bool>
+           <item row="9" column="2" colspan="4">
+            <widget class="QPushButton" name="pushButton_captureImagePost">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
              </property>
              <property name="font">
               <font>
-               <pointsize>9</pointsize>
+               <pointsize>10</pointsize>
                <weight>50</weight>
                <bold>false</bold>
               </font>
              </property>
-             <property name="maximum">
-              <number>500</number>
-             </property>
-             <property name="value">
-              <number>10</number>
+             <property name="text">
+              <string>Capture Image</string>
              </property>
             </widget>
            </item>
@@ -2865,23 +2826,44 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0" colspan="4">
-            <widget class="QLabel" name="label_2">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>30</height>
-              </size>
+           <item row="7" column="0" colspan="2">
+            <widget class="QLabel" name="label_suggestedValues">
+             <property name="enabled">
+              <bool>false</bool>
              </property>
              <property name="font">
               <font>
-               <pointsize>11</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
              <property name="text">
-              <string>Post Processing Parameters</string>
+              <string>Suggested Values</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2">
+            <widget class="QCheckBox" name="checkBox_suggestedValues">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="4">
+            <widget class="QCheckBox" name="checkBox_stackImages">
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string/>
              </property>
             </widget>
            </item>
@@ -2908,75 +2890,7 @@
              </property>
             </widget>
            </item>
-           <item row="9" column="0" colspan="2">
-            <widget class="QPushButton" name="pushButton_startLiveViewPost">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Start Live View</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0" colspan="2">
-            <widget class="QLabel" name="label_maskImages">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Mask images</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="3">
-            <widget class="QCheckBox" name="checkBox_stackImages">
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="0" colspan="2">
-            <widget class="QLabel" name="label_suggestedValues">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>10</pointsize>
-               <weight>50</weight>
-               <bold>false</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Suggested Values</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="3">
+           <item row="6" column="4">
             <widget class="QLabel" name="label_thresholdMaskingMin">
              <property name="enabled">
               <bool>false</bool>
@@ -2989,6 +2903,26 @@
              </property>
              <property name="text">
               <string>min</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="5">
+            <widget class="QSpinBox" name="spinBox_thresholdMin">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="maximum">
+              <number>254</number>
+             </property>
+             <property name="value">
+              <number>175</number>
              </property>
             </widget>
            </item>
@@ -3009,13 +2943,82 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="3">
-            <widget class="QCheckBox" name="checkBox_focusOverlay">
+           <item row="9" column="0" colspan="2">
+            <widget class="QPushButton" name="pushButton_startLiveViewPost">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>10</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Start Live View</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="4">
+            <widget class="QLabel" name="label_thresholdMaskingMax">
              <property name="enabled">
               <bool>false</bool>
              </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>20</height>
+              </size>
+             </property>
              <property name="text">
-              <string/>
+              <string>max</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="5">
+            <widget class="QSpinBox" name="spinBox_thresholdMax">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="maximum">
+              <number>254</number>
+             </property>
+             <property name="value">
+              <number>215</number>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="5">
+            <widget class="QDoubleSpinBox" name="doubleSpinBox_threshold">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>9</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="decimals">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <double>500.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>1.000000000000000</double>
              </property>
             </widget>
            </item>
@@ -3034,7 +3037,7 @@
      <x>0</x>
      <y>0</y>
      <width>1434</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuScanner">

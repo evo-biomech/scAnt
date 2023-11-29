@@ -3,9 +3,9 @@ import numpy as np
 from pathlib import Path
 
 """
-00281470,         Tic T500 Stepper Motor Controller -> Z-Axis (turntable)
-00281480,         Tic T500 Stepper Motor Controller -> Y-Axis (camera arm)
-00282144,         Tic T500 Stepper Motor Controller -> camera Focus
+00281480,         Tic T500 Stepper Motor Controller -> X-Axis (camera arm)
+00281470,         Tic T500 Stepper Motor Controller -> Y-Axis (turntable)
+00282144,         Tic T500 Stepper Motor Controller -> Z-axis (camera Focus)
 """
 
 
