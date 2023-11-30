@@ -655,34 +655,34 @@ if __name__ == "__main__":
             focus_threshold = config["stacking"]["threshold"]
 
         #parse boolean args
-        if args["stacking"] == "False" or not args["stacking"]:
+        if str(args["stacking"]).lower() == "false" or not args["stacking"]:
             stack_check=False
         else:
             stack_check=True
-        if args["masking"] == "False" or not args["masking"]:
+        if str(args["masking"]).lower() == "false" or not args["masking"]:
             mask_check=False
         else:
             mask_check=True
-        if args["focus_check"] == "False" or not args["focus_check"]:
+        if str(args["focus_check"]).lower() == "false" or not args["focus_check"]:
             focus_check=False
         else:
             focus_check=True
-        if args["addmetadata"] == "False" or not args["addmetadata"]:
+        if str(args["addmetadata"]).lower() == "false" or not args["addmetadata"]:
             metadata_check = False
         else:
             metadata_check = True
-        if args["cutout"] == "True" or args["cutout"]:
+        if str(args["cutout"]).lower() == "true" or args["cutout"]:
             cutout_check=True
         else:
             cutout_check=False
-        if args["sharpen"] == "True" or args["sharpen"]:
+        if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
             sharpen = True
-        elif args["sharpen"] == "False" or not args["sharpen"]:
+        elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
             sharpen = False
         else:
             sharpen = config["stacking"]["additional_sharpening"]
 
-        stack_method = config["stacking"]["stacking_method"]
+        # stack_method = config["stacking"]["stacking_method"]
         exif = config["exif_data"]
         
         if args["mask_thresh_min"]:
