@@ -106,10 +106,11 @@ QPushButton
     border-style: solid;
     border-radius: 6;
     padding: 3px;
-    font-size: 12px;
+    font-size: 20px;
     padding-left: 5px;
     padding-right: 5px;
     min-width: 40px;
+    min-height: 30px;
 }
 
 QPushButton:pressed
@@ -436,8 +437,8 @@ QCheckBox::indicator{
     color: #b1b1b1;
     background-color: #323232;
     border: 1px solid #b1b1b1;
-    width: 9px;
-    height: 9px;
+    width: 20px;
+    height: 20px;
 }
 
 QRadioButton::indicator
@@ -452,7 +453,7 @@ QRadioButton::indicator:hover, QCheckBox::indicator:hover
 
 QCheckBox::indicator:checked
 {
-    image:url("C:/Users/oscar/scAntWork/scAnt/GUI/dark_blue/img/checkbox.png");
+    image:url("GUI/dark_blue/img/checkbox.png");
 }
 
 QCheckBox::indicator:disabled, QRadioButton::indicator:disabled

@@ -89,6 +89,13 @@ class customFLIR():
         # Begin Acquisition of image stream
         self.cam.BeginAcquisition()
 
+        nodemap = self.cam.GetTLDeviceNodeMap()
+        name = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
+        if name.GetValue() == "Blackfly S BFS-U3-51S5C":
+            self.cam.ExposureMode.SetValue(1)
+            self.cam.ExposureMode.SetValue(0)
+
+
     def deinitialise_camera(self):
         # required to release camera for other applications in case another one is selected while running scAnt
         self.cam.EndAcquisition()

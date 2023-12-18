@@ -1405,7 +1405,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
                         # wait for the camera to capture the image before moving further
-                        time.sleep(1)
+                        time.sleep(0.5)
                         
                     if self.camera_type == "DSLR":
                         self.cam.capture_image(img_name)
