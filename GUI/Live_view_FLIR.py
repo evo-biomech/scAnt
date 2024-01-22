@@ -2,7 +2,6 @@ import cv2
 import platform
 import numpy as np
 import time
-from processStack import variance_of_laplacian
 
 # as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
 used_plattform = platform.system()
@@ -473,6 +472,24 @@ class customFLIR():
             # this function may fail to execute when the program is being shut down
             pass
 
+def variance_of_laplacian(image):
+    # compute the Laplacian of the image and then return the focus
+    # measure, which is simply the valirance of the Laplacian
+    # using the following 3x3 convolutional kernel
+    """
+    [0   1   0]
+    [1  -4   1]
+    [0   1   0]
+
+    as recommenden by Pech-Pacheco et al. in their 2000 ICPR paper,
+    Diatom autofocusing in brightfield microscopy: a comparative study.
+    """
+    # apply median blur to image to suppress noise in RAW files
+    blurred_image = cv2.medianBlur(image, 3)
+    lap_image = cv2.Laplacian(blurred_image, cv2.CV_64F)
+    lap_var = lap_image.var()
+
+    return lap_var
 
 if __name__ == '__main__':
     display_for_num_images = 10
