@@ -6,6 +6,7 @@ import numpy as np
 import math
 import os
 import cv2
+from sfm_solve_visualiser import *
 
 
 def create_input_arrays(config_file):
@@ -30,7 +31,7 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
     scanner_orientations = [[], [], []]
     trans_mats = []
 
-    for x in X_ang:
+    for x in X_ang[:-1]:
         for y in Y_ang:
             P_x = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.cos(y)
             P_y = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
@@ -116,7 +117,7 @@ def splitall(path):
     return allparts
 
 
-def generate_sfm(project_location, use_cutouts=True):
+def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
     for file in os.listdir(str(project_location)):
         if file.endswith(".yaml"):
             config = read_config_file(path=project_location.joinpath(file))
@@ -133,8 +134,14 @@ def generate_sfm(project_location, use_cutouts=True):
             if img[-10:-4] == "cutout":
                 image_list.append(img)
         else:
-            if img[-5] == "_":
+            if img[-len(file_ending):] == file_ending:
                 image_list.append(img)
+
+    if len(image_list) == 0:
+        print("ERROR: No suitable images found! Aborting process...")
+        exit()
+    else:
+        print("INFO: Found", len(image_list), "viable images for SFM")
 
     # sort image_list alphabetically to maintain the same order
     image_list.sort()
@@ -159,13 +166,15 @@ def generate_sfm(project_location, use_cutouts=True):
     """
     Define version and folders
     """
-    print(project_location.joinpath("cameras.sfm"))
-    out = open(project_location.joinpath("cameras.sfm"), "w+")
+    file_name = "camerasInit.sfm"
+    print(project_location.joinpath(file_name))
+    out = open(project_location.joinpath(file_name), "w+")
     out.write("{")
+
     out.write(tab_x(1) + '"version": [')
     out.write(tab_x(2) + '"1",')
-    out.write(tab_x(2) + '"0",')
-    out.write(tab_x(2) + '"0"')
+    out.write(tab_x(2) + '"2",')
+    out.write(tab_x(2) + '"6"')
     out.write(tab_x(1) + '],')
 
     out.write(tab_x(1) + '"featuresFolders": [')
@@ -183,7 +192,7 @@ def generate_sfm(project_location, use_cutouts=True):
     viewId = 10000000
     intrinsicId = 1000000000
     resectionId = 0
-    locked = 1
+    locked = 0
 
     image_location = splitall(project_location.joinpath("stacked"))
     meshroom_img_path = image_location[0][:-1]
@@ -200,6 +209,7 @@ def generate_sfm(project_location, use_cutouts=True):
         resectionId += 1
         out.write(tab_x(3) + '"viewId": "' + str(viewId) + '",')
         out.write(tab_x(3) + '"poseId": "' + str(viewId) + '",')
+        out.write(tab_x(3) + '"frameId": "' + str(cam) + '",')
         out.write(tab_x(3) + '"intrinsicId": "' + str(intrinsicId) + '",')
         out.write(tab_x(3) + '"resectionId": "' + str(resectionId) + '",')
         out.write(tab_x(3) + '"path": "' + meshroom_img_path + '\/' + image_list[cam] + '",')
@@ -252,6 +262,11 @@ def generate_sfm(project_location, use_cutouts=True):
     out.write(tab_x(3) + '"serialNumber": "' + meshroom_img_path + '_' + str(config["exif_data"]["Model"]) + '",')
     out.write(tab_x(3) + '"type": "radial3",')
     out.write(tab_x(3) + '"initializationMode": "estimated",')
+    out.write(tab_x(3) + '"initialFocalLength": "' + str(config["exif_data"]["FocalLength"]) + '",')
+    out.write(tab_x(3) + '"focalLength": "' + str(config["exif_data"]["FocalLength"]) + '",')
+    out.write(tab_x(3) + '"pixelRatio": "1",')
+    out.write(tab_x(3) + '"pixelRatioLocked": "true",')
+
     out.write(tab_x(3) + '"pxInitialFocalLength": "14619.847328244276",')
     out.write(tab_x(3) + '"pxFocalLength": "15519.947135073095",')
     out.write(tab_x(3) + '"principalPoint": [')
@@ -328,16 +343,16 @@ def generate_sfm(project_location, use_cutouts=True):
 
 
 if __name__ == '__main__':
-    config = read_config_file(path=Path.cwd().parent.joinpath("example_config.yaml"))
+    # config = read_config_file(path=Path.cwd().parent.joinpath("example_config.yaml"))
+    project_location = Path("S:\\images\\Amphipyra_pyramidea")
+    config = read_config_file(path=Path.joinpath(project_location, "Amphipyra_pyramidea_config.yaml"))
 
-    generate_sfm(project_location=Path("/home/fabi/camponotus_gigas"), use_cutouts=False)
-
-    exit()
+    generate_sfm(project_location=project_location, use_cutouts=False, file_ending=".tif")
 
     print(config["scanner_settings"])
     X, Y, Z = create_input_arrays(config)
 
-    X_ang = convert_to_angles(X, inc_per_rot=1600)  # as the initial angle is view from below
+    X_ang = convert_to_angles(X, inc_per_rot=1600)  # as the initial angle is viewed from below
     Y_ang = convert_to_angles(Y, inc_per_rot=1600)
 
     # max Z -> 40,000 at ~ 25 cm sensor to centre
@@ -346,7 +361,8 @@ if __name__ == '__main__':
 
     # distance_tic -> convert to distance in meters to use as constant radius
 
-    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
+    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 30
+    print(corrected_Z)
 
     scanner_positions, scanner_orientations, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang,
                                                                              r=corrected_Z)
@@ -362,6 +378,19 @@ if __name__ == '__main__':
     print("\n transformation matrix of initial camera position")
     print(trans_mat_start)
 
+    """
+    Now, load a reference sfm file to check its agreement with the estimated cameras
+    """
+
+    sfm_file = "J:\\Meshroom-2023.3.0\\Amphipyra_Tests_360\\MeshroomCache\\" \
+               "StructureFromMotion\\121bb81ac0be265bcf0a48abde410c8c614443de\\cameras.sfm"
+
+    sfm_centers = read_cameras_from_sfm_solve(solve_file=sfm_file)
+
+    """
+    Visualise estimates and sfm solve
+    """
+
     # Matplotlib solution
     fig = plt.figure()
     ax = Axes3D(fig)
@@ -369,9 +398,16 @@ if __name__ == '__main__':
     # create 3D plot
     ax = plt.axes(projection='3d')
 
-    # mark every camera position
+    # mark every estimated camera position
     ax.scatter(scanner_positions[0][1:], scanner_positions[1][1:], scanner_positions[2][1:], depthshade=True,
-               label="all camera positions")
+               label="all estimated camera positions")
+
+    # mark every solved camera position
+    ax.scatter(sfm_centers[:, 0],
+               sfm_centers[:, 1],
+               sfm_centers[:, 2], depthshade=True,
+               c="pink",
+               label="all solved camera positions")
 
     # mark every camera orientation
     ax.quiver(scanner_positions[0][1:], scanner_positions[1][1:], scanner_positions[2][1:],
@@ -387,9 +423,9 @@ if __name__ == '__main__':
               scanner_orientations[0][0], scanner_orientations[1][0], scanner_orientations[2][0], alpha=0.4,
               color="red")
 
-    ax.set_xlim3d(-0.3, 0.3)
-    ax.set_ylim3d(-0.3, 0.3)
-    ax.set_zlim3d(-0.22, 0.22)
+    ax.set_xlim3d(-1, 1)
+    ax.set_ylim3d(-1, 1)
+    ax.set_zlim3d(-1, 1)
 
     ax.set_xlabel('$X$')
     ax.set_ylabel('$Y$')
@@ -399,5 +435,4 @@ if __name__ == '__main__':
 
     plt.show()
 
-    ####
-    print("{\n\t{\n\tTesty\n\t}\n}")
+    print("{\n\t{\n\tTest\n\t}\n}")
