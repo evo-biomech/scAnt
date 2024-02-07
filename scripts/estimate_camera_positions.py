@@ -1,4 +1,8 @@
-from scripts.project_manager import read_config_file
+try:
+    from project_manager import read_config_file
+except ModuleNotFoundError:
+    from scripts.project_manager import read_config_file
+from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from pathlib import Path
@@ -34,12 +38,8 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
     for x in X_ang[:-1]:
         for y in Y_ang:
             P_x = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.cos(y)
-            P_y = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
-            P_z = r * math.cos(math.pi / 2 - x + (193 / 1600 * 2 * math.pi))
-
-            scanner_orientations[0].append(-P_x / 4)
-            scanner_orientations[1].append(-P_y / 4)
-            scanner_orientations[2].append(-P_z / 4)
+            P_z = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
+            P_y = r * math.cos(math.pi / 2 - x + (193 / 1600 * 2 * math.pi))
 
             scanner_positions[0].append(P_x)
             scanner_positions[1].append(P_y)
@@ -48,9 +48,9 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
             trans_mats.append(create_transformation_matrix(px=scanner_positions[0][-1],
                                                            py=scanner_positions[1][-1],
                                                            pz=scanner_positions[2][-1],
-                                                           alpha=-y + math.pi,
-                                                           beta=0,
-                                                           gamma=x - (193 / 1600 * 2 * math.pi)))
+                                                           alpha=0,
+                                                           beta=y + math.pi / 2,
+                                                           gamma=-x + (193 / 1600 * 2 * math.pi)))
 
     return scanner_positions, scanner_orientations, trans_mats
 
@@ -58,29 +58,20 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
 def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
     """
     outputs transformation matrix given the translation and rotation of an input frame of reference using the Euler
-    Z-Y-X Rotation with the following convention for applied angles (right handed coord system):
+    Z-Y-X Rotation with the following convention for applied angles (right-handed coordinate system):
     alpha: rotation around z-axis
     beta: rotation around y-axis
     gamma: rotation around x-axis
     returns 4x4 transformation matrix
     """
 
-    Rxx = math.cos(alpha) * math.cos(beta)
-    Ryx = math.cos(alpha) * math.sin(beta) * math.sin(gamma) - math.cos(gamma) * math.sin(alpha)
-    Rzx = math.sin(alpha) * math.sin(gamma) + math.cos(alpha) * math.cos(gamma) * math.sin(beta)
+    R = Rotation.from_euler("zyx", [alpha, beta, gamma], degrees=False)  # intrinsic
+    R = R.as_matrix()
 
-    Rxy = math.cos(beta) * math.sin(alpha)
-    Ryy = math.cos(alpha) * math.cos(gamma) + math.sin(alpha) * math.sin(beta) * math.sin(gamma)
-    Rzy = math.cos(gamma) * math.sin(alpha) * math.sin(beta) - math.cos(alpha) * math.sin(gamma)
-
-    Rxz = - math.sin(beta)
-    Ryz = math.cos(beta) * math.sin(gamma)
-    Rzz = math.cos(beta) * math.cos(gamma)
-
-    Trans_Mat = [[Rxx, Ryx, Rzx, px],
-                 [Rxy, Ryy, Rzy, py],
-                 [Rxz, Ryz, Rzz, pz],
-                 [0, 0, 0, 1]]
+    Trans_Mat = np.array([[R[0][0], R[0][1], R[0][2], px],
+                          [R[1][0], R[1][1], R[1][2], py],
+                          [R[2][0], R[2][1], R[2][2], pz],
+                          [0, 0, 0, 1]])
 
     return np.array(Trans_Mat)
 
@@ -361,7 +352,7 @@ if __name__ == '__main__':
 
     # distance_tic -> convert to distance in meters to use as constant radius
 
-    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 30
+    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 25.5
     print(corrected_Z)
 
     scanner_positions, scanner_orientations, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang,
@@ -382,8 +373,7 @@ if __name__ == '__main__':
     Now, load a reference sfm file to check its agreement with the estimated cameras
     """
 
-    sfm_file = "J:\\Meshroom-2023.3.0\\Amphipyra_Tests_360\\MeshroomCache\\" \
-               "StructureFromMotion\\121bb81ac0be265bcf0a48abde410c8c614443de\\cameras.sfm"
+    sfm_file = "cameras_REF.sfm"
 
     sfm_centers = read_cameras_from_sfm_solve(solve_file=sfm_file)
 
