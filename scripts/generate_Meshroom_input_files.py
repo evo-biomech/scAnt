@@ -30,8 +30,14 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
     scanner_orientations = [[], [], []]
     trans_mats = []
 
-    for x in X_ang[:-1]:
+    # invert x and y order to fit orientation convention
+
+    for x in reversed(X_ang[:-1]):
         for y in Y_ang:
+            y_offset = math.pi  # required so we don't jump after generating a quarter of the positions
+
+            y = - (y + y_offset)
+
             P_x = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.cos(y)
             P_z = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
             P_y = r * math.cos(math.pi / 2 - x + (193 / 1600 * 2 * math.pi))
