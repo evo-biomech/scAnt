@@ -1,12 +1,10 @@
-from scripts.project_manager import read_config_file
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+try:
+    from project_manager import read_config_file
+except ModuleNotFoundError:
+    from scripts.project_manager import read_config_file
+
+from scipy.spatial.transform import Rotation
 from pathlib import Path
-import numpy as np
-import math
-import os
-import cv2
-import json
 from sfm_solve_visualiser import *
 
 
@@ -35,12 +33,8 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
     for x in X_ang[:-1]:
         for y in Y_ang:
             P_x = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.cos(y)
-            P_y = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
-            P_z = r * math.cos(math.pi / 2 - x + (193 / 1600 * 2 * math.pi))
-
-            scanner_orientations[0].append(-P_x / 4)
-            scanner_orientations[1].append(-P_y / 4)
-            scanner_orientations[2].append(-P_z / 4)
+            P_z = r * math.sin(math.pi / 2 - x + (193 / 1600 * 2 * math.pi)) * math.sin(y)
+            P_y = r * math.cos(math.pi / 2 - x + (193 / 1600 * 2 * math.pi))
 
             scanner_positions[0].append(P_x)
             scanner_positions[1].append(P_y)
@@ -49,9 +43,9 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
             trans_mats.append(create_transformation_matrix(px=scanner_positions[0][-1],
                                                            py=scanner_positions[1][-1],
                                                            pz=scanner_positions[2][-1],
-                                                           alpha=-y + math.pi,
-                                                           beta=0,
-                                                           gamma=x - (193 / 1600 * 2 * math.pi)))
+                                                           alpha=0,
+                                                           beta=y + math.pi / 2,
+                                                           gamma=-x + (193 / 1600 * 2 * math.pi)))
 
     return scanner_positions, scanner_orientations, trans_mats
 
@@ -59,31 +53,30 @@ def get_approx_cam_pos(X_ang, Y_ang, r):
 def create_transformation_matrix(px, py, pz, alpha, beta, gamma):
     """
     outputs transformation matrix given the translation and rotation of an input frame of reference using the Euler
-    Z-Y-X Rotation with the following convention for applied angles (right handed coord system):
+    Z-Y-X Rotation with the following convention for applied angles (right-handed coordinate system):
     alpha: rotation around z-axis
     beta: rotation around y-axis
     gamma: rotation around x-axis
     returns 4x4 transformation matrix
     """
 
-    Rxx = math.cos(alpha) * math.cos(beta)
-    Ryx = math.cos(alpha) * math.sin(beta) * math.sin(gamma) - math.cos(gamma) * math.sin(alpha)
-    Rzx = math.sin(alpha) * math.sin(gamma) + math.cos(alpha) * math.cos(gamma) * math.sin(beta)
+    R = Rotation.from_euler("zyx", [alpha, beta, gamma], degrees=False)  # intrinsic
+    R = R.as_matrix()
 
-    Rxy = math.cos(beta) * math.sin(alpha)
-    Ryy = math.cos(alpha) * math.cos(gamma) + math.sin(alpha) * math.sin(beta) * math.sin(gamma)
-    Rzy = math.cos(gamma) * math.sin(alpha) * math.sin(beta) - math.cos(alpha) * math.sin(gamma)
-
-    Rxz = - math.sin(beta)
-    Ryz = math.cos(beta) * math.sin(gamma)
-    Rzz = math.cos(beta) * math.cos(gamma)
-
-    Trans_Mat = [[Rxx, Ryx, Rzx, px],
-                 [Rxy, Ryy, Rzy, py],
-                 [Rxz, Ryz, Rzz, pz],
-                 [0, 0, 0, 1]]
+    Trans_Mat = np.array([[R[0][0], R[0][1], R[0][2], px],
+                          [R[1][0], R[1][1], R[1][2], py],
+                          [R[2][0], R[2][1], R[2][2], pz],
+                          [0, 0, 0, 1]])
 
     return np.array(Trans_Mat)
+
+
+def SilentMkdir(theDir):  # function to create a directory
+    try:
+        os.mkdir(theDir)
+    except:
+        pass
+    return 0
 
 
 def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
@@ -97,6 +90,13 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
     instead of default FLIR machine vision cameras
     :return: None
     """
+    # generate output folder
+    taskFolder = os.path.join(project_location, "reconstruction", "1_CameraInit")
+    SilentMkdir(os.path.join(project_location, "reconstruction"))
+    SilentMkdir(taskFolder)
+
+    project_location = Path(project_location)
+
     for file in os.listdir(str(project_location)):
         if file.endswith(".yaml"):
             config = read_config_file(path=project_location.joinpath(file))
@@ -137,8 +137,10 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
     # measured 40,000 tics = ~ 10 cm +/- 0.1 cm
 
     # distance_tic -> convert to distance in meters to use as constant radius
+    # previously -> (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
+    # conversion from inches
 
-    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 100
+    corrected_Z = (((Z[0] * (-1)) / 40000) * 10 + 15) / 25.5
 
     _, _, trans_mats = get_approx_cam_pos(X_ang=X_ang, Y_ang=Y_ang, r=corrected_Z)
 
@@ -149,8 +151,8 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
     """
 
     full_dict["version"] = ["1", "2", "6"]
-    full_dict["featuresFolders"] = []
-    full_dict["matchesFolders"] = []
+    full_dict["featuresFolders"] = ["..\\2_FeatureExtraction"]
+    full_dict["matchesFolders"] = ["..\\4_featureMatching"]
 
     full_dict["views"] = []
     full_dict["poses"] = []
@@ -210,15 +212,15 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
                           "transform": {
                               "rotation": [
                                   str(round(trans_mat[0][0], ndigits=17)),
-                                  str(round(trans_mat[0][1], ndigits=17)),
-                                  str(round(trans_mat[0][2], ndigits=17)),
-
                                   str(round(trans_mat[1][0], ndigits=17)),
-                                  str(round(trans_mat[1][1], ndigits=17)),
-                                  str(round(trans_mat[1][2], ndigits=17)),
-
                                   str(round(trans_mat[2][0], ndigits=17)),
+
+                                  str(round(trans_mat[0][1], ndigits=17)),
+                                  str(round(trans_mat[1][1], ndigits=17)),
                                   str(round(trans_mat[2][1], ndigits=17)),
+
+                                  str(round(trans_mat[0][2], ndigits=17)),
+                                  str(round(trans_mat[1][2], ndigits=17)),
                                   str(round(trans_mat[2][2], ndigits=17))
                               ],
                               "center": [
@@ -227,7 +229,7 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
                                   str(round(trans_mat[2][3], ndigits=17))
                               ]
                           },
-                          "locked": "0"
+                          "locked": str(locked)
                       }
                       }
 
@@ -253,9 +255,9 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
         ],
         "distortionInitializationMode": "none",
         "distortionParams": [
-            "-0.045115948805775699",
-            "41.139325141963582",
-            "-930.4076823498674"
+            "0",  # "-0.045115948805775699",
+            "0",  # "41.139325141963582",
+            "0"  # "-930.4076823498674"
         ],
         "undistortionOffset": [
             "0",
@@ -268,18 +270,39 @@ def generate_sfm(project_location, use_cutouts=True, file_ending=".tif"):
     """
     Dump into the respective files:
     - cameraInit.sfm
-    - viewpoints.sfm
+    - - version
+    - - views
+    - - intrinsics
+    
+    - viewpoints.sfm 
+    - - (not needed)
+    
     - cameras.sfm
+    - - version
+    - - featuresFolders (check if they can be excluded, try without first)
+    - - matchesFolders  (check if they can be excluded, try without first)
+    - - views
+    - - poses
+    - - intrinsics
     """
 
-    with open(os.path.join(project_location, "TEST.json"), "w") as file:
-        json.dump(full_dict, file, )
+    with open(os.path.join(taskFolder, "cameraInit.sfm"), "w") as file:
+        camerasInit = {"version": full_dict["version"]}
+        camerasInit["views"] = full_dict["views"]
+        camerasInit["intrinsics"] = full_dict["intrinsics"]
+        json.dump(camerasInit, file)
 
-    print("Data stored successfully!")
+    print("cameraInit.sfm created!")
+
+    with open(os.path.join(taskFolder, "cameras.sfm"), "w") as file:
+        json.dump(full_dict, file)
+
+    print("cameras.sfm created!")
 
 
 if __name__ == '__main__':
     project_location = Path("S:/images/Amphipyra_pyramidea")
-    config = read_config_file(path=Path.joinpath(project_location, "Amphipyra_pyramidea_config.yaml"))
 
-    generate_sfm(project_location=project_location, use_cutouts=False, file_ending=".tif")
+    generate_sfm(project_location=project_location,
+                 use_cutouts=False,
+                 file_ending=".tif")
