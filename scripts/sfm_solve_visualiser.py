@@ -7,6 +7,7 @@ import numpy as np
 import pytransform3d.camera as pc
 import pytransform3d.transformations as pt
 import pytransform3d.visualizer as pv
+import open3d
 
 
 def read_cameras_from_sfm_solve(solve_file):
@@ -23,8 +24,7 @@ def read_cameras_from_sfm_solve(solve_file):
 
 
 if __name__ == '__main__':
-    camera_filenames = [#"cameras_REF.sfm",
-        "S:\\images\\Amphipyra_pyramidea\\reconstruction\\1_CameraInit\\cameras.sfm"]
+    camera_filenames = ["cameras_REF.sfm"]
 
     fig = pv.figure()
 
@@ -50,14 +50,26 @@ if __name__ == '__main__':
 
         transformation_matrices = np.empty((len(camera_poses), 4, 4))
 
+        ids = []  # image IDs
+
         for i, camera_pose in enumerate(camera_poses):
             R = np.array(list(map(float, camera_pose["pose"]["transform"]["rotation"]))).reshape(3, 3)
             p = np.array(list(map(float, camera_pose["pose"]["transform"]["center"])))
+            poseId = camera_pose["poseId"]
+            for view in cameras["views"]:
+                if view["poseId"] == poseId:
+                    ids.append(view["path"].split("\\")[-1])
+
             transformation_matrices[i] = pt.transform_from(R=R, p=p)
 
-        for pose in transformation_matrices:
+        num_pose = 0
+
+        for pose, img in zip(transformation_matrices, ids):
             fig.plot_transform(A2B=pose, s=0.05)
             fig.plot_camera(M=M, cam2world=pose, virtual_image_distance=0.1, sensor_size=sensor_size)
+
+            print(num_pose, img)
+            num_pose += 1
 
     # world origin
     fig.plot_transform(pt.transform_from(R=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], p=[0, 0, 0]), s=0.25)
