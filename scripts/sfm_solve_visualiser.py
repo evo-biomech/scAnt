@@ -3,6 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from estimate_camera_positions import *
+import numpy as np
+import pytransform3d.camera as pc
+import pytransform3d.transformations as pt
+import pytransform3d.visualizer as pv
 
 
 def read_cameras_from_sfm_solve(solve_file):
@@ -11,41 +15,50 @@ def read_cameras_from_sfm_solve(solve_file):
 
     poses_dict = solve_json["poses"]
     centers = [i["pose"]["transform"]["center"] for i in poses_dict]
+    rotations = [i["pose"]["transform"]["rotation"] for i in poses_dict]
+    intrinsics = solve_json["intrinsics"][0]
     centers_fl = np.array(centers, np.float)
-    return centers_fl
+    rotations_fl = np.array(rotations, np.float)
+    return centers_fl, rotations_fl, intrinsics
 
 
 if __name__ == '__main__':
-    file = "J:\\Meshroom-2023.3.0\\Amphipyra_Tests_360\\MeshroomCache\\" \
-           "StructureFromMotion\\121bb81ac0be265bcf0a48abde410c8c614443de\\cameras.sfm"
+    camera_filenames = [#"cameras_REF.sfm",
+        "S:\\images\\Amphipyra_pyramidea\\reconstruction\\1_CameraInit\\cameras.sfm"]
 
-    centers = read_cameras_from_sfm_solve(solve_file=file)
+    fig = pv.figure()
 
-    # Matplotlib solution
-    fig = plt.figure()
-    ax = Axes3D(fig)
+    for camera_filename in camera_filenames:
 
-    # create 3D plot
-    ax = plt.axes(projection='3d')
+        with open(camera_filename, "r") as f:
+            cameras = json.load(f)
 
-    # mark every camera position
-    ax.scatter(centers[:, 0],
-               centers[:, 1],
-               centers[:, 2], depthshade=True,
-               c="pink",
-               label="all camera positions")
+        camera_poses = cameras["poses"]
+        camera_intrinsics = cameras["intrinsics"][0]
 
-    # place marker of scanned object in the centre
-    ax.scatter(0, 0, 0, s=30, c="black", depthshade=True, marker="h", label="0 position")
+        px_focal_length = float(camera_intrinsics["focalLength"])
+        sensorWidth = float(camera_intrinsics["sensorWidth"])
+        sensorHeight = float(camera_intrinsics["sensorHeight"])
 
-    ax.set_xlim3d(-1, 1)
-    ax.set_ylim3d(-1, 1)
-    ax.set_zlim3d(-1, 1)
+        M = np.array([
+            [px_focal_length, 0, sensorWidth / 2.0],
+            [0, px_focal_length, sensorHeight / 2.0],
+            [0, 0, 1]
+        ])
 
-    ax.set_xlabel('$X$')
-    ax.set_ylabel('$Y$')
-    ax.set_zlabel('$Z$')
+        sensor_size = (float(sensorWidth), float(sensorHeight))
 
-    ax.legend(loc='upper left', bbox_to_anchor=(0.65, 1.05))
+        transformation_matrices = np.empty((len(camera_poses), 4, 4))
 
-    plt.show()
+        for i, camera_pose in enumerate(camera_poses):
+            R = np.array(list(map(float, camera_pose["pose"]["transform"]["rotation"]))).reshape(3, 3)
+            p = np.array(list(map(float, camera_pose["pose"]["transform"]["center"])))
+            transformation_matrices[i] = pt.transform_from(R=R, p=p)
+
+        for pose in transformation_matrices:
+            fig.plot_transform(A2B=pose, s=0.05)
+            fig.plot_camera(M=M, cam2world=pose, virtual_image_distance=0.1, sensor_size=sensor_size)
+
+    # world origin
+    fig.plot_transform(pt.transform_from(R=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], p=[0, 0, 0]), s=0.25)
+    fig.show()
