@@ -1498,6 +1498,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
             if self.maskImages:
+                time.sleep(0.2)
                 mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
                             min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
 

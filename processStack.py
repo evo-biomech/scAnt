@@ -161,7 +161,7 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
     if used_platform != "Linux" and use_experimental_stacking:
         os.system(
             str(path_to_external) + "\\focus-stack\\focus-stack " +
-            data + " --output=" + output_path
+            data + " --output=" + output_path 
         )
     else:
         if used_platform == "Linux":
@@ -650,9 +650,9 @@ if __name__ == "__main__":
 
         #Read important post processing parameters - if not defined from cmd
         if args["threshold"] is not None:
-            focus_threshold = args["threshold"]
+            focus_threshold = float(args["threshold"])
         else:
-            focus_threshold = config["stacking"]["threshold"]
+            focus_threshold = float(config["stacking"]["threshold"])
 
         #parse boolean args
         if str(args["stacking"]).lower() == "false" or not args["stacking"]:
@@ -929,8 +929,7 @@ if __name__ == "__main__":
             for t in threads:
                 t.join()
             print("All images processed!\nExiting Main Thread")
-            exit()
-        
+
         if metadata_check:
 
             for img in os.listdir(str(stacked_dir)):
@@ -940,6 +939,9 @@ if __name__ == "__main__":
 
                     cv2.imwrite(str(stacked_dir.joinpath(img)), img_tif)
                     write_exif_to_img(img_path=str(stacked_dir.joinpath(img)), custom_exif_dict=exif)
+            exit()
+        
+
                         
     else:
         print("No config file found in folder!")
