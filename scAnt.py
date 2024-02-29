@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 
 import scripts.project_manager as ymlRW
-from scripts.Scanner_Controller import ScannerController
+from scripts.arduinoControl import ScannerController
 from processStack import getThreads, stack_images, mask_images
 from scripts.write_meta_data import write_exif_to_img, get_default_values
 

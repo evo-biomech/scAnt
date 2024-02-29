@@ -1,0 +1,189 @@
+import serial
+import serial.tools.list_ports
+import time
+import numpy as np
+import os
+import math
+from pathlib import Path
+
+class ScannerController:
+    def __init__(self):
+
+        self.stepper_names = ["X", "Y", "Z"]
+        self.scan_stepSize = [50, 80, 500]
+
+        self.stepper_home = ['rev', None, 'fwd']
+        self.stepper_stepModes = [8, 8, 8]
+
+        self.stepper_maxPos = [450, 1600, 11000]
+        self.stepper_minPos = [0, -1600, 0]
+
+        self.stepper_position = [None, None, None]
+        self.scan_pos = [None, None, None]
+        self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
+        self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
+        self.setScanRange(stepper=2, min=0, max=11000, step=self.scan_stepSize[2])
+        
+        # keep track of position during scanning, skip to next full rotation of Y Axis
+        self.completedRotations = 0
+        self.completedStacks = 0
+        
+        ports = serial.tools.list_ports.comports()
+        com = None
+        for port, desc, _ in ports:
+            if "USB-SERIAL CH340"  in desc:
+                com = port
+
+        if com:
+            self.ser = serial.Serial(com, baudrate=9600, timeout=None)
+            time.sleep(1)
+        else:
+            self.ser=None
+        
+
+    def deEnergise(self):
+        print("De-engergising Steppers")
+        self.ser.write("DEENERGISE\n".encode("utf-8"))
+        self.ser.readline()
+
+    def resume(self):
+        print("Energising Steppers")
+        self.ser.write("ENERGISE\n".encode("utf-8"))
+        self.ser.readline()
+
+    def setStepMode(self, stepper, step_mode):
+        pass
+
+
+    def moveToPosition(self, stepper, pos):
+
+        pos = str(pos)
+        command = "MOVE " + str(self.stepper_names[stepper]) + " " + pos + " \n"
+        self.ser.write(command.encode("utf-8"))
+        self.ser.readline()
+        print("Moving stepper", self.stepper_names[stepper], "to position", pos)
+        self.stepper_position[stepper] = int(pos)
+    
+    def home(self, stepper):
+        if self.stepper_home[stepper] is not None:  
+            print("Homing", str(self.stepper_names[stepper]))
+            command = "HOME " + str(self.stepper_names[stepper]) + "\n"
+            self.ser.write(command.encode("utf-8"))
+            for _ in range(2):
+                self.ser.readline()
+
+    def setScanRange(self, stepper, min, max, step):
+        # set min and max poses according to input (within range)
+        if max >= self.stepper_maxPos[stepper]:
+            max = self.stepper_maxPos[stepper]
+        elif min <= self.stepper_minPos[stepper]:
+            min = self.stepper_minPos[stepper]
+
+        # set desired step size (limited by GUI inputs as well as min and max values)
+        self.scan_stepSize[stepper] = step
+
+        self.scan_pos[stepper] = np.array(np.arange(int(min), int(max), int(self.scan_stepSize[stepper])), dtype=int)
+        if len(self.scan_pos[stepper]) == 0:
+            print("INPUT ERROR FOUND!")
+            self.scan_pos[stepper] = np.array([0])
+
+
+    def correctName(self, val):
+        """
+        :param val: integer value to be brought into correct format
+        :return: str of corrected name
+        """
+        if abs(val) < 10:
+            step_name = "0000" + str(abs(val))
+        elif abs(val) < 100:
+            step_name = "000" + str(abs(val))
+        elif abs(val) < 1000:
+            step_name = "00" + str(abs(val))
+        elif abs(val) < 10000:
+            step_name = "0" + str(abs(val))
+        else:
+            step_name = str(abs(val))
+
+        return step_name
+
+    def runScan(self):
+        for posX in self.scan_pos[0]:
+            self.moveToPosition(0, posX)
+            for posY in self.scan_pos[1]:
+                self.moveToPosition(1, posY + self.completedRotations * self.stepper_maxPos[1])
+                for posZ in self.scan_pos[2]:
+                    self.moveToPosition(2, posZ)
+                    # to follow the naming convention when focus stacking
+                    # img_name = self.outputFolder + "x_" + self.correctName(posX) + "_y_" + self.correctName(
+                    #     posY) + "_step_" + self.correctName(posZ) + "_.tif"
+
+                    # self.cam.capture_image(img_name=img_name)
+                    # self.progress = self.getProgress()
+
+                self.completedStacks += 1
+
+            self.completedRotations += 1
+
+        # return to default position
+        print("Returning to default position")
+        scAnt.moveToPosition(stepper=0, pos=190)
+        scAnt.moveToPosition(stepper=1, pos=self.completedRotations * self.stepper_maxPos[1])
+        scAnt.moveToPosition(stepper=2, pos=190)
+    
+if __name__ == "__main__":
+    # try:
+    #     from GUI.Live_view_FLIR import customFLIR
+    # except ModuleNotFoundError:
+    #     print("WARNING: PySpin module not found! You can ignore this message when not using FLIR cameras.")
+    print("Testing funcitonality of components")
+    scAnt = ScannerController()
+    # scAnt.initCam(customFLIR())
+
+    # Home all steppers
+    # for stepper in range(3):
+    #     scAnt.home(stepper)
+
+    # Movement test of steppers
+    scAnt.moveToPosition(stepper=0, pos=400)
+    scAnt.moveToPosition(stepper=0, pos=800)
+    scAnt.moveToPosition(stepper=0, pos=400)
+    scAnt.moveToPosition(stepper=0, pos=0)
+    
+    scAnt.moveToPosition(stepper=1, pos=400)
+    scAnt.moveToPosition(stepper=1, pos=800)
+    scAnt.moveToPosition(stepper=1, pos=400)
+    scAnt.moveToPosition(stepper=1, pos=0)
+
+    scAnt.moveToPosition(stepper=2, pos=800)
+    scAnt.moveToPosition(stepper=2, pos=1600)
+    scAnt.moveToPosition(stepper=2, pos=800)
+    scAnt.moveToPosition(stepper=2, pos=0)
+
+    # capture image, using custom FLIR scripts
+    # scAnt.cam.capture_image(img_name="testy_mac_testface.tif")
+
+    # # define output folder
+    # scAnt.outputFolder = Path.cwd()
+    # if not os.path.exists(scAnt.outputFolder):
+    #     os.makedirs(scAnt.outputFolder)
+    #     print("made folder!")
+
+    # # run example scan
+    # print("\nRunning Demo Scan!")
+    # scAnt.scan_stepSize = [200, 800, 5000]
+    # scAnt.setScanRange(stepper=0, min=0, max=250, step=50)
+    # scAnt.setScanRange(stepper=1, min=0, max=1600, step=400)
+    # scAnt.setScanRange(stepper=2, min=0, max=2000, step=500)
+
+    # scAnt.runScan()
+
+    # # de-energise steppers and release cam
+    # scAnt.deEnergise()
+    # # scAnt.cam.exit_cam()
+
+    # print("\nDemo completed successfully!")
+
+
+
+    
+    
