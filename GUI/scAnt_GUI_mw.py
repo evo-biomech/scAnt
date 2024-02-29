@@ -1092,7 +1092,7 @@ class Ui_MainWindow(object):
         font.setWeight(50)
         self.doubleSpinBox_zMax.setFont(font)
         self.doubleSpinBox_zMax.setDecimals(0)
-        self.doubleSpinBox_zMax.setMinimum(-35000.0)
+        self.doubleSpinBox_zMax.setMinimum(-40000.0)
         self.doubleSpinBox_zMax.setMaximum(0.0)
         self.doubleSpinBox_zMax.setSingleStep(1000.0)
         self.doubleSpinBox_zMax.setProperty("value", -8000.0)
