@@ -61,7 +61,7 @@ class AlphaExtractionThread(threading.Thread):
 
     def run(self):
         print("Starting " + self.name)
-        createAlphaMask_threaded(self.name, self.q, edgeDetector=edgeDetector, create_cutout=False)
+        createAlphaMask_threaded(self.name, self.q, edgeDetector=edgeDetector)
         print("Exiting " + self.name)
 
 def getThreads():
@@ -143,11 +143,11 @@ def process_stack_threaded(name, q):
             data = q.get()
             queueLock.release()
 
-            process_stack(data, output_folder, path_to_external, sharpen)
+            process_stack(data, output_folder, path_to_external, args)
         else:
             queueLock.release()
 
-def process_stack(data, output_folder, path_to_external, sharpen, use_experimental_stacking=True):
+def process_stack(data, output_folder, path_to_external, params):
     stack_name = data.split(" ")[1]
     stack_name = Path(stack_name).name[:-15]
 
@@ -158,10 +158,19 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
     output_path = str(output_folder.joinpath(stack_name)) + ".tif"
     print(output_path)
 
-    if used_platform != "Linux" and use_experimental_stacking:
+    # stack_params = ""
+    # if params["nocrop"]:
+    #     stack_params += " --nocrop"
+    # if params["full_resolution_align"]:
+    #     stack_params += " --full-resolution-align"
+    # if params["jpgquality"]:
+    #     stack_params += " --jpgquality=" + params["jpgquality"]
+    
+
+    if used_platform != "Linux" and params["use_experimental_stacking"]:
         os.system(
             str(path_to_external) + "\\focus-stack\\focus-stack " +
-            data + " --output=" + output_path 
+            data + " --output=" + output_path
         )
     else:
         if used_platform == "Linux":
@@ -218,7 +227,7 @@ def process_stack(data, output_folder, path_to_external, sharpen, use_experiment
 
         print("Deleted temporary files of stack", data)
 
-    if sharpen:
+    if params["sharpen"]:
         stacked = Image.open(output_path)
         enhancer = ImageEnhance.Sharpness(stacked)
         sharpened = enhancer.enhance(1.5)
@@ -309,9 +318,12 @@ def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
 
     stacked_images_paths = []
 
+    parameters = {"sharpen": False,
+                  "use_experimental_stacking": True}
+
     for stack in stacks:
         stacked_images_paths.append(
-            process_stack(data=stack, output_folder=output_folder, path_to_external=path_to_external, sharpen=sharpen))
+            process_stack(data=stack, output_folder=output_folder, path_to_external=path_to_external, params=parameters))
 
     print("Deleting temporary folders")
 
@@ -359,6 +371,8 @@ def findSignificantContour(edgeImg):
             edgeImg,
             cv2.RETR_TREE,
             cv2.CHAIN_APPROX_SIMPLE)
+
+
     # Find level 1 contours (i.e. largest contours)
     level1Meta = []
     for contourIndex, tupl in enumerate(hierarchy[0]):
@@ -395,7 +409,7 @@ def remove_holes(img, min_num_pixel):
     return cleaned_img
 
 
-def apply_local_contrast(img, grid_size=(7, 7)):
+def apply_local_contrast(img, grid_size=(7, 7), clip_limit=1.0):
     """
     ### CLAHE (Contrast limited Adaptive Histogram Equilisation) ###
 
@@ -407,7 +421,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred_gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=grid_size)
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=grid_size)
     cl1 = clahe.apply(blurred_gray)
 
     # convert to PIL format to apply laplacian sharpening
@@ -418,7 +432,7 @@ def apply_local_contrast(img, grid_size=(7, 7)):
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
-def createAlphaMask_threaded(threadName, q, edgeDetector, create_cutout):
+def createAlphaMask_threaded(threadName, q, edgeDetector):
     while not exitFlag_alpha:
         queueLock_alpha.acquire()
         if not workQueue_alpha.empty():
@@ -426,13 +440,21 @@ def createAlphaMask_threaded(threadName, q, edgeDetector, create_cutout):
             queueLock_alpha.release()
             print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
 
-            createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, cutout_check)
+            createAlphaMask(data, edgeDetector, threadName=threadName, params=args)
 
         else:
             queueLock_alpha.release()
 
 
-def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout=True):
+def createAlphaMask(data, edgeDetector, threadName=None, params = {
+    "create_cutout":True,
+    "full_resolution":False,
+    "mask_thresh_min": 80,
+    "mask_thresh_max": 100,
+    "min_artifact_size_black": 1000,
+    "min_artifact_size_white": 2000,
+    "CLAHE":1.0
+}):
     """
     create alpha mask for the image located in path
     :img_path: image location
@@ -441,18 +463,33 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     """
     src = cv2.imread(data, 1)
 
-    img_enhanced = apply_local_contrast(src)
+    if not params["full_resolution"]:
+        print("Using downscaled image for mask generation at 1500 px x 1500 px...")
+        orig_res = src.shape
+        kernel_gauss = (5, 5)
+        print("Original resolution:", orig_res)
+        src = cv2.resize(src, (1500, 1500), interpolation=cv2.INTER_AREA)
+    else:
+        print("Using full resolution input image for mask generation [potentially significantly slower]")
+        orig_res = src.shape
+        kernel_gauss = (5, 5)
+        print("Original resolution:", orig_res)
+
+    img_enhanced = apply_local_contrast(src, clip_limit=params["CLAHE"])
 
     # reduce noise in the image before detecting edges
-    blurred = cv2.GaussianBlur(img_enhanced, (5, 5), 0)
+    blurred = cv2.GaussianBlur(img_enhanced, kernel_gauss, 0)
 
     # turn image into float array
     blurred_float = blurred.astype(np.float32) / 255.0
     edges = edgeDetector.detectEdges(blurred_float) * 255.0
-
+    if threadName:
+        print("%s : Filtering out salt & pepper grain of %s" % (threadName, data.split("\\")[-1]))
     edges_8u = np.asarray(edges, np.uint8)
     filterOutSaltPepperNoise(edges_8u)
 
+    if threadName:
+        print("%s : Extracting largest coherent contour of %s" % (threadName, data.split("\\")[-1]))
     contour = findSignificantContour(edges_8u)
     # Draw the contour on the original image
     contourImg = np.copy(src)
@@ -478,6 +515,8 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     trimap_print[trimap_print == cv2.GC_FGD] = 255
     # cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
 
+    if threadName:
+        print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
     # run grabcut
     bgdModel = np.zeros((1, 65), np.float64)
     fgdModel = np.zeros((1, 65), np.float64)
@@ -538,6 +577,8 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
     # upper_gray = np.array([215, 215, 215])
     # front light only
+    min_rgb = float(params["mask_thresh_min"])
+    max_rgb = float(params["mask_thresh_max"])
     lower_gray = np.array([min_rgb, min_rgb, min_rgb])  # [R value, G value, B value]
     upper_gray = np.array([max_rgb, max_rgb, max_rgb])
 
@@ -556,7 +597,7 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     # remove black artifacts
     blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-    image_cleaned = remove_holes(blobs_labels, min_num_pixel=min_bl)
+    image_cleaned = remove_holes(blobs_labels, min_num_pixel=params["min_artifact_size_black"])
 
     image_cleaned_inv = 1 - image_cleaned
 
@@ -565,11 +606,17 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
     # remove white artifacts
     blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
-    image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=min_wh)
+    image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=params["min_artifact_size_white"])
+
+    if not params["full_resolution"]:
+        # up-scaling masks to original resolution
+        image_cleaned_white = cv2.resize(image_cleaned_white,
+                                            (orig_res[1], orig_res[0]),
+                                            interpolation=cv2.INTER_AREA)
 
     cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
-    if create_cutout:
+    if params["create_cutout"]:
         image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
         cutout = cv2.imread(data)
         # create the image with an alpha channel
@@ -593,13 +640,21 @@ def createAlphaMask(data, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create
 
 
 
-def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout=False):
+def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout):
     # load pre-trained edge detector model
     edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
     print("loaded edge detector...")
 
+    params = {"create_cutout": create_cutout,
+              "mask_thresh_min": min_rgb,
+              "mask_thresh_max": max_rgb,
+              "min_artifact_size_black": min_bl,
+              "min_artifact_size_white": min_wh,
+              "full_resolution":False,
+              "CLAHE": 1.0}
+
     for img in input_paths:
-        createAlphaMask(img, edgeDetector, min_rgb, max_rgb, min_bl, min_wh, create_cutout)
+        createAlphaMask(img, edgeDetector, params=params)
 
 if __name__ == "__main__":
 
@@ -620,14 +675,23 @@ if __name__ == "__main__":
                     help="check whether out-of-focus images should be discarded before stacking [True / False] (False by default)")
     ap.add_argument("-t", "--threshold", type=float,
                     help="focus measures that fall below this value will be considered 'blurry'")
-    ap.add_argument("-sh","--sharpen", default=False, help="help=apply sharpening to final result [True / False]")
-    ap.add_argument("-c", "--cutout", default=False, 
+    ap.add_argument("-sh","--sharpen", default=False, help="help=apply sharpening to final result [True / False] (False by default)")
+    ap.add_argument("-c", "--create_cutout", default=False, 
                     help="create aditional cutout image that uses generated mask")
     ap.add_argument("-min", "--mask_thresh_min", type=float,
                     help="minimum RGB value of background for exclusion")
     ap.add_argument("-max", "--mask_thresh_max", type=float,
                     help="maximum RGB value of background for exclusion")
     ap.add_argument("-meta", "--addmetadata", default=True, help="add camera metadata to images in stacked folder [True/ Fasle]")
+    ap.add_argument("-fr", "--full_resolution", type=bool, default=False,
+                    help="enable to run masking on the full resolution image. By default all images are downscaled " +
+                         "to 1024 x 1024 and the generated masks are up-scaled to the original image resolution.")
+    ap.add_argument("-cl", "--CLAHE", type=float, default=1.0,
+                    help="set the clip-limit for Contrast Limited Adaptive Histogram Equilisation")
+    ap.add_argument("-nc", "--nocrop", type=bool, default=False, help="save full image, including extapolated border data (False by default)")
+    ap.add_argument("-ex", "--use_experimental_stacking", type=bool, default=True, help="Use new stacking method")
+    ap.add_argument("-fr_align", "--full_resolution_align", type=bool, default=False, help="Use full resolution images in alignment (default max 2048 px)")
+    ap.add_argument("-jpg", "--jpgquality", help="Quality for saving in JPG format (0-100, default 95)")
 
     args = vars(ap.parse_args())
     project_dir = Path(args["path"])
@@ -671,31 +735,31 @@ if __name__ == "__main__":
             metadata_check = False
         else:
             metadata_check = True
-        if str(args["cutout"]).lower() == "true" or args["cutout"]:
-            cutout_check=True
-        else:
-            cutout_check=False
-        if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
-            sharpen = True
-        elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
-            sharpen = False
-        else:
-            sharpen = config["stacking"]["additional_sharpening"]
+        # if str(args["create_cutout"]).lower() == "true" or args["create_cutout"]:
+        #     cutout_check=True
+        # else:
+        #     cutout_check=False
+        # if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
+        #     sharpen = True
+        # elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
+        #     sharpen = False
+        # else:
+        #     sharpen = config["stacking"]["additional_sharpening"]
 
         # stack_method = config["stacking"]["stacking_method"]
         exif = config["exif_data"]
         
         if args["mask_thresh_min"]:
-            min_rgb = args["mask_thresh_min"]
+            pass
         else:
-            min_rgb = config["masking"]["mask_thresh_min"]
-        if args["mask_thresh_min"]:
-            max_rgb = args["mask_thresh_max"]
+            args["mask_thresh_min"] = config["masking"]["mask_thresh_min"]
+        if args["mask_thresh_max"]:
+            pass
         else:
-            max_rgb = config["masking"]["mask_thresh_max"]
+            args["mask_thresh_max"] = config["masking"]["mask_thresh_max"]
 
-        min_bl = config["masking"]["min_artifact_size_black"]
-        min_wh = config["masking"]["min_artifact_size_white"]
+        args["min_artifact_size_black"] = config["masking"]["min_artifact_size_black"]
+        args["min_artifact_size_white"] = config["masking"]["min_artifact_size_white"]
 
         if stack_check:
 
@@ -897,7 +961,7 @@ if __name__ == "__main__":
             # setup half as many threads as there are (virtual) CPUs
             exitFlag_alpha = 0
             num_virtual_cores = getThreads()
-            threadList = createThreadList(int(num_virtual_cores / 4))
+            threadList_alpha = createThreadList(int(num_virtual_cores/4))
             print("Found", num_virtual_cores, "(virtual) cores...")
             queueLock_alpha = threading.Lock()
 
@@ -906,7 +970,7 @@ if __name__ == "__main__":
             # Create new threads
             threads = []
             threadID = 1
-            for tName in threadList:
+            for tName in threadList_alpha:
                 thread = AlphaExtractionThread(threadID, tName, workQueue_alpha)
                 thread.start()
                 threads.append(thread)
@@ -928,7 +992,8 @@ if __name__ == "__main__":
             # Wait for all threads to complete
             for t in threads:
                 t.join()
-            print("All images processed!\nExiting Main Thread")
+
+            print("Masking Done")
 
         if metadata_check:
 
@@ -939,7 +1004,8 @@ if __name__ == "__main__":
 
                     cv2.imwrite(str(stacked_dir.joinpath(img)), img_tif)
                     write_exif_to_img(img_path=str(stacked_dir.joinpath(img)), custom_exif_dict=exif)
-            exit()
+        print("All images processed!\nExiting Main Thread")
+        exit()
         
 
                         

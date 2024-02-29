@@ -324,7 +324,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
                 self.scanner.scan_pos[2])
 
-        self.images_taken = 0
         self.progress = 0
 
         self.ui.pushButton_startScan.pressed.connect(self.runScanAndReport)
@@ -436,31 +435,25 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.homed_X = False
         self.homed_Z = False
 
-    def homeX_threaded(self, progress_callback):
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.scanner.home(0)
-        self.log_info("Homed X Axis")
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
-        self.scanner.getStepperPosition(0)
-        self.ui.lcdNumber_xAxis.display(self.scanner.stepper_position[0])
-        self.ui.horizontalSlider_xAxis.setValue(self.scanner.stepper_position[0])
-        self.homed_X = True
-        self.posX = 0
-
-    def homeZ_threaded(self, progress_callback):
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
-        self.scanner.home(2)
-        self.log_info("Homed Z Axis")
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
-        self.scanner.getStepperPosition(2)
-        self.ui.lcdNumber_zAxis.display(self.scanner.stepper_position[2])
-        self.ui.horizontalSlider_zAxis.setValue(self.scanner.stepper_position[2])
-        self.homed_Z = True
-        self.posZ = 0
-
     def homeX(self):
+        self.ui.horizontalSlider_xAxis.setEnabled(False)
+        self.ui.pushButton_xHome.setEnabled(False)
         worker = Worker(self.homeX_threaded)
         self.threadpool.start(worker)
+        worker.signals.finished.connect(self.homeX_finished)
+
+    def homeX_threaded(self, progress_callback):
+        self.scanner.home(0)
+        self.scanner.getStepperPosition(0)
+
+    def homeX_finished(self):
+        self.log_info("Homed X Axis")
+        self.ui.horizontalSlider_xAxis.setEnabled(True)
+        self.ui.pushButton_xHome.setEnabled(True)
+        self.ui.lcdNumber_xAxis.display(0)
+        self.ui.horizontalSlider_xAxis.setValue(0)
+        self.homed_X = True
+        self.posX = 0
 
     def resetY(self):
         self.ui.horizontalSlider_yAxis.setValue(0)
@@ -469,53 +462,78 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Reset Y Axis")
 
     def homeZ(self):
+        self.ui.horizontalSlider_zAxis.setEnabled(False)
+        self.ui.pushButton_zHome.setEnabled(False)
         worker = Worker(self.homeZ_threaded)
         self.threadpool.start(worker)
+        worker.signals.finished.connect(self.homeZ_finished)
 
-    def moveStepperX_threaded(self, progress_callback):
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.pushButton_xHome.setEnabled(False)
-        pos = self.ui.horizontalSlider_xAxis.value()
-        self.scanner.moveToPosition(stepper=0, pos=pos)
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
-        self.ui.pushButton_xHome.setEnabled(True)
-        self.posX = pos
-        self.xMoving = False
+    def homeZ_threaded(self, progress_callback):
+        self.scanner.home(2)
+        self.scanner.getStepperPosition(2)   
+ 
+    def homeZ_finished(self):
+        self.log_info("Homed Z Axis")
+        self.ui.horizontalSlider_zAxis.setEnabled(True)
+        self.ui.pushButton_zHome.setEnabled(True)
+        self.ui.lcdNumber_zAxis.display(0)
+        self.ui.horizontalSlider_zAxis.setValue(0)
+        self.homed_Z = True
+        self.posZ = 0
 
     def moveStepperX(self):
         self.xMoving = True
+        self.ui.horizontalSlider_xAxis.setEnabled(False)
+        self.ui.pushButton_xHome.setEnabled(False)
         worker = Worker(self.moveStepperX_threaded)
         self.threadpool.start(worker)
-
-    def moveStepperY_threaded(self, progress_callback):
-        self.ui.pushButton_yReset.setEnabled(False)
-        self.ui.horizontalSlider_yAxis.setEnabled(False)
-        pos = self.ui.horizontalSlider_yAxis.value()
-        self.scanner.moveToPosition(stepper=1, pos=pos)
-        self.ui.horizontalSlider_yAxis.setEnabled(True)
-        self.ui.pushButton_yReset.setEnabled(True)
-        self.posY = pos
-        self.yMoving = False
+        worker.signals.finished.connect(self.moveStepperX_finished)    
+    
+    def moveStepperX_threaded(self, progress_callback):
+        pos = self.ui.horizontalSlider_xAxis.value()
+        self.scanner.moveToPosition(stepper=0, pos=pos)
+        self.posX = pos
+    
+    def moveStepperX_finished(self):
+        self.ui.horizontalSlider_xAxis.setEnabled(True)
+        self.ui.pushButton_xHome.setEnabled(True)
+        self.xMoving = False
 
     def moveStepperY(self):
         self.yMoving = True
+        self.ui.pushButton_yReset.setEnabled(False)
+        self.ui.horizontalSlider_yAxis.setEnabled(False)
         worker = Worker(self.moveStepperY_threaded)
         self.threadpool.start(worker)
+        worker.signals.finished.connect(self.moveStepperY_finished)
 
-    def moveStepperZ_threaded(self, progress_callback):
-        self.ui.pushButton_zHome.setEnabled(False)
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
-        pos = self.ui.horizontalSlider_zAxis.value()
-        self.scanner.moveToPosition(stepper=2, pos=pos)
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
-        self.ui.pushButton_zHome.setEnabled(True)
-        self.posZ = pos
-        self.zMoving = False
+    def moveStepperY_threaded(self, progress_callback):
+        pos = self.ui.horizontalSlider_yAxis.value()
+        self.scanner.moveToPosition(stepper=1, pos=pos)
+        self.posY = pos
 
+    def moveStepperY_finished(self):
+        self.ui.horizontalSlider_yAxis.setEnabled(True)
+        self.ui.pushButton_yReset.setEnabled(True)
+        self.yMoving = False
+    
     def moveStepperZ(self):
         self.zMoving = True
+        self.ui.pushButton_zHome.setEnabled(False)
+        self.ui.horizontalSlider_zAxis.setEnabled(False)
         worker = Worker(self.moveStepperZ_threaded)
         self.threadpool.start(worker)
+        worker.signals.finished.connect(self.moveStepperZ_finished)
+    
+    def moveStepperZ_threaded(self, progress_callback):
+        pos = self.ui.horizontalSlider_zAxis.value()
+        self.scanner.moveToPosition(stepper=2, pos=pos)
+        self.posZ = pos
+    
+    def moveStepperZ_finished(self):
+        self.ui.horizontalSlider_zAxis.setEnabled(True)
+        self.ui.pushButton_zHome.setEnabled(True)
+        self.zMoving = False
 
     """
     Camera Settings
@@ -832,7 +850,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def set_project_title(self):
         name = self.ui.lineEdit_projectName.text()
-        self.setWindowTitle("scAnt V 1.2  :  " + name)
+        self.setWindowTitle("scAnt:  " + name)
 
     def set_output_location(self):
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
@@ -921,107 +939,107 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             config = ymlRW.read_config_file(config_location)
 
             # check if the camera type in the config file matches the connected/selected camera type
-            if config["general"]["camera_type"] != self.camera_type:
+
+            if config["general"]["camera_type"] == self.camera_type:
+                
+                # camera_settings:
+                if config["general"]["camera_type"] == "FLIR":
+                    # FLIR
+                    self.ui.doubleSpinBox_exposureTime.setValue(config["camera_settings"]["exposure_time"])
+                    if config["camera_settings"]["exposure_auto"]:
+                        self.ui.checkBox_exposureAuto.setChecked(True)
+                    else:
+                        self.set_exposure_manual()
+
+                    self.ui.doubleSpinBox_gainLevel.setValue(config["camera_settings"]["gain_level"])
+                    if config["camera_settings"]["gain_auto"]:
+                        self.ui.checkBox_gainAuto.setChecked(True)
+                    else:
+                        self.ui.checkBox_gainAuto.setChecked(False)
+
+                    self.ui.doubleSpinBox_gamma.setValue(config["camera_settings"]["gamma"])
+                    self.set_gamma()
+
+                    self.ui.doubleSpinBox_balanceRatioRed.setValue(config["camera_settings"]["balance_ratio_red"])
+                    self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
+                    self.set_balance_ratio()
+
+                    # self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
+                    # self.set_black_level()
+                else:
+                    # DSLR
+                    self.ui.comboBox_shutterSpeed.setCurrentIndex(
+                        self.ui.comboBox_shutterSpeed.findText(str(config["camera_settings"]["shutterspeed"])))
+                    self.ui.comboBox_aperture.setCurrentIndex(
+                        self.ui.comboBox_aperture.findText(str(config["camera_settings"]["aperture"])))
+                    self.ui.comboBox_iso.setCurrentIndex(
+                        self.ui.comboBox_iso.findText(str(config["camera_settings"]["iso"])))
+                    self.ui.comboBox_whiteBalance.setCurrentIndex(
+                        self.ui.comboBox_whiteBalance.findText(str(config["camera_settings"]["whitebalance"])))
+                    self.ui.comboBox_compression.setCurrentIndex(
+                        self.ui.comboBox_compression.findText(str(config["camera_settings"]["compression"])))
+
+                if self.scanner_initialised:
+
+                    # scanner_settings
+                    self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
+                    self.ui.doubleSpinBox_yMin.setValue(config["scanner_settings"]["y_min"])
+                    self.ui.doubleSpinBox_zMin.setValue(config["scanner_settings"]["z_min"])
+
+                    self.ui.doubleSpinBox_xMax.setValue(config["scanner_settings"]["x_max"])
+                    self.ui.doubleSpinBox_yMax.setValue(config["scanner_settings"]["y_max"])
+                    self.ui.doubleSpinBox_zMax.setValue(config["scanner_settings"]["z_max"])
+
+                    self.ui.doubleSpinBox_xStep.setValue(config["scanner_settings"]["x_step"])
+                    self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
+                    self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
+
+                    self.setScannerRange()
+                else:
+                    self.log_warning("Stepper controllers are not connected!")
+
+                # stacking
+                self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
+                
+                try:
+                    self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
+                except:
+                    print("No \"threshold_images\" check found")
+                
+                self.stackFocusThreshold = config["stacking"]["threshold"]
+                self.ui.doubleSpinBox_threshold.setValue(self.stackFocusThreshold)
+
+                self.stackDisplayFocus = config["stacking"]["display_focus_check"]
+                self.stackSharpen = config["stacking"]["additional_sharpening"]
+
+                # masking
+                self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
+                self.maskThreshMin = config["masking"]["mask_thresh_min"]
+                self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
+                self.maskThreshMax = config["masking"]["mask_thresh_max"]
+                self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
+                self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
+                self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
+
+                # meta data (exif)
+                self.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
+                self.ui.comboBox_model.setCurrentText(config["exif_data"]["Model"])
+                self.ui.lineEdit_serialNumber.setText(config["exif_data"]["SerialNumber"])
+                self.ui.lineEdit_lens.setText(config["exif_data"]["Lens"])
+                self.ui.lineEdit_lensManufacturer.setText(config["exif_data"]["LensManufacturer"])
+                self.ui.lineEdit_lensModel.setText(config["exif_data"]["LensModel"])
+                self.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
+                self.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
+                self.exif = config["exif_data"]
+                
+                self.loadedConfig = True
+                self.log_info("Loaded config-file successfully!")
+
+                print(config)
+            else:
                 self.log_warning("The selected config file was generated for a different camera type!")
                 QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
                                                "The selected config file was generated for a different camera type!")
-                return
-
-            # camera_settings:
-
-            if config["general"]["camera_type"] == "FLIR":
-                # FLIR
-                self.ui.doubleSpinBox_exposureTime.setValue(config["camera_settings"]["exposure_time"])
-                if config["camera_settings"]["exposure_auto"]:
-                    self.ui.checkBox_exposureAuto.setChecked(True)
-                else:
-                    self.set_exposure_manual()
-
-                self.ui.doubleSpinBox_gainLevel.setValue(config["camera_settings"]["gain_level"])
-                if config["camera_settings"]["gain_auto"]:
-                    self.ui.checkBox_gainAuto.setChecked(True)
-                else:
-                    self.ui.checkBox_gainAuto.setChecked(False)
-
-                self.ui.doubleSpinBox_gamma.setValue(config["camera_settings"]["gamma"])
-                self.set_gamma()
-
-                self.ui.doubleSpinBox_balanceRatioRed.setValue(config["camera_settings"]["balance_ratio_red"])
-                self.ui.doubleSpinBox_balanceRatioBlue.setValue(config["camera_settings"]["balance_ratio_blue"])
-                self.set_balance_ratio()
-
-                # self.ui.doubleSpinBox_blackLevel.setValue(config["camera_settings"]["black_level"])
-                # self.set_black_level()
-            else:
-                # DSLR
-                self.ui.comboBox_shutterSpeed.setCurrentIndex(
-                    self.ui.comboBox_shutterSpeed.findText(str(config["camera_settings"]["shutterspeed"])))
-                self.ui.comboBox_aperture.setCurrentIndex(
-                    self.ui.comboBox_aperture.findText(str(config["camera_settings"]["aperture"])))
-                self.ui.comboBox_iso.setCurrentIndex(
-                    self.ui.comboBox_iso.findText(str(config["camera_settings"]["iso"])))
-                self.ui.comboBox_whiteBalance.setCurrentIndex(
-                    self.ui.comboBox_whiteBalance.findText(str(config["camera_settings"]["whitebalance"])))
-                self.ui.comboBox_compression.setCurrentIndex(
-                    self.ui.comboBox_compression.findText(str(config["camera_settings"]["compression"])))
-
-            if self.scanner_initialised:
-
-                # scanner_settings
-                self.ui.doubleSpinBox_xMin.setValue(config["scanner_settings"]["x_min"])
-                self.ui.doubleSpinBox_yMin.setValue(config["scanner_settings"]["y_min"])
-                self.ui.doubleSpinBox_zMin.setValue(config["scanner_settings"]["z_min"])
-
-                self.ui.doubleSpinBox_xMax.setValue(config["scanner_settings"]["x_max"])
-                self.ui.doubleSpinBox_yMax.setValue(config["scanner_settings"]["y_max"])
-                self.ui.doubleSpinBox_zMax.setValue(config["scanner_settings"]["z_max"])
-
-                self.ui.doubleSpinBox_xStep.setValue(config["scanner_settings"]["x_step"])
-                self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
-                self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
-
-                self.setScannerRange()
-            else:
-                self.log_warning("Stepper controllers are not connected!")
-
-            # stacking
-            self.ui.checkBox_stackImages.setChecked(config["stacking"]["stack_images"])
-            
-            try:
-                self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
-            except:
-                print("No \"threshold_images\" check found")
-            
-            self.stackFocusThreshold = config["stacking"]["threshold"]
-            self.ui.doubleSpinBox_threshold.setValue(self.stackFocusThreshold)
-
-            self.stackDisplayFocus = config["stacking"]["display_focus_check"]
-            self.stackSharpen = config["stacking"]["additional_sharpening"]
-
-            # masking
-            self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
-            self.maskThreshMin = config["masking"]["mask_thresh_min"]
-            self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
-            self.maskThreshMax = config["masking"]["mask_thresh_max"]
-            self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
-            self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
-            self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
-
-            # meta data (exif)
-            self.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
-            self.ui.comboBox_model.setCurrentText(config["exif_data"]["Model"])
-            self.ui.lineEdit_serialNumber.setText(config["exif_data"]["SerialNumber"])
-            self.ui.lineEdit_lens.setText(config["exif_data"]["Lens"])
-            self.ui.lineEdit_lensManufacturer.setText(config["exif_data"]["LensManufacturer"])
-            self.ui.lineEdit_lensModel.setText(config["exif_data"]["LensModel"])
-            self.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
-            self.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
-            self.exif = config["exif_data"]
-            
-            self.loadedConfig = True
-            self.log_info("Loaded config-file successfully!")
-
-            print(config)
 
     def writeConfig(self):
 
@@ -1082,16 +1100,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def openProject(self):
         dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path.cwd()))
-        dir = Path(dir)
-        for file in os.listdir(dir):
+        if dir:
+            dir = Path(dir)
+            for file in os.listdir(dir):
 
-            if file.lower().endswith(".yaml"):
-                self.ui.lineEdit_projectName.setText(os.path.basename(dir))
-                self.configPath = str(dir.joinpath(file))
-                self.loadConfig()
-                self.output_location = str(dir.parent.absolute())
-                self.update_output_location()
-                self.configPath = ""
+                if file.lower().endswith(".yaml"):
+                    self.ui.lineEdit_projectName.setText(os.path.basename(dir))
+                    self.configPath = str(dir.joinpath(file))
+                    self.loadConfig()
+                    self.output_location = str(dir.parent.absolute())
+                    self.update_output_location()
+                    self.configPath = ""
+                    break
 
     def darkMode(self):
         self.setStyleSheet(Path(r"GUI\dark_blue\style.qss").read_text())
@@ -1333,6 +1353,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.create_output_folders()
             # save configuration file
             self.writeConfig()
+
+            raw_loc = self.output_location_folder.joinpath("RAW")
+            self.empty_at_start = (len(os.listdir(raw_loc)) == 0)
             # enable and show progress
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
@@ -1349,6 +1372,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
+
+                    self.log_info("Running Scan!")
 
                     # check for images in the saving & stacking Queue
                     print("Started background processing queue...")
@@ -1369,10 +1394,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def runScanAndReport_threaded(self, progress_callback):
         # number of images taken over the number of images to take
+        self.saved_imgs = 0
         self.images_taken = 0
         self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
             self.scanner.scan_pos[2])
-        self.log_info("Running Scan!")
         print(self.scanner.scan_pos)
         for posX in self.scanner.scan_pos[0]:
 
@@ -1405,7 +1430,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
                         # wait for the camera to capture the image before moving further
-                        time.sleep(0.5)
+                        time.sleep(0.1)
                         
                     if self.camera_type == "DSLR":
                         self.cam.capture_image(img_name)
@@ -1422,8 +1447,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     # TODO this is a temporary fix to ensure images are fully saved to the computer before stacking
                     time.sleep(2)
 
-                self.stackList.append(stackName)
 
+                self.stackList.append(stackName)
                 self.scanner.completedStacks += 1
             self.scanner.completedRotations += 1
         # return to default position
@@ -1433,6 +1458,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info("Stacking remaining images in queue...")
             self.postScanStacking = True
         self.images_taken = 0
+        self.saved_imgs = 0
         self.deEnergise()
         self.homeX()
         self.homeZ()
@@ -1462,6 +1488,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         try:
                             img[0].Save(img[1])
                             print('Image saved as %s' % img[1])
+                            self.saved_imgs +=1
                             # Release image
                         except Exception as error_save_FLIR_img:
                             print("Failed to save:", img[1])
@@ -1488,9 +1515,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def processStack(self, progress_callback):
         stack = self.stackList[0]
         del self.stackList[0]
+
+        if not self.postScanStacking + self.empty_at_start:
+            while self.saved_imgs != self.images_taken:
+                pass
+
         # stack images
         print("\nSTACKING: \n\n", stack)
         # using try / except to continue stacking with other images in case an error occurs
+
         try:
             stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
                                           sharpen=self.stackSharpen)
@@ -1498,7 +1531,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
             if self.maskImages:
-                time.sleep(0.2)
+                time.sleep(3)
                 mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
                             min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
 
