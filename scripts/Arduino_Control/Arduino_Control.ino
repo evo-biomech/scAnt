@@ -1,7 +1,6 @@
 #include <SpeedyStepper.h>
 #include <Bounce2.h>
 
-
 int fan = 10;
 String command_Y;
 Bounce debouncer = Bounce(); // prevents detecting held buttons
@@ -97,6 +96,7 @@ void setup() {
 }
 
 void loop() {
+
   // put your main code here, to run repeatedly:
   while (Serial.available())
   {
@@ -148,6 +148,37 @@ void loop() {
         
 
 
+          }
+          else if (strcmp(sPtr[0], "M1") == 0)
+          {
+            int m1 = atoi(sPtr[1]);
+            int m2 = atoi(sPtr[3]);
+            int m3 = atoi(sPtr[5]);
+
+            if (m1)
+            {
+              digitalWrite(M1_PIN, HIGH);
+            }
+            else
+            {
+              digitalWrite(M1_PIN, LOW);
+            }
+            if (m2)
+            {
+              digitalWrite(M2_PIN, HIGH);
+            }
+            else
+            {
+              digitalWrite(M2_PIN, LOW);
+            }
+            if (m3)
+            {
+              digitalWrite(M3_PIN, HIGH);
+            }
+            else
+            {
+              digitalWrite(M3_PIN, LOW);
+            }
           }
           else if (strcmp(sPtr[0], "HOME") == 0)
           {

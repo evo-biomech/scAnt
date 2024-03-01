@@ -12,22 +12,8 @@ class ScannerController:
         self.stepper_names = ["X", "Y", "Z"]
         self.scan_stepSize = [50, 80, 500]
 
-        self.stepper_home = ['rev', None, 'fwd']
-        self.stepper_stepModes = [8, 8, 8]
+        self.stepper_home = ['rev', None, 'rev']
 
-        self.stepper_maxPos = [450, 1600, 11000]
-        self.stepper_minPos = [0, -1600, 0]
-
-        self.stepper_position = [None, None, None]
-        self.scan_pos = [None, None, None]
-        self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
-        self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
-        self.setScanRange(stepper=2, min=0, max=11000, step=self.scan_stepSize[2])
-        
-        # keep track of position during scanning, skip to next full rotation of Y Axis
-        self.completedRotations = 0
-        self.completedStacks = 0
-        
         ports = serial.tools.list_ports.comports()
         com = None
         for port, desc, _ in ports:
@@ -40,6 +26,30 @@ class ScannerController:
         else:
             self.ser=None
         
+        print("arduino found on port:" + com)
+    
+        #Change Microstepping Resolution here
+        # 1 = Full Step
+        # 2 = Half Step
+        # 4 = Quater Step
+        # 8 = Eighth Step
+        # 16 = Sixteenth Step
+        self.stepper_stepMode = 8
+        self.setStepMode(self.stepper_stepMode)
+
+        self.stepper_maxPos = [450, 1600, 11000]
+        self.stepper_minPos = [0, -1600, 0]
+
+        self.stepper_position = [None, None, None]
+        self.scan_pos = [None, None, None]
+        self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
+        self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
+        self.setScanRange(stepper=2, min=0, max=11000, step=self.scan_stepSize[2])
+
+        
+        # keep track of position during scanning, skip to next full rotation of Y Axis
+        self.completedRotations = 0
+        self.completedStacks = 0
 
     def deEnergise(self):
         print("De-engergising Steppers")
@@ -51,8 +61,25 @@ class ScannerController:
         self.ser.write("ENERGISE\n".encode("utf-8"))
         self.ser.readline()
 
-    def setStepMode(self, stepper, step_mode):
-        pass
+    def setStepMode(self, step_mode):
+        if step_mode == 1:
+            ms_pins = [0, 0, 0]
+        elif step_mode == 2:
+            ms_pins = [1, 0, 0]
+        elif step_mode == 4:
+            ms_pins = [0, 1, 0]
+        elif step_mode == 8:
+            ms_pins = [1, 1, 0]
+        elif step_mode == 16:
+            ms_pins = [1, 1, 1]
+        else:
+            ms_pins = [1, 1, 0] #Eighth as default
+        
+        print("Setting up step resolution")
+        command = "M1 " + str(ms_pins[0]) + " M2 " + str(ms_pins[1]) + " M3 " + str(ms_pins[2])
+        self.ser.write(command.encode("utf-8"))
+        for _ in range(1):
+            print(self.ser.readline())
 
 
     def moveToPosition(self, stepper, pos):
