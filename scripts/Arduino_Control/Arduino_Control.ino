@@ -32,6 +32,7 @@ const int M3_PIN = 10;
 
 signed long pos;
 signed long offset_x = 0;
+signed long offset_y = 0;
 signed long offset_z = 0;
 
 signed long glob_x  = 0;
@@ -81,16 +82,10 @@ void setup() {
   debouncer.interval(0.2);
 
   stepper_X.connectToPins(X_STEP_PIN, X_DIR_PIN);
-  stepper_X.setSpeedInStepsPerSecond(80*8);
-  stepper_X.setAccelerationInStepsPerSecondPerSecond(10*8);
 
   stepper_Y.connectToPins(Y_STEP_PIN, Y_DIR_PIN);
-  stepper_Y.setSpeedInStepsPerSecond(100*8);
-  stepper_Y.setAccelerationInStepsPerSecondPerSecond(20*8);
 
   stepper_Z.connectToPins(Z_STEP_PIN, Z_DIR_PIN);
-  stepper_Z.setSpeedInStepsPerSecond(6000*8);
-  stepper_Z.setAccelerationInStepsPerSecondPerSecond(100*8);
 
   delay(500);
 }
@@ -149,37 +144,57 @@ void loop() {
 
 
           }
-          else if (strcmp(sPtr[0], "M1") == 0)
+          else if (strcmp(sPtr[0], "STEPMODE") == 0)
           {
-            int m1 = atoi(sPtr[1]);
-            int m2 = atoi(sPtr[3]);
-            int m3 = atoi(sPtr[5]);
+            int step_mode = atoi(sPtr[1]);
 
-            if (m1)
+            if (step_mode == 1):
             {
-              digitalWrite(M1_PIN, HIGH);
+              digitalWrite(M1_PIN, LOW)
+              digitalWrite(M2_PIN, LOW)
+              digitalWrite(M3_PIN, LOW)
             }
-            else
+            else if (step_mode == 2)
             {
-              digitalWrite(M1_PIN, LOW);
+              digitalWrite(M1_PIN, HIGH)
+              digitalWrite(M2_PIN, LOW)
+              digitalWrite(M3_PIN, LOW)
             }
-            if (m2)
+            else if (step_mode == 4)
             {
-              digitalWrite(M2_PIN, HIGH);
+              digitalWrite(M1_PIN, LOW)
+              digitalWrite(M2_PIN, HIGH)
+              digitalWrite(M3_PIN, LOW)
             }
-            else
+            else if (step_mode == 8)
             {
-              digitalWrite(M2_PIN, LOW);
+              digitalWrite(M1_PIN, HIGH)
+              digitalWrite(M2_PIN, HIGH)
+              digitalWrite(M3_PIN, LOW)
             }
-            if (m3)
+            else if (step_mode == 16)
             {
-              digitalWrite(M3_PIN, HIGH);
+              digitalWrite(M1_PIN, HIGH)
+              digitalWrite(M2_PIN, HIGH)
+              digitalWrite(M3_PIN, HIGH)
             }
-            else
+            else 
             {
-              digitalWrite(M3_PIN, LOW);
+              digitalWrite(M1_PIN, HIGH)
+              digitalWrite(M2_PIN, HIGH)
+              digitalWrite(M3_PIN, LOW)
             }
+
+            stepper_X.setSpeedInStepsPerSecond(80*step_mode);
+            stepper_X.setAccelerationInStepsPerSecondPerSecond(10*step_mode);
+          
+            stepper_Y.setSpeedInStepsPerSecond(100*step_mode);
+            stepper_Y.setAccelerationInStepsPerSecondPerSecond(20*step_mode);
+
+            stepper_Z.setSpeedInStepsPerSecond(6000*step_mode);
+            stepper_Z.setAccelerationInStepsPerSecondPerSecond(100*step_mode);
           }
+          
           else if (strcmp(sPtr[0], "HOME") == 0)
           {
 
@@ -235,6 +250,12 @@ void loop() {
             }
 
           }
+          else if (strcmp(sPrt[0], "RESET_Y") == 0)
+          {
+            offset_y = glob_y;
+            glob_y = 0;
+          }
+
           else if (strcmp(sPtr [0], "MOVE") == 0)
           {
             pos = strtoul(sPtr[2], NULL, 0);
@@ -250,7 +271,7 @@ void loop() {
             }
             else if(strcmp(sPtr[1], "Y") == 0)
             {
-              stepper_Y.setupMoveInSteps(pos);
+              stepper_Y.setupMoveInSteps(offset_y + pos);
               while(!(stepper_Y.motionComplete()))
               {
                 stepper_Y.processMovement(); // this call moves the motor

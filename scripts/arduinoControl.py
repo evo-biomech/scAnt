@@ -22,7 +22,7 @@ class ScannerController:
 
         if com:
             self.ser = serial.Serial(com, baudrate=9600, timeout=None)
-            time.sleep(1)
+            time.sleep(2)
         else:
             self.ser=None
         
@@ -40,7 +40,7 @@ class ScannerController:
         self.stepper_maxPos = [450, 1600, 11000]
         self.stepper_minPos = [0, -1600, 0]
 
-        self.stepper_position = [None, None, None]
+        # self.stepper_position = [None, None, None]
         self.scan_pos = [None, None, None]
         self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
         self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
@@ -53,51 +53,69 @@ class ScannerController:
 
     def deEnergise(self):
         print("De-engergising Steppers")
-        self.ser.write("DEENERGISE\n".encode("utf-8"))
+        self.ser.write("DEENERGISE     \n".encode("utf-8"))
         self.ser.readline()
 
     def resume(self):
         print("Energising Steppers")
-        self.ser.write("ENERGISE\n".encode("utf-8"))
+        self.ser.write("ENERGISE       \n".encode("utf-8"))
         self.ser.readline()
 
     def setStepMode(self, step_mode):
-        if step_mode == 1:
-            ms_pins = [0, 0, 0]
-        elif step_mode == 2:
-            ms_pins = [1, 0, 0]
-        elif step_mode == 4:
-            ms_pins = [0, 1, 0]
-        elif step_mode == 8:
-            ms_pins = [1, 1, 0]
-        elif step_mode == 16:
-            ms_pins = [1, 1, 1]
-        else:
-            ms_pins = [1, 1, 0] #Eighth as default
+        # if step_mode == 1:
+        #     ms_pins = [0, 0, 0]
+        # elif step_mode == 2:
+        #     ms_pins = [1, 0, 0]
+        # elif step_mode == 4:
+        #     ms_pins = [0, 1, 0]
+        # elif step_mode == 8:
+        #     ms_pins = [1, 1, 0]
+        # elif step_mode == 16:
+        #     ms_pins = [1, 1, 1]
+        # else:
+        #     ms_pins = [1, 1, 0] #Eighth as default
         
         print("Setting up step resolution")
-        command = "M1 " + str(ms_pins[0]) + " M2 " + str(ms_pins[1]) + " M3 " + str(ms_pins[2])
+        command = "STEPMODE " + str(step_mode) + "     \n"
         self.ser.write(command.encode("utf-8"))
-        for _ in range(1):
-            print(self.ser.readline())
+        print(self.ser.readline())
 
+    # def getStepperPosition(self, stepper):
+    #     if stepper == 0:
+    #         command = "GETPOS X\n"
+    #     elif stepper == 1:
+    #         command = "GETPOS Y\n"
+    #     elif stepper == 2:
+    #         command = "GETPOS Z\n"
+        
+    #     self.ser.write(command.encode("utf-8"))
+    #     print(self.ser.readline())
+    #     current_position = int(self.ser.readline())
 
     def moveToPosition(self, stepper, pos):
 
         pos = str(pos)
-        command = "MOVE " + str(self.stepper_names[stepper]) + " " + pos + " \n"
+        num_space = 8 - len(pos)
+        spaces = ""
+        for _ in range(num_space):
+            spaces+=" "
+        command = "MOVE " + str(self.stepper_names[stepper]) + " " + pos + spaces + "\n"
         self.ser.write(command.encode("utf-8"))
-        self.ser.readline()
+        print(self.ser.readline())
         print("Moving stepper", self.stepper_names[stepper], "to position", pos)
-        self.stepper_position[stepper] = int(pos)
     
     def home(self, stepper):
         if self.stepper_home[stepper] is not None:  
             print("Homing", str(self.stepper_names[stepper]))
-            command = "HOME " + str(self.stepper_names[stepper]) + "\n"
+            command = "HOME " + str(self.stepper_names[stepper]) + "         \n"
             self.ser.write(command.encode("utf-8"))
             for _ in range(2):
-                self.ser.readline()
+                print(self.ser.readline())
+        else:
+            print("Resetting Y axis")
+            command = "RESET_Y        \n"
+            self.ser.write(command.encode("utf-8"))
+            print(self.ser.readline())
 
     def setScanRange(self, stepper, min, max, step):
         # set min and max poses according to input (within range)
@@ -171,14 +189,14 @@ if __name__ == "__main__":
     #     scAnt.home(stepper)
 
     # Movement test of steppers
-    scAnt.moveToPosition(stepper=0, pos=400)
     scAnt.moveToPosition(stepper=0, pos=800)
-    scAnt.moveToPosition(stepper=0, pos=400)
+    scAnt.moveToPosition(stepper=0, pos=1600)
+    scAnt.moveToPosition(stepper=0, pos=800)
     scAnt.moveToPosition(stepper=0, pos=0)
     
-    scAnt.moveToPosition(stepper=1, pos=400)
     scAnt.moveToPosition(stepper=1, pos=800)
-    scAnt.moveToPosition(stepper=1, pos=400)
+    scAnt.moveToPosition(stepper=1, pos=1600)
+    scAnt.moveToPosition(stepper=1, pos=800)
     scAnt.moveToPosition(stepper=1, pos=0)
 
     scAnt.moveToPosition(stepper=2, pos=800)

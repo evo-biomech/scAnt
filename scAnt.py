@@ -295,7 +295,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         if self.scanner_initialised:
             # disable stepper control before they have been homed (except for y axis)
-            self.deEnergise()
+            # self.deEnergise()
             self.homed_X = False
             self.homed_Z = False
             self.ui.horizontalSlider_xAxis.setEnabled(False)
@@ -444,7 +444,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def homeX_threaded(self, progress_callback):
         self.scanner.home(0)
-        self.scanner.getStepperPosition(0)
+        # self.scanner.getStepperPosition(0)
 
     def homeX_finished(self):
         self.log_info("Homed X Axis")
@@ -470,7 +470,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def homeZ_threaded(self, progress_callback):
         self.scanner.home(2)
-        self.scanner.getStepperPosition(2)   
+        # self.scanner.getStepperPosition(2)   
  
     def homeZ_finished(self):
         self.log_info("Homed Z Axis")
