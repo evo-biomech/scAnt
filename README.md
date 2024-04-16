@@ -13,8 +13,12 @@ All structural components of the scanner can be manufactured using 3D-printing a
 ![](images/scanner_3D_comp.png)
 
 ## Updates
-- **scAnt 1.3** New faster [stacking method](https://github.com/PetteriAimonen/focus-stack) and updated GUI with added post-processing functionality. We alse combined post-processing steps into one file accessed through GUI and command line.
+- **scAnt 1.3** New faster [stacking method](https://github.com/PetteriAimonen/focus-stack) and updated GUI with added post-processing functionality. We also combined post-processing steps into one file accessed through GUI and command line.
 - **scAnt 1.2** Significantly improved image capture speed for FLIR cameras. As this increases the hardware demand during scanning, it may be advisable to run stacking and masking separately (see [provided python cli scripts](https://github.com/evo-biomech/scAnt/tree/master/scripts)), instead of during scanning. We also updated the respective stacking, masking, and meta data scripts to accomodate a wider range of applications.
+
+> [!TIP]
+When using [Max Simon's]([simonmax@oregonstate.edu](mailto:simonmax@oregonstate.edu)) wonderful [scAnt reconstruction protocol](https://docs.google.com/document/d/1OiYXgazRmuOaInz6f8jFZRLZI9l8wS4ZWVEVKSMpMTQ/edit), use [THIS v1.2](https://github.com/evo-biomech/scAnt/releases/tag/V_1.2.0) release instead!
+
 - **scAnt 1.1** Now supports the use of **DSLR** cameras on **Windows 10**, in combination with [DigiCamControl](http://digicamcontrol.com/). Please refer to the [official documentation](http://digicamcontrol.com/cameras) to check whether your camera model is currently supported. **Ubuntu** support will be added soon. An updated version of the scanner construction files will be made available on our [Thingiverse](https://www.thingiverse.com/thing:4694713) page.  
 
 
