@@ -498,7 +498,7 @@ QSlider::handle:vertical {
     border-radius: 2px;
 }
 
-QAbstractSpinBox {
+QSpinBox {
     padding-top: 2px;
     padding-bottom: 2px;
     border: 1px solid darkgray;

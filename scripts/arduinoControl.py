@@ -1,5 +1,3 @@
-import serial
-import serial.tools.list_ports
 import time
 import numpy as np
 import os
@@ -14,11 +12,16 @@ class ScannerController:
 
         self.stepper_home = ['rev', None, 'rev']
 
-        ports = serial.tools.list_ports.comports()
         com = None
-        for port, desc, _ in ports:
-            if "USB-SERIAL CH340"  in desc:
-                com = port
+        try:
+            import serial
+            import serial.tools.list_ports
+            ports = serial.tools.list_ports.comports()
+            for port, desc, _ in ports:
+                if "USB-SERIAL CH340"  in desc:
+                    com = port
+        except:
+            print("no serialll")
 
         if com:
             self.ser = serial.Serial(com, baudrate=9600, timeout=None)

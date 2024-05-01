@@ -9,9 +9,11 @@ from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
+from GUI.scAnt_projectSettings_dlg import Ui_Dialog
+from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
 
 import scripts.project_manager as ymlRW
-from scripts.arduinoControl import ScannerController
+from scripts.Scanner_Controller import ScannerController
 from processStack import getThreads, stack_images, mask_images
 from scripts.write_meta_data import write_exif_to_img, get_default_values
 
@@ -99,7 +101,19 @@ class Worker(QtCore.QRunnable):
         finally:
             self.signals.finished.emit()  # Done
 
+class Dialog(QtWidgets.QDialog):
+    def __init__(self):
+        super(Dialog, self).__init__()
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
 
+class CameraDialog(QtWidgets.QDialog):
+    def __init__(self):
+        super(CameraDialog, self).__init__()
+        self.ui = Ui_CameraDialog()
+        self.ui.setupUi(self)
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
 class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -115,15 +129,21 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.setupUi(self)
 
+        #Initialise Project Settings Dialog window
+        self.dialog = Dialog()
+        self.camera_dialog = CameraDialog()
+
+        self.configPath = ""
+        self.name = "test_project"
         self.set_project_title()
 
+        self.cam = None
+
         self.ui.pushButton_startLiveView.pressed.connect(self.begin_live_view)
-        self.ui.pushButton_startLiveViewPost.pressed.connect(self.begin_live_view)
 
         self.ui.pushButton_captureImage.pressed.connect(self.capture_image)
-        self.ui.pushButton_captureImagePost.pressed.connect(self.capture_image)
 
-        self.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
+        self.dialog.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
         self.configPath = ""
 
@@ -133,7 +153,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         with open(self.path_to_external.joinpath("cameraMakes.txt"), "r") as f:
             self.makes = [make[:-1] for make in f.readlines()]
 
-        self.ui.comboBox_make.addItems(self.makes)
+        self.camera_dialog.ui.comboBox_make.addItems(self.makes)
 
         # start thread pool
         self.threadpool = QtCore.QThreadPool()
@@ -274,11 +294,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         #Camera Info
 
-        self.ui.comboBox_make.currentIndexChanged.connect(self.change_make)
+        self.camera_dialog.ui.comboBox_make.currentIndexChanged.connect(self.change_make)
 
-        self.ui.comboBox_model.currentIndexChanged.connect(self.change_model)
+        self.camera_dialog.ui.comboBox_model.currentIndexChanged.connect(self.change_model)
 
-        self.ui.lineEdit_focalLength.editingFinished.connect(self.update_focal_length)
+        self.camera_dialog.ui.lineEdit_focalLength.editingFinished.connect(self.update_focal_length)
+
+        self.ui.pushButton_openCameraInfo.pressed.connect(self.open_camera_settings)
 
         # Update make and model in camera and lens info if cam found
 
@@ -290,8 +312,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     if data[0] == "FLIR":
                         data[1] = data[1][:-2]
                     if data[1].lower().strip() in self.camera_model.lower().strip():
-                        self.ui.comboBox_make.setCurrentText(data[0])
-                        self.ui.comboBox_model.setCurrentText(model)
+                        self.camera_dialog.ui.comboBox_make.setCurrentText(data[0])
+                        self.camera_dialog.ui.comboBox_model.setCurrentText(model)
 
         if self.scanner_initialised:
             # disable stepper control before they have been homed (except for y axis)
@@ -326,7 +348,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.progress = 0
 
-        self.ui.pushButton_startScan.pressed.connect(self.runScanAndReport)
+        self.ui.action_runScan.triggered.connect(self.runScanAndReport)
 
         self.xMoving = False
         self.yMoving = False
@@ -342,13 +364,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.showExposure = False
 
         # Scanner output setup
+        self.dialog.ui.checkBox_includePresets.stateChanged.connect(self.enableConfigEntry)
         self.output_location = str(Path.cwd())
         self.update_output_location()
-        self.ui.pushButton_browseOutput.pressed.connect(self.set_output_location)
+        self.dialog.ui.pushButton_browseOutput.pressed.connect(self.setOutputLocation)
+        self.dialog.ui.pushButton_chooseConfig.pressed.connect(self.preloadConfig)
+        self.dialog.accepted.connect(self.confirmProjectSettings)
 
-        self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
+        self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
-        self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
+        self.ui.pushButton_processingOutput.pressed.connect(self.setPostLocation)
         self.post_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
 
         # processing
@@ -368,7 +393,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskArtifactSizeWhite = 2000
         self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
 
-        self.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
+        self.ui.pushButton_runPostProcessing.pressed.connect(self.runPostProcessing)
 
         # once the scan has been started check if new sets of images are available for stacking
         self.timerStack = QtCore.QTimer(self)
@@ -383,7 +408,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.action_save.triggered.connect(self.writeConfig)
 
-        self.ui.action_openProject.triggered.connect(self.openProject)
+        self.ui.action_newProject.triggered.connect(self.openDialog)
+
+        self.ui.action_openProject.triggered.connect(self.actionOpenProject)
 
         self.ui.action_darkMode.triggered.connect(self.darkMode)
 
@@ -588,32 +615,35 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     #Camera Info
 
+    def open_camera_settings(self):
+        self.camera_dialog.show()
+
     def change_make(self):
-        self.ui.comboBox_model.clear()
-        self.make = self.ui.comboBox_make.currentText()
+        self.camera_dialog.ui.comboBox_model.clear()
+        self.make = self.camera_dialog.ui.comboBox_make.currentText()
         if self.make in self.makes:
             with open(self.path_to_external.joinpath("cameraSensors.txt"), "r") as file:
                 for line in file:
                     if line.startswith(self.make):
-                        self.ui.comboBox_model.addItem(line.split(";")[1])
+                        self.camera_dialog.ui.comboBox_model.addItem(line.split(";")[1])
                     
     
     def change_model(self):
-        self.model = self.ui.comboBox_model.currentText()
+        self.model = self.camera_dialog.ui.comboBox_model.currentText()
         with open(self.path_to_external.joinpath("cameraSensors.txt"), "r") as file:
             for line in file:
                 data = line.split(";")
                 if data[1] == self.model:
                     self.sensor_width = data[2]
-        self.ui.lineEdit_sensorWidth.setText(self.sensor_width)
+        self.camera_dialog.ui.lineEdit_sensorWidth.setText(self.sensor_width)
         self.update_focal_length()
 
     def update_focal_length(self):
-        focal_length = self.ui.lineEdit_focalLength.text()
+        focal_length = self.camera_dialog.ui.lineEdit_focalLength.text()
         if focal_length and self.model:
             try:
                 standard_fl = floor(36 * float(focal_length) / float(self.sensor_width))
-                self.ui.lineEdit_focalLengthIn35mmFormat.setText(str(standard_fl))
+                self.camera_dialog.ui.lineEdit_focalLengthIn35mmFormat.setText(str(standard_fl))
             except Exception as error_sensorWidth:
                 print(error_sensorWidth)
 
@@ -700,23 +730,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                                          self.ui.label_liveView.height(),
                                                          QtCore.Qt.KeepAspectRatio)
                 
-                live_img_scaled_post = live_img_pixmap.scaled(self.ui.label_liveViewPost.width(),
-                                                         self.ui.label_liveViewPost.height(),
-                                                         QtCore.Qt.KeepAspectRatio)
                 # Set the pixmap onto the label
                 self.ui.label_liveView.setPixmap(live_img_scaled)
                 # Align the label to center
                 self.ui.label_liveView.setAlignment(QtCore.Qt.AlignCenter)
 
-                # Set the post processing pixmap onto the post processing tab label
-                self.ui.label_liveViewPost.setPixmap(live_img_scaled_post)
-  
-                self.ui.label_liveViewPost.setAlignment(QtCore.Qt.AlignCenter)
-
             except AttributeError:
                 print("Live view ended")
         self.ui.label_liveView.setText("Live view disabled.")
-        self.ui.label_liveViewPost.setText("Live view disabled.")
 
     # DSLR settings
 
@@ -779,29 +800,27 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
 
-        self.ui.listWidget_logPost.addItem(now.strftime("%H:%M:%S") + " [INFO] " + info)
-        self.ui.listWidget_logPost.sortItems(QtCore.Qt.DescendingOrder)
 
     def log_warning(self, warning):
         now = datetime.datetime.now()
 
         self.ui.listWidget_log.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
-        
-        self.ui.listWidget_logPost.addItem(now.strftime("%H:%M:%S") + " [ERROR] " + warning)
-        self.ui.listWidget_logPost.sortItems(QtCore.Qt.DescendingOrder)
-
+    
     def thread_complete(self):
-        self.ui.pushButton_startScan.setText("Start Scan")
         self.scanInProgress = False
         self.changeInputState()
         self.log_info("Scanning completed!")
 
     def begin_live_view(self):
         if not self.liveView:
+            self.ui.checkBox_highlightExposure.setEnabled(True)
+            self.ui.checkBox_focusOverlay.setEnabled(True)
+            self.ui.label_highlightExposure.setEnabled(True)
+            self.ui.label_focusOverlay.setEnabled(True)
+
             self.log_info("Began camera live view")
             self.ui.pushButton_startLiveView.setText("Stop Live View")
-            self.ui.pushButton_startLiveViewPost.setText("Stop Live View")
             self.liveView = True
 
             if self.camera_type == "FLIR":
@@ -813,9 +832,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.cam.start_live_view()
 
         else:
+            self.ui.checkBox_highlightExposure.setEnabled(False)
+            self.ui.checkBox_focusOverlay.setEnabled(False)
+            self.ui.label_highlightExposure.setEnabled(False)
+            self.ui.label_focusOverlay.setEnabled(False)
             self.ui.label_liveView.setText("Live view disabled.")
             self.ui.pushButton_startLiveView.setText("Start Live View")
-            self.ui.pushButton_startLiveViewPost.setText("Start Live View")
             self.log_info("Ended camera live view")
             self.liveView = False
 
@@ -832,7 +854,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Captured " + file_name)
 
     def create_output_folders(self):
-        self.output_location_folder = Path(self.output_location).joinpath(self.ui.lineEdit_projectName.text())
+        self.output_location_folder = Path(self.output_location).joinpath(self.name)
         if not os.path.exists(self.output_location_folder):
             os.makedirs(self.output_location_folder)
             self.log_info("Created folder at:" + str(self.output_location_folder))
@@ -849,10 +871,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.progress = min(int(100 * (self.images_taken / self.images_to_take)), 100)
 
     def set_project_title(self):
-        name = self.ui.lineEdit_projectName.text()
-        self.setWindowTitle("scAnt:  " + name)
+        self.setWindowTitle("scAnt:  " + self.name)
 
-    def set_output_location(self):
+    def setOutputLocation(self):
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
                                                                   str(Path.cwd()))
         if new_location:
@@ -860,7 +881,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_output_location()
 
-    def set_post_location(self):
+    def setPostLocation(self):
         
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
                                                                   str(Path.cwd()))
@@ -869,7 +890,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_post_location()
 
-    def run_post_processing(self):
+    def runPostProcessing(self):
         config_present = False
         raw_folder_loc = self.post_location
         parent = Path(raw_folder_loc).parent
@@ -1022,14 +1043,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
 
                 # meta data (exif)
-                self.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
-                self.ui.comboBox_model.setCurrentText(config["exif_data"]["Model"])
-                self.ui.lineEdit_serialNumber.setText(config["exif_data"]["SerialNumber"])
-                self.ui.lineEdit_lens.setText(config["exif_data"]["Lens"])
-                self.ui.lineEdit_lensManufacturer.setText(config["exif_data"]["LensManufacturer"])
-                self.ui.lineEdit_lensModel.setText(config["exif_data"]["LensModel"])
-                self.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
-                self.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
+                self.camera_dialog.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
+                self.camera_dialog.ui.comboBox_model.setCurrentText(config["exif_data"]["Model"])
+                self.camera_dialog.ui.lineEdit_serialNumber.setText(config["exif_data"]["SerialNumber"])
+                self.camera_dialog.ui.lineEdit_lens.setText(config["exif_data"]["Lens"])
+                self.camera_dialog.ui.lineEdit_lensManufacturer.setText(config["exif_data"]["LensManufacturer"])
+                self.camera_dialog.ui.lineEdit_lensModel.setText(config["exif_data"]["LensModel"])
+                self.camera_dialog.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
+                self.camera_dialog.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
                 self.exif = config["exif_data"]
                 
                 self.loadedConfig = True
@@ -1041,21 +1062,41 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
                                                "The selected config file was generated for a different camera type!")
 
+    def preloadConfig(self):
+    
+            file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
+                                                        str(Path.cwd()), "config file (*.yaml)")
+            self.configPath = file[0]
+            self.dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
+        
+    def confirmProjectSettings(self):
+        self.name = self.dialog.ui.lineEdit_projectName.text()
+        self.set_project_title()
+        self.output_location = self.dialog.ui.lineEdit_outputLocation.text()
+        self.output_location_folder = Path(self.output_location).joinpath(self.name)
+    
+        if self.dialog.ui.checkBox_includePresets.checkState() and self.configPath:
+            self.loadConfig()
+
+        self.enableEditing()
+
+        self.create_output_folders()
+
     def writeConfig(self):
 
         if self.camera_type == "DSLR":
             self.get_DSLR_file_ending()
 
-        self.exif = {"Make": self.ui.comboBox_make.currentText(),
-                "Model": self.ui.comboBox_model.currentText(),
-                "SerialNumber": self.ui.lineEdit_serialNumber.text(),
-                "Lens": self.ui.lineEdit_lens.text(),
-                "LensManufacturer": self.ui.lineEdit_lensManufacturer.text(),
-                "LensModel": self.ui.lineEdit_lensModel.text(),
-                "FocalLength": self.ui.lineEdit_focalLength.text(),
-                "FocalLengthIn35mmFormat": self.ui.lineEdit_focalLengthIn35mmFormat.text()}
+        self.exif = {"Make": self.camera_dialog.ui.comboBox_make.currentText(),
+                "Model": self.camera_dialog.ui.comboBox_model.currentText(),
+                "SerialNumber": self.camera_dialog.ui.lineEdit_serialNumber.text(),
+                "Lens": self.camera_dialog.ui.lineEdit_lens.text(),
+                "LensManufacturer": self.camera_dialog.ui.lineEdit_lensManufacturer.text(),
+                "LensModel": self.camera_dialog.ui.lineEdit_lensModel.text(),
+                "FocalLength": self.camera_dialog.ui.lineEdit_focalLength.text(),
+                "FocalLengthIn35mmFormat": self.camera_dialog.ui.lineEdit_focalLengthIn35mmFormat.text()}
 
-        config = {'general': {'project_name': self.ui.lineEdit_projectName.text(),
+        config = {'general': {'project_name': self.name,
                               'camera_type': self.camera_type,
                               'camera_model': self.camera_model,
                               },
@@ -1098,6 +1139,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         ymlRW.write_config_file(config, Path(self.output_location_folder))
         self.log_info("Exported config_file successfully!")
 
+    def actionOpenProject(self):
+        self.enableEditing()
+        self.openProject()
+
     def openProject(self):
         dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path.cwd()))
         if dir:
@@ -1105,13 +1150,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             for file in os.listdir(dir):
 
                 if file.lower().endswith(".yaml"):
-                    self.ui.lineEdit_projectName.setText(os.path.basename(dir))
+                    # self.dialog.ui.lineEdit_projectName.setText(os.path.basename(dir))
                     self.configPath = str(dir.joinpath(file))
                     self.loadConfig()
                     self.output_location = str(dir.parent.absolute())
-                    self.update_output_location()
+                    self.name = file[:-12]
+                    self.output_location_folder = Path(self.output_location).joinpath(self.name)  
+                    # self.update_output_location()
+                    self.set_project_title()
                     self.configPath = ""
                     break
+    
+    def openDialog(self):
+        self.dialog.show()
 
     def darkMode(self):
         self.setStyleSheet(Path(r"GUI\dark_blue\style.qss").read_text())
@@ -1120,7 +1171,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.setStyleSheet("")
 
     def update_output_location(self):
-        self.ui.lineEdit_outputLocation.setText(self.output_location)
+        self.dialog.ui.lineEdit_outputLocation.setText(self.output_location)
     
     def update_post_location(self):
         self.ui.lineEdit_processingFolder.setText(self.post_location)
@@ -1152,11 +1203,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
         self.ui.label_suggestedValues.setEnabled(self.maskImages)
         self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
+    
+    def enableConfigEntry(self):
+        self.loadPresets = self.dialog.ui.checkBox_includePresets.isChecked()
+
+        self.dialog.ui.pushButton_chooseConfig.setEnabled(self.loadPresets)
+        self.dialog.ui.lineEdit_chosenConfig.setEnabled(self.loadPresets)
 
     def displayProgress(self, progress):
         print("Displaying progress!")
         self.ui.progressBar_total.setValue(int(progress))
-        self.ui.progressBar_totalPost.setValue(int(progress))
         self.ui.horizontalSlider_xAxis.setValue(self.posX)
         self.ui.horizontalSlider_yAxis.setValue(self.posY)
         self.ui.horizontalSlider_zAxis.setValue(self.posZ)
@@ -1182,11 +1238,76 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_zMax.setEnabled(False)
         self.ui.pushButton_Energise.setEnabled(False)
         self.ui.pushButton_stepperDeEnergise.setEnabled(False)
-        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.action_runScan.setEnabled(False)
         self.ui.lcdNumber_xAxis.setEnabled(False)
         self.ui.lcdNumber_yAxis.setEnabled(False)
         self.ui.lcdNumber_zAxis.setEnabled(False)
 
+    def enable_stepper_inputs(self):
+        self.ui.horizontalSlider_xAxis.setEnabled(True)
+        self.ui.horizontalSlider_yAxis.setEnabled(True)
+        self.ui.horizontalSlider_zAxis.setEnabled(True)
+        self.ui.pushButton_xHome.setEnabled(True)
+        self.ui.pushButton_yReset.setEnabled(True)
+        self.ui.pushButton_zHome.setEnabled(True)
+        self.ui.doubleSpinBox_xMin.setEnabled(True)
+        self.ui.doubleSpinBox_yMin.setEnabled(True)
+        self.ui.doubleSpinBox_zMin.setEnabled(True)
+        self.ui.doubleSpinBox_xStep.setEnabled(True)
+        self.ui.doubleSpinBox_yStep.setEnabled(True)
+        self.ui.doubleSpinBox_zStep.setEnabled(True)
+        self.ui.doubleSpinBox_xMax.setEnabled(True)
+        self.ui.doubleSpinBox_yMax.setEnabled(True)
+        self.ui.doubleSpinBox_zMax.setEnabled(True)
+        self.ui.pushButton_Energise.setEnabled(True)
+        self.ui.pushButton_stepperDeEnergise.setEnabled(True)
+        self.ui.action_runScan.setEnabled(True)
+        self.ui.lcdNumber_xAxis.setEnabled(True)
+        self.ui.lcdNumber_yAxis.setEnabled(True)
+        self.ui.lcdNumber_zAxis.setEnabled(True)
+
+    def enableEditing(self):
+    
+        self.ui.action_loadConfig.setEnabled(True)
+        self.ui.action_save.setEnabled(True)
+
+        self.ui.label_info.setEnabled(True)
+        self.ui.label_progressTotal.setEnabled(True)
+        self.ui.label_log.setEnabled(True)
+        self.ui.listWidget_log.setEnabled(True)
+        self.ui.progressBar_total.setEnabled(True)
+        
+        self.ui.frame_cameraSettings.setEnabled(True)
+        self.ui.stacked_camera_settings.setEnabled(True)
+        self.ui.comboBox_selectCamera.setEnabled(True)
+        self.ui.label_liveView.setEnabled(True)
+        self.ui.pushButton_captureImage.setEnabled(True)
+        self.ui.pushButton_startLiveView.setEnabled(True)
+        self.ui.label_cameraSettings.setEnabled(True)
+        self.ui.label_selectCamera.setEnabled(True)
+        self.ui.label_exposureAuto.setEnabled(True)
+        self.ui.label_exposureTime.setEnabled(True)
+        self.ui.label_gainAuto.setEnabled(True)
+        self.ui.label_gainLevel.setEnabled(True)
+        self.ui.label_gamma.setEnabled(True)
+        self.ui.label_balanceRatioBlue.setEnabled(True)
+        self.ui.label_balanceRatioRed.setEnabled(True)
+        self.ui.label_highlightExposure.setEnabled(True)
+        self.ui.label_focusOverlay.setEnabled(True)
+
+        self.ui.checkBox_stackImages.setEnabled(True)
+        self.ui.label_stackImages.setEnabled(True)
+        self.ui.label_postProcessParam.setEnabled(True)
+        self.ui.pushButton_processingOutput.setEnabled(True)
+        self.ui.lineEdit_processingFolder.setEnabled(True)
+        self.ui.pushButton_runPostProcessing.setEnabled(True)
+
+        self.ui.pushButton_openCameraInfo.setEnabled(True)
+        if self.scanner_initialised:
+            self.enable_stepper_inputs()
+        if self.cam:
+            self.select_camera()
+    
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
         self.ui.doubleSpinBox_exposureTime.setEnabled(False)
@@ -1196,10 +1317,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(False)
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(False)
         self.ui.pushButton_startLiveView.setEnabled(False)
-        self.ui.pushButton_startLiveViewPost.setEnabled(False)
-        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.action_runScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
-        self.ui.pushButton_captureImagePost.setEnabled(False)
         self.ui.checkBox_highlightExposure.setEnabled(False)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
@@ -1213,11 +1332,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_balanceRatioBlue.setEnabled(True)
         self.ui.doubleSpinBox_balanceRatioRed.setEnabled(True)
         self.ui.pushButton_startLiveView.setEnabled(True)
-        self.ui.pushButton_startLiveViewPost.setEnabled(True)
-        self.ui.pushButton_startScan.setEnabled(True)
+        self.ui.action_runScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
-        self.ui.pushButton_captureImagePost.setEnabled(True)
         self.ui.checkBox_highlightExposure.setEnabled(True)
+        self.ui.label_liveView.setEnabled(True)
+        self.ui.checkBox_focusOverlay.setEnabled(True)
         # self.ui.doubleSpinBox_blackLevel.setEnabled(False)
 
     def enable_DSLR_inputs(self):
@@ -1264,10 +1383,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # enable live_view/capture/scanning
         self.ui.pushButton_startLiveView.setEnabled(True)
-        self.ui.pushButton_startLiveViewPost.setEnabled(True)
-        self.ui.pushButton_startScan.setEnabled(True)
+        self.ui.action_runScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)
-        self.ui.pushButton_captureImagePost.setEnabled(True)
         
         # allow for changes to the setting boxes to affect the camera
         self.DSLR_read_out = False
@@ -1279,9 +1396,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_compression.setEnabled(True)
 
     def disable_DSLR_inputs(self):
-        self.ui.pushButton_startScan.setEnabled(False)
+        self.ui.action_runScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
-        self.ui.pushButton_captureImagePost.setEnabled(False)
         self.ui.comboBox_shutterSpeed.setEnabled(False)
         self.ui.comboBox_aperture.setEnabled(False)
         self.ui.comboBox_iso.setEnabled(False)
@@ -1336,7 +1452,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_whiteBalance.setEnabled(enableInputs)
 
         # project name
-        self.ui.lineEdit_projectName.setEnabled(enableInputs)
+        self.dialog.ui.lineEdit_projectName.setEnabled(enableInputs)
 
     def runScanAndReport(self):
         if not self.scanner_initialised:
@@ -1359,8 +1475,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # enable and show progress
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
-            self.ui.progressBar_totalPost.setEnabled(True)
-            self.ui.label_progressTotalPost.setEnabled(True)
 
             worker = Worker(self.runScanAndReport_threaded)
             worker.signals.progress.connect(self.displayProgress)
@@ -1368,7 +1482,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.homed_X and self.homed_Z:
                 if not self.xMoving and not self.yMoving and not self.zMoving:
-                    self.ui.pushButton_startScan.setText("Abort Scan")
+                    self.ui.action_runScan.setIcon("GUI\icons\icons8-stop-48.png")
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
