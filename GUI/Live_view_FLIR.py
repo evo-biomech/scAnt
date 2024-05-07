@@ -166,7 +166,7 @@ class customFLIR():
     
     def showFocus(self, raw_img, img):
         fm = variance_of_laplacian(raw_img)
-        new_img = cv2.putText(img, "{:.2f}".format(fm), (10, 500), cv2.FONT_HERSHEY_SIMPLEX, 3 ,(255,255,255), 2, cv2.LINE_AA)
+        new_img = cv2.putText(img, "{:.2f}".format(fm), (0, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 2 ,(255,255,255), 2, cv2.LINE_AA)
         return new_img
     
     def set_gain(self, gain=1.83):

@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>icons8-open-file-50.png</file>
+    <file>icons8-open-proj-50.png</file>
+    <file>icons8-plus-50.png</file>
+    <file>icons8-save-50.png</file>
+    <file>icons8-start-50.png</file>
+  </qresource>
+</RCC>
