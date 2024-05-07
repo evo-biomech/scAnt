@@ -1249,9 +1249,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_zAxis.setEnabled(False)
 
     def enable_stepper_inputs(self):
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
+        # self.ui.horizontalSlider_xAxis.setEnabled(True)
         self.ui.horizontalSlider_yAxis.setEnabled(True)
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
+        # self.ui.horizontalSlider_zAxis.setEnabled(True)
         self.ui.pushButton_xHome.setEnabled(True)
         self.ui.pushButton_yReset.setEnabled(True)
         self.ui.pushButton_zHome.setEnabled(True)
@@ -1270,6 +1270,28 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_xAxis.setEnabled(True)
         self.ui.lcdNumber_yAxis.setEnabled(True)
         self.ui.lcdNumber_zAxis.setEnabled(True)
+        self.ui.label_setRange.setEnabled(True)
+        self.ui.label_setRangeXMax.setEnabled(True)
+        self.ui.label_setRangeXStep.setEnabled(True)
+        self.ui.label_setRangeXMin.setEnabled(True)
+        self.ui.label_setRangeYMax.setEnabled(True)
+        self.ui.label_setRangeYStep.setEnabled(True)
+        self.ui.label_setRangeYMin.setEnabled(True)
+        self.ui.label_setRangeZMax.setEnabled(True)
+        self.ui.label_setRangeZStep.setEnabled(True)
+        self.ui.label_setRangeZMin.setEnabled(True)
+        self.ui.label_stepperControl.setEnabled(True)
+        self.ui.label_xAxis.setEnabled(True)
+        self.ui.label_yAxis.setEnabled(True)
+        self.ui.label_zAxis.setEnabled(True)
+        self.ui.label_xAxisSliderMax.setEnabled(True)
+        self.ui.label_xAxisSliderMin.setEnabled(True)
+        self.ui.label_yAxisSliderMax.setEnabled(True)
+        self.ui.label_yAxisSliderMin.setEnabled(True)
+        self.ui.label_zAxisSliderMin.setEnabled(True)
+        self.ui.label_zAxisSliderMax.setEnabled(True)
+
+
 
     def enableEditing(self):
     
