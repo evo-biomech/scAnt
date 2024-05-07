@@ -311,10 +311,15 @@ A number of open source tools are used for processing the RAW images captured by
 
 ## Quick Start Guide
 
-After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI (python scAnt.py). While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the Camera**, **(2) configuring the Stepper Motors**, and **(3) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
+After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI (python scAnt.py). While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Project Creation**,  **(2) Configuring the Camera**, **(3) Configuring the Stepper Motors**, and **(4) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
 
-![](images/GUIScanTab.png)
-![](images/GUIPostProcess.png)
+![](images/GUI.png)
+<!-- ![](images/GUIPostProcess.png) -->
+**Project Creation**
+
+Before editing any presets you must chose to create a new scAnt project or open an existing one. In creating a new project, you can chose a location and a name  - as well as load presets from a previous project.
+
+![](images/ProjectSettingsWin.png)
 
 **Configuring the Camera**
 
@@ -338,7 +343,7 @@ From the first box in the Camera Settings box, **select your connected camera**.
 
 4. Correct the white balance of the image by adjusting the red and blue **Balance Ratio**, respectively. You can use the colour curves displayed in the **Live View** as a rough guide by aligning the blue and red curves with the green curve, as the neutrally grey background makes up the largest number of image pixels. If you cannot find suitable settings or the specimen appears discoloured, remove it from the illumination chamber, and calibrate the white balance only based on the background. For a finer colour calibration and correction, refer to the official [OpenCV documentation](https://docs.opencv.org/master/d1/dc1/tutorial_ccm_color_correction_model.html) or your camera's manufacturer.
 
-5. In the Post Processing tab, choose your camera's make and model if it hasn't automatically updated and fill in the lens and camera details (most importantly the focal length of your lens - the corresponding focal length in 35mm format should update automatically)
+5. Open up the camera info window using the "Add Camera & Lens Info" button, then choose your camera's make and model if it hasn't automatically updated. Also fill in the lens and camera details (most importantly the focal length of your lens - the corresponding focal length in 35mm format should update automatically)
 
 **Configuring the Stepper Motors**
 
@@ -358,7 +363,7 @@ The most critical parameters that need to be configured for the scan are the ste
 
 [OPTIONAL]
 
-All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or through the standalone script (processStack.py). You can also choose to run all post processing steps from the GUI by selecting a RAW image folder and hitting **Run Post Processing** in the Post Processing tab. The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
+All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or through the standalone script (processStack.py). You can also choose to run all post processing steps from the GUI by selecting a RAW image folder and hitting **Run Post Processing**. The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
 
 4. Enabling **Stack images** will cause scAnt to automatically process the captured files into EDOF images. Information on the default stacking method can be found [here](https://github.com/PetteriAimonen/focus-stack).  The **Threshold (focus)** is a scalar value representing the Laplacian variance of each image required for it to be considered *"sharp enough for stacking"*. Simply put, this is used to discard images that appear entirely out of focus. This parameter is sensitive to image noise, resolution, and specimen size. Pay close attention to the messages **printed in the console**. To anticipate the results to some degree, you can use stacking option in the standalone script **(processStack.py)** to monitor the process.
 
