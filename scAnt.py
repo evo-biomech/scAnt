@@ -374,7 +374,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
         self.ui.pushButton_processingOutput.pressed.connect(self.setPostLocation)
-        self.post_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
+        self.raw_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
 
         # processing
         self.stackImages = False
@@ -808,6 +808,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.listWidget_log.sortItems(QtCore.Qt.DescendingOrder)
     
     def thread_complete(self):
+        #Remove any remaining contour files
+        for file in os.listdir(self.output_location_folder.joinpath("stacked")):
+            if file.endswith("contour.png"):
+                os.remove(self.output_location_folder.joinpath("stacked").joinpath(file))
+
         self.scanInProgress = False
         self.changeInputState()
         self.log_info("Scanning completed!")
@@ -886,13 +891,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
                                                                   str(Path.cwd()))
         if new_location:
-            self.post_location = new_location
+            self.raw_location = new_location
 
-        self.update_post_location()
+        self.update_raw_location()
 
     def runPostProcessing(self):
         config_present = False
-        raw_folder_loc = self.post_location
+        raw_folder_loc = self.raw_location
         parent = Path(raw_folder_loc).parent
         for file in os.listdir(parent):
             if file.endswith(".yaml"):
@@ -1173,8 +1178,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def update_output_location(self):
         self.dialog.ui.lineEdit_outputLocation.setText(self.output_location)
     
-    def update_post_location(self):
-        self.ui.lineEdit_processingFolder.setText(self.post_location)
+    def update_raw_location(self):
+        self.ui.lineEdit_processingFolder.setText(self.raw_location)
 
     def enableStacking(self, set_to=False):
         self.stackImages = self.ui.checkBox_stackImages.isChecked()
