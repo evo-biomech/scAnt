@@ -16,6 +16,8 @@ import queue
 import threading
 import time
 
+basedir = os.path.dirname(__file__)
+
 class FocusCheckingThread(threading.Thread):
     def __init__(self, threadID, name, q):
         threading.Thread.__init__(self)
@@ -265,7 +267,7 @@ def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
         print("No images suitable for focus stacking found!")
         exit()
 
-    path_to_external = Path.cwd().joinpath("external")
+    path_to_external = Path(basedir).joinpath("external")
     output_folder = images.parent.joinpath("stacked")
 
     if not os.path.exists(output_folder):
@@ -642,7 +644,7 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
 
 def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout):
     # load pre-trained edge detector model
-    edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
+    edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path(basedir).joinpath("scripts", "model.yml")))
     print("loaded edge detector...")
 
     params = {"create_cutout": create_cutout,
@@ -830,11 +832,11 @@ if __name__ == "__main__":
                 print("No images suitable for focus stacking found!")
                 exit()
 
-            # as the script can be executed from the parent or "scripts" directory check where the external files are located
-            path_to_external = Path.cwd().joinpath("external")
+            # Check where the external files are located
+            path_to_external = Path(basedir).joinpath("external")
             print(path_to_external)
             if not os.path.exists(path_to_external):
-                path_to_external = Path.cwd().parent.joinpath("external")
+                path_to_external = Path(basedir).parent.joinpath("external")
 
             output_folder = images.parent.joinpath("stacked")
 

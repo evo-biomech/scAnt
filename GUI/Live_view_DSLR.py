@@ -156,7 +156,7 @@ if __name__ == '__main__':
     compression = "JPEG (FINE)"
 
     # where to save images
-    current_folder = str(Path.cwd().parent)
+    current_folder = str(Path(basedir).parent)
 
     # calling the class for the first time is meant to aid in finding attached cameras.
     # the name of the connected camera is then stored in DSLR.camera_model

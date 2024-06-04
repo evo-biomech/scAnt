@@ -9,9 +9,12 @@ channels:
   - anaconda
   - conda-forge
   - defaults
+  - pypi
 dependencies:
   - python=3.7
   - pip
+  - pip:
+    - pyqtdarktheme
   - numpy
   - matplotlib
   - opencv=4.1.0

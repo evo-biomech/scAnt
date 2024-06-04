@@ -11,11 +11,20 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 from GUI.scAnt_projectSettings_dlg import Ui_Dialog
 from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
+import qdarktheme
 
 import scripts.project_manager as ymlRW
 from scripts.Scanner_Controller import ScannerController
 from processStack import getThreads, stack_images, mask_images
 from scripts.write_meta_data import write_exif_to_img, get_default_values
+
+
+try:
+    from ctypes import windll  # Only exists on Windows.
+    myappid = 'com.scAnt'
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
 
 """
 Locations of required executables and how to use them:
@@ -119,7 +128,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(scAnt_mainWindow, self).__init__()
 
-        self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
+        self.setWindowIcon(QtGui.QIcon(str(Path(basedir).joinpath("images", "scAnt_icon.png"))))
 
         self.liveView = False
 
@@ -147,7 +156,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.configPath = ""
 
-        self.path_to_external = Path.cwd().joinpath("external")
+        self.path_to_external = Path(basedir).joinpath("external")
 
         #Add camera makes to combobox
         with open(self.path_to_external.joinpath("cameraMakes.txt"), "r") as f:
@@ -365,7 +374,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # Scanner output setup
         self.dialog.ui.checkBox_includePresets.stateChanged.connect(self.enableConfigEntry)
-        self.output_location = str(Path.cwd())
+        self.output_location = str(Path(basedir))
         self.update_output_location()
         self.dialog.ui.pushButton_browseOutput.pressed.connect(self.setOutputLocation)
         self.dialog.ui.pushButton_chooseConfig.pressed.connect(self.preloadConfig)
@@ -374,7 +383,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
         self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
-        self.raw_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
+        self.raw_location = str(Path(basedir).joinpath("test").joinpath("RAW"))
 
         # processing
         self.stackImages = False
@@ -880,7 +889,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def setOutputLocation(self):
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
-                                                                  str(Path.cwd()))
+                                                                  str(Path(basedir)))
         if new_location:
             self.output_location = new_location
 
@@ -889,7 +898,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def set_post_location(self):
         
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
-                                                                  str(Path.cwd()))
+                                                                  str(Path(basedir)))
         if new_location:
             self.raw_location = new_location
 
@@ -954,7 +963,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def loadConfig(self):
         if self.configPath == "":
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
-                                                        str(Path.cwd()), "config file (*.yaml)")
+                                                        str(Path(basedir)), "config file (*.yaml)")
             config_location = file[0]
         else:
             config_location = self.configPath
@@ -1070,7 +1079,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def preloadConfig(self):
     
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
-                                                        str(Path.cwd()), "config file (*.yaml)")
+                                                        str(Path(basedir)), "config file (*.yaml)")
             self.configPath = file[0]
             self.dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
         
@@ -1149,7 +1158,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.openProject()
 
     def openProject(self):
-        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path.cwd()))
+        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
         if dir:
             dir = Path(dir)
             for file in os.listdir(dir):
@@ -1170,10 +1179,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.dialog.show()
 
     def darkMode(self):
-        self.setStyleSheet(Path(r"GUI\dark_blue\style.qss").read_text())
+        qdarktheme.setup_theme("dark")
+
     
     def lightMode(self):
-        self.setStyleSheet("")
+        qdarktheme.setup_theme("light")
 
     def update_output_location(self):
         self.dialog.ui.lineEdit_outputLocation.setText(self.output_location)
@@ -1711,8 +1721,10 @@ if __name__ == "__main__":
     # (for debugging only, to report errors to the console)
     cgitb.enable(format='text')
 
+    basedir = os.path.dirname(__file__) 
+    
     app = QtWidgets.QApplication([])
-
+    qdarktheme.setup_theme("light")
     application = scAnt_mainWindow()
 
     application.show()
