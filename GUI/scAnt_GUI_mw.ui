@@ -1200,9 +1200,6 @@
          <property name="autoFillBackground">
           <bool>false</bool>
          </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: rgb(85, 255, 20)</string>
-         </property>
          <property name="text">
           <string>Resume</string>
          </property>
@@ -1230,9 +1227,6 @@
            <pointsize>9</pointsize>
            <bold>true</bold>
           </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 76, 79)</string>
          </property>
          <property name="text">
           <string>De-Energise</string>

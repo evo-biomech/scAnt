@@ -12,6 +12,8 @@ from pathlib import Path
 class ScannerController:
 
     def __init__(self):
+        self.controller_type = "Tic"
+
         self.stepperX_ID = "00281480"
         self.stepperY_ID = "00281470"
         self.stepperZ_ID = "00282144"

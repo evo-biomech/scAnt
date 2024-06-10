@@ -148,41 +148,41 @@ void loop() {
           {
             int step_mode = atoi(sPtr[1]);
 
-            if (step_mode == 1):
+            if (step_mode == 1)
             {
-              digitalWrite(M1_PIN, LOW)
-              digitalWrite(M2_PIN, LOW)
-              digitalWrite(M3_PIN, LOW)
+              digitalWrite(M1_PIN, LOW);
+              digitalWrite(M2_PIN, LOW);
+              digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 2)
             {
-              digitalWrite(M1_PIN, HIGH)
-              digitalWrite(M2_PIN, LOW)
-              digitalWrite(M3_PIN, LOW)
+              digitalWrite(M1_PIN, HIGH);
+              digitalWrite(M2_PIN, LOW);
+              digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 4)
             {
-              digitalWrite(M1_PIN, LOW)
-              digitalWrite(M2_PIN, HIGH)
-              digitalWrite(M3_PIN, LOW)
+              digitalWrite(M1_PIN, LOW);
+              digitalWrite(M2_PIN, HIGH);
+              digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 8)
             {
-              digitalWrite(M1_PIN, HIGH)
-              digitalWrite(M2_PIN, HIGH)
-              digitalWrite(M3_PIN, LOW)
+              digitalWrite(M1_PIN, HIGH);
+              digitalWrite(M2_PIN, HIGH);
+              digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 16)
             {
-              digitalWrite(M1_PIN, HIGH)
-              digitalWrite(M2_PIN, HIGH)
-              digitalWrite(M3_PIN, HIGH)
+              digitalWrite(M1_PIN, HIGH);
+              digitalWrite(M2_PIN, HIGH);
+              digitalWrite(M3_PIN, HIGH);
             }
             else 
             {
-              digitalWrite(M1_PIN, HIGH)
-              digitalWrite(M2_PIN, HIGH)
-              digitalWrite(M3_PIN, LOW)
+              digitalWrite(M1_PIN, HIGH);
+              digitalWrite(M2_PIN, HIGH);
+              digitalWrite(M3_PIN, LOW);
             }
 
             stepper_X.setSpeedInStepsPerSecond(80*step_mode);
@@ -250,7 +250,7 @@ void loop() {
             }
 
           }
-          else if (strcmp(sPrt[0], "RESET_Y") == 0)
+          else if (strcmp(sPtr[0], "RESET_Y") == 0)
           {
             offset_y = glob_y;
             glob_y = 0;

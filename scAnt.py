@@ -7,13 +7,14 @@ import cgitb
 from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
+import qdarktheme
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 from GUI.scAnt_projectSettings_dlg import Ui_Dialog
 from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
 
 import scripts.project_manager as ymlRW
-from scripts.Scanner_Controller import ScannerController
+from scripts.arduinoControl import ScannerController
 from processStack import getThreads, stack_images, mask_images
 from scripts.write_meta_data import write_exif_to_img, get_default_values
 
@@ -229,7 +230,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # self.homeZ()
             self.scanner_initialised = True
 
-        except IndexError:
+        except (IndexError, TypeError):
             self.scanner_initialised = False
             self.disable_stepper_inputs()
             warning = "No Stepper Controller found!"
@@ -373,7 +374,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
-        self.ui.pushButton_processingOutput.pressed.connect(self.setPostLocation)
+        self.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
         self.raw_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
 
         # processing
@@ -463,20 +464,20 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.homed_Z = False
 
     def homeX(self):
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.pushButton_xHome.setEnabled(False)
+        self.sliders_enabled(False)
         worker = Worker(self.homeX_threaded)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.homeX_finished)
 
     def homeX_threaded(self, progress_callback):
         self.scanner.home(0)
-        # self.scanner.getStepperPosition(0)
+        self.scanner.getStepperPosition(0)
 
     def homeX_finished(self):
         self.log_info("Homed X Axis")
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
-        self.ui.pushButton_xHome.setEnabled(True)
+        self.sliders_enabled(True)
+        if not self.homed_Z:
+            self.ui.horizontalSlider_zAxis.setEnabled(False)
         self.ui.lcdNumber_xAxis.display(0)
         self.ui.horizontalSlider_xAxis.setValue(0)
         self.homed_X = True
@@ -489,20 +490,20 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Reset Y Axis")
 
     def homeZ(self):
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
-        self.ui.pushButton_zHome.setEnabled(False)
+        self.sliders_enabled(False)
         worker = Worker(self.homeZ_threaded)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.homeZ_finished)
 
     def homeZ_threaded(self, progress_callback):
         self.scanner.home(2)
-        # self.scanner.getStepperPosition(2)   
+        self.scanner.getStepperPosition(2)   
  
     def homeZ_finished(self):
         self.log_info("Homed Z Axis")
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
-        self.ui.pushButton_zHome.setEnabled(True)
+        self.sliders_enabled(True)
+        if not self.homed_X:
+            self.ui.horizontalSlider_xAxis.setEnabled(False)
         self.ui.lcdNumber_zAxis.display(0)
         self.ui.horizontalSlider_zAxis.setValue(0)
         self.homed_Z = True
@@ -510,8 +511,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def moveStepperX(self):
         self.xMoving = True
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.pushButton_xHome.setEnabled(False)
+        self.sliders_enabled(False)
         worker = Worker(self.moveStepperX_threaded)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.moveStepperX_finished)    
@@ -522,14 +522,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.posX = pos
     
     def moveStepperX_finished(self):
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
-        self.ui.pushButton_xHome.setEnabled(True)
+        self.sliders_enabled(True)
         self.xMoving = False
 
     def moveStepperY(self):
         self.yMoving = True
-        self.ui.pushButton_yReset.setEnabled(False)
-        self.ui.horizontalSlider_yAxis.setEnabled(False)
+        self.sliders_enabled(False)
         worker = Worker(self.moveStepperY_threaded)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.moveStepperY_finished)
@@ -540,14 +538,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.posY = pos
 
     def moveStepperY_finished(self):
-        self.ui.horizontalSlider_yAxis.setEnabled(True)
-        self.ui.pushButton_yReset.setEnabled(True)
+        self.sliders_enabled(True)
         self.yMoving = False
     
     def moveStepperZ(self):
         self.zMoving = True
-        self.ui.pushButton_zHome.setEnabled(False)
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
+        self.sliders_enabled(False)
         worker = Worker(self.moveStepperZ_threaded)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.moveStepperZ_finished)
@@ -558,10 +554,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.posZ = pos
     
     def moveStepperZ_finished(self):
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
-        self.ui.pushButton_zHome.setEnabled(True)
+        self.sliders_enabled(True)
         self.zMoving = False
 
+    def sliders_enabled(self, enabled):
+        self.ui.horizontalSlider_xAxis.setEnabled(enabled)
+        self.ui.pushButton_xHome.setEnabled(enabled)
+        self.ui.horizontalSlider_yAxis.setEnabled(enabled)
+        self.ui.pushButton_yReset.setEnabled(enabled)
+        self.ui.horizontalSlider_zAxis.setEnabled(enabled)
+        self.ui.pushButton_zHome.setEnabled(enabled)
     """
     Camera Settings
     """
@@ -880,16 +882,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def setOutputLocation(self):
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
-                                                                  str(Path.cwd()))
+                                                                  str(Path(basedir)))
         if new_location:
             self.output_location = new_location
 
         self.update_output_location()
 
-    def setPostLocation(self):
+    def set_post_location(self):
         
         new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
-                                                                  str(Path.cwd()))
+                                                                  str(Path(basedir)))
         if new_location:
             self.raw_location = new_location
 
@@ -954,7 +956,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def loadConfig(self):
         if self.configPath == "":
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
-                                                        str(Path.cwd()), "config file (*.yaml)")
+                                                        str(Path(basedir)), "config file (*.yaml)")
             config_location = file[0]
         else:
             config_location = self.configPath
@@ -963,7 +965,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # if a file has been selected, convert it into a Path object
             config_location = Path(config_location)
             config = ymlRW.read_config_file(config_location)
-
             # check if the camera type in the config file matches the connected/selected camera type
 
             if config["general"]["camera_type"] == self.camera_type:
@@ -1070,7 +1071,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def preloadConfig(self):
     
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
-                                                        str(Path.cwd()), "config file (*.yaml)")
+                                                        str(Path(basedir)), "config file (*.yaml)")
             self.configPath = file[0]
             self.dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
         
@@ -1144,12 +1145,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         ymlRW.write_config_file(config, Path(self.output_location_folder))
         self.log_info("Exported config_file successfully!")
 
-    def actionOpenProject(self):
-        self.enableEditing()
-        self.openProject()
 
-    def openProject(self):
-        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path.cwd()))
+    def actionOpenProject(self):
+        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
         if dir:
             dir = Path(dir)
             for file in os.listdir(dir):
@@ -1164,16 +1162,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     # self.update_output_location()
                     self.set_project_title()
                     self.configPath = ""
+                    self.enableEditing()
                     break
     
     def openDialog(self):
         self.dialog.show()
 
     def darkMode(self):
-        self.setStyleSheet(Path(r"GUI\dark_blue\style.qss").read_text())
+        qdarktheme.setup_theme("dark")
+
     
     def lightMode(self):
-        self.setStyleSheet("")
+        qdarktheme.setup_theme("light")
 
     def update_output_location(self):
         self.dialog.ui.lineEdit_outputLocation.setText(self.output_location)
@@ -1249,9 +1249,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_zAxis.setEnabled(False)
 
     def enable_stepper_inputs(self):
-        self.ui.horizontalSlider_xAxis.setEnabled(True)
+        # self.ui.horizontalSlider_xAxis.setEnabled(True)
         self.ui.horizontalSlider_yAxis.setEnabled(True)
-        self.ui.horizontalSlider_zAxis.setEnabled(True)
+        # self.ui.horizontalSlider_zAxis.setEnabled(True)
         self.ui.pushButton_xHome.setEnabled(True)
         self.ui.pushButton_yReset.setEnabled(True)
         self.ui.pushButton_zHome.setEnabled(True)
@@ -1270,9 +1270,32 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_xAxis.setEnabled(True)
         self.ui.lcdNumber_yAxis.setEnabled(True)
         self.ui.lcdNumber_zAxis.setEnabled(True)
+        self.ui.label_setRange.setEnabled(True)
+        self.ui.label_setRangeXMax.setEnabled(True)
+        self.ui.label_setRangeXStep.setEnabled(True)
+        self.ui.label_setRangeXMin.setEnabled(True)
+        self.ui.label_setRangeYMax.setEnabled(True)
+        self.ui.label_setRangeYStep.setEnabled(True)
+        self.ui.label_setRangeYMin.setEnabled(True)
+        self.ui.label_setRangeZMax.setEnabled(True)
+        self.ui.label_setRangeZStep.setEnabled(True)
+        self.ui.label_setRangeZMin.setEnabled(True)
+        self.ui.label_stepperControl.setEnabled(True)
+        self.ui.label_xAxis.setEnabled(True)
+        self.ui.label_yAxis.setEnabled(True)
+        self.ui.label_zAxis.setEnabled(True)
+        self.ui.label_xAxisSliderMax.setEnabled(True)
+        self.ui.label_xAxisSliderMin.setEnabled(True)
+        self.ui.label_yAxisSliderMax.setEnabled(True)
+        self.ui.label_yAxisSliderMin.setEnabled(True)
+        self.ui.label_zAxisSliderMin.setEnabled(True)
+        self.ui.label_zAxisSliderMax.setEnabled(True)
+
+
 
     def enableEditing(self):
-    
+        
+        self.ui.menubar.setEnabled(True)
         self.ui.action_loadConfig.setEnabled(True)
         self.ui.action_save.setEnabled(True)
 
@@ -1487,7 +1510,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.homed_X and self.homed_Z:
                 if not self.xMoving and not self.yMoving and not self.zMoving:
-                    self.ui.action_runScan.setIcon("GUI\icons\icons8-stop-48.png")
+                    self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-stop-48.png"))
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
@@ -1689,8 +1712,10 @@ if __name__ == "__main__":
     # (for debugging only, to report errors to the console)
     cgitb.enable(format='text')
 
+    basedir = os.path.dirname(__file__) 
+    
     app = QtWidgets.QApplication([])
-
+    qdarktheme.setup_theme("light")
     application = scAnt_mainWindow()
 
     application.show()

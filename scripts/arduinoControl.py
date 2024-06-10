@@ -3,33 +3,33 @@ import numpy as np
 import os
 import math
 from pathlib import Path
+import serial
+import serial.tools.list_ports
 
 class ScannerController:
     def __init__(self):
+        self.controller_type = "Arduino"
 
         self.stepper_names = ["X", "Y", "Z"]
         self.scan_stepSize = [50, 80, 500]
-
+        self.stepper_position = [None, None, None]
         self.stepper_home = ['rev', None, 'rev']
 
         com = None
-        try:
-            import serial
-            import serial.tools.list_ports
-            ports = serial.tools.list_ports.comports()
-            for port, desc, _ in ports:
-                if "USB-SERIAL CH340"  in desc:
-                    com = port
-        except:
-            print("no serialll")
+        ports = serial.tools.list_ports.comports()
+        for port, desc, _ in ports:
+            if "USB-SERIAL CH340"  in desc:
+                com = port
+        print("No Serial Connection to Arduino")
 
         if com:
             self.ser = serial.Serial(com, baudrate=9600, timeout=None)
             time.sleep(2)
+            print("arduino found on port:" + com)
         else:
             self.ser=None
+
         
-        print("arduino found on port:" + com)
     
         #Change Microstepping Resolution here
         # 1 = Full Step
@@ -83,18 +83,6 @@ class ScannerController:
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
 
-    # def getStepperPosition(self, stepper):
-    #     if stepper == 0:
-    #         command = "GETPOS X\n"
-    #     elif stepper == 1:
-    #         command = "GETPOS Y\n"
-    #     elif stepper == 2:
-    #         command = "GETPOS Z\n"
-        
-    #     self.ser.write(command.encode("utf-8"))
-    #     print(self.ser.readline())
-    #     current_position = int(self.ser.readline())
-
     def moveToPosition(self, stepper, pos):
 
         pos = str(pos)
@@ -105,7 +93,16 @@ class ScannerController:
         command = "MOVE " + str(self.stepper_names[stepper]) + " " + pos + spaces + "\n"
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
-        print("Moving stepper", self.stepper_names[stepper], "to position", pos)
+        self.getStepperPosition(stepper)
+    
+    def getStepperPosition(self, stepper):
+        command = "GETPOS " + self.stepper_names[stepper] + "       \n"
+        self.ser.write(command.encode("utf-8"))
+        print(self.ser.readline())
+        new_pos = int(self.ser.readline().decode("utf-8"))
+        print("Current pos = " + str(new_pos))
+        self.stepper_position[stepper] = new_pos
+        return new_pos
     
     def home(self, stepper):
         if self.stepper_home[stepper] is not None:  
