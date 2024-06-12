@@ -18,7 +18,7 @@ class ScannerController:
         com = None
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
-            if "USB-SERIAL CH340"  in desc:
+            if "USB-SERIAL CH340"  in desc or "USB2.0-Ser!" in desc:
                 com = port
 
         if com:

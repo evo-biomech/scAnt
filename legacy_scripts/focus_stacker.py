@@ -153,7 +153,7 @@ def process_stack(threadName, q):
 
             output_path = str(output_folder.joinpath(stack_name)) + ".tif"
 
-            if args["use_experimental_stacking"]:
+            if args["new_focus_stack"]:
                 os.system(
                     str(path_to_external) + "\\focus-stack\\focus-stack " +
                     data + " --output=" + output_path
@@ -253,7 +253,7 @@ if __name__ == '__main__':
                     help="check whether out-of-focus images should be discarded before stacking")
     ap.add_argument("-m", "--method", type=str, default="Default",
                     help="blending method (Default, 1-Star, Masks)")
-    ap.add_argument("-x", "--use_experimental_stacking", type=bool, default=True,
+    ap.add_argument("-x", "--new_focus_stack", type=bool, default=True,
                     help="Using experimental stacking method")
     args = vars(ap.parse_args())
 

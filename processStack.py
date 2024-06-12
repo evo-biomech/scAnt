@@ -167,11 +167,15 @@ def process_stack(data, output_folder, path_to_external, params):
     #     stack_params += " --jpgquality=" + params["jpgquality"]
     
 
-    if used_platform != "Linux" and params["use_experimental_stacking"]:
-        os.system(
-            str(path_to_external) + "\\focus-stack\\focus-stack " +
-            data + " --output=" + output_path
-        )
+    if params["new_focus_stack"]:
+        if used_platform == "Windows":
+            os.system(
+                str(path_to_external) + "\\focus-stack\\focus-stack " +
+                data + " --output=" + output_path
+            )
+        elif used_platform == "Linux":
+            os.system("chmod u+x " + str(path_to_external) + "/focus-stack/focus-stack.AppImage")
+            os.system(str(path_to_external) + "/focus-stack/focus-stack.AppImage " + data + " --output=" + output_path)
     else:
         if used_platform == "Linux":
             os.system("align_image_stack -m -x -c 200 -a " + str(
@@ -319,7 +323,7 @@ def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
     stacked_images_paths = []
 
     parameters = {"sharpen": False,
-                  "use_experimental_stacking": True}
+                  "new_focus_stack": True}
 
     for stack in stacks:
         stacked_images_paths.append(
@@ -689,7 +693,7 @@ if __name__ == "__main__":
     ap.add_argument("-cl", "--CLAHE", type=float, default=1.0,
                     help="set the clip-limit for Contrast Limited Adaptive Histogram Equilisation")
     ap.add_argument("-nc", "--nocrop", type=bool, default=False, help="save full image, including extapolated border data (False by default)")
-    ap.add_argument("-ex", "--use_experimental_stacking", type=bool, default=True, help="Use new stacking method")
+    ap.add_argument("-ex", "--new_focus_stack", type=bool, default=True, help="Use new stacking method")
     ap.add_argument("-fr_align", "--full_resolution_align", type=bool, default=False, help="Use full resolution images in alignment (default max 2048 px)")
     ap.add_argument("-jpg", "--jpgquality", help="Quality for saving in JPG format (0-100, default 95)")
 
