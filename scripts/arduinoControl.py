@@ -20,7 +20,6 @@ class ScannerController:
         for port, desc, _ in ports:
             if "USB-SERIAL CH340"  in desc:
                 com = port
-        print("No Serial Connection to Arduino")
 
         if com:
             self.ser = serial.Serial(com, baudrate=9600, timeout=None)
@@ -28,6 +27,7 @@ class ScannerController:
             print("arduino found on port:" + com)
         else:
             self.ser=None
+            print("No Serial Connection to Arduino")
 
         
     
@@ -57,7 +57,6 @@ class ScannerController:
     def deEnergise(self):
         print("De-engergising Steppers")
         self.ser.write("DEENERGISE     \n".encode("utf-8"))
-        self.ser.readline()
 
     def resume(self):
         print("Energising Steppers")

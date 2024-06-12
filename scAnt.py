@@ -230,7 +230,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # self.homeZ()
             self.scanner_initialised = True
 
-        except (IndexError, TypeError):
+        except (IndexError, TypeError, AttributeError):
             self.scanner_initialised = False
             self.disable_stepper_inputs()
             warning = "No Stepper Controller found!"
@@ -1691,7 +1691,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print("de energising stepper motors")
             # de energise steppers
             self.scanner.deEnergise()
-
+        
+        if self.scanner.controller_type == "Arduino":
+            self.scanner.ser.close()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
 

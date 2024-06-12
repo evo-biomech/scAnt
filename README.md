@@ -21,7 +21,7 @@ All structural components of the scanner can be manufactured using 3D-printing a
 ## Installation
 **scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04** (newer releases of Ubuntu will likely work but have not been tested). The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras, and [Pololu USB Stepper drivers](https://www.pololu.com/category/212/tic-stepper-motor-controllers). We have now added support for **DSLR** cameras for **Windows** operating systems as well. Please refer to our [Thingiverse](https://www.thingiverse.com/thing:4694713) page for a full list of components.
 
-The easiest way to get your scanner up and running is through installation of our pre-configured anaconda environment:
+The easiest way to get your scanner up and running is through installation of our pre-configured anaconda environment. If you have a version of conda installed you can run the following:
 
 **for Ubuntu 18.04**
 
@@ -35,6 +35,11 @@ conda env create -f scAnt_UBUNTU.yml
 ```bash
 cd conda_environment
 conda env create -f scAnt_WINDOWS.yml
+```
+If you don't have anaconda installed, we'd recommend following the "Fresh install" section of [this](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) guide. This will install Mamba, a reimplementation of conda that is generally much faster to install and use. If using mamba, replace the word "conda" with "mamba" in every command related to package managing. eg.
+
+```bash
+mamba env create -f scAnt_WINDOWS.yml
 ```
 
 After the environment has been created successfully, re-start the terminal, and run the following line to activate the environment, and to continue the installation.
@@ -72,7 +77,7 @@ For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
 
-Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
+Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
 Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
 Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
