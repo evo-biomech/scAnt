@@ -28,7 +28,7 @@ const int ENDSTOP_Z = 19;
 const int ENABLE_PIN = 8;
 const int M1_PIN = 12;
 const int M2_PIN = 11;
-const int M3_PIN = 10;
+// const int M3_PIN = 10;
 
 signed long pos;
 signed long offset_x = 0;
@@ -69,10 +69,10 @@ void setup() {
   digitalWrite(M1_PIN, LOW);
 
   pinMode(M2_PIN, OUTPUT);
-  digitalWrite(M2_PIN, HIGH);
+  digitalWrite(M2_PIN, LOW);
 
-  pinMode(M3_PIN, OUTPUT);
-  digitalWrite(M3_PIN, LOW);
+  // pinMode(M3_PIN, OUTPUT);
+  // digitalWrite(M3_PIN, LOW);
 
   pinMode(ENDSTOP_X, INPUT_PULLUP);
   debouncer.attach(ENDSTOP_X);
@@ -148,41 +148,41 @@ void loop() {
           {
             int step_mode = atoi(sPtr[1]);
 
-            if (step_mode == 1)
-            {
-              digitalWrite(M1_PIN, LOW);
-              digitalWrite(M2_PIN, LOW);
-              digitalWrite(M3_PIN, LOW);
-            }
-            else if (step_mode == 2)
+            // if (step_mode == 1)
+            // {
+            //   digitalWrite(M1_PIN, LOW);
+            //   digitalWrite(M2_PIN, LOW);
+            //   // digitalWrite(M3_PIN, LOW);
+            // }
+            if (step_mode == 2)
             {
               digitalWrite(M1_PIN, HIGH);
               digitalWrite(M2_PIN, LOW);
-              digitalWrite(M3_PIN, LOW);
+              // digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 4)
             {
               digitalWrite(M1_PIN, LOW);
               digitalWrite(M2_PIN, HIGH);
-              digitalWrite(M3_PIN, LOW);
+              // digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 8)
             {
-              digitalWrite(M1_PIN, HIGH);
-              digitalWrite(M2_PIN, HIGH);
-              digitalWrite(M3_PIN, LOW);
+              digitalWrite(M1_PIN, LOW);
+              digitalWrite(M2_PIN, LOW);
+              // digitalWrite(M3_PIN, LOW);
             }
             else if (step_mode == 16)
             {
               digitalWrite(M1_PIN, HIGH);
               digitalWrite(M2_PIN, HIGH);
-              digitalWrite(M3_PIN, HIGH);
+              // digitalWrite(M3_PIN, HIGH);
             }
             else 
             {
-              digitalWrite(M1_PIN, HIGH);
-              digitalWrite(M2_PIN, HIGH);
-              digitalWrite(M3_PIN, LOW);
+              digitalWrite(M1_PIN, LOW);
+              digitalWrite(M2_PIN, LOW);
+              // digitalWrite(M3_PIN, LOW);
             }
 
             stepper_X.setSpeedInStepsPerSecond(80*step_mode);
@@ -276,7 +276,7 @@ void loop() {
               {
                 stepper_Y.processMovement(); // this call moves the motor
               }
-              glob_y = pos;
+              glob_y = offset_y + pos;
             }        
             else if (strcmp(sPtr[1], "Z") == 0)
             {
@@ -291,11 +291,11 @@ void loop() {
           }
           else if (strcmp(sPtr [0], "DEENERGISE") == 0)
           {
-            digitalWrite(ENABLE_PIN, LOW);
+            digitalWrite(ENABLE_PIN, HIGH);
           }
           else if (strcmp(sPtr [0], "ENERGISE") == 0)
           {
-            digitalWrite(ENABLE_PIN, HIGH);
+            digitalWrite(ENABLE_PIN, LOW);
           }
           else if (strcmp(sPtr[0], "GETPOS") == 0)
           {

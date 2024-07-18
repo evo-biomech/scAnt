@@ -171,7 +171,7 @@ def process_stack(data, output_folder, path_to_external, params):
         if used_platform == "Windows":
             os.system(
                 str(path_to_external) + "\\focus-stack\\focus-stack " +
-                data + " --output=" + output_path
+                data + " --output=" + output_path + " --no-whitebalance --no-contrast"
             )
         elif used_platform == "Linux":
             os.system("chmod u+x " + str(path_to_external) + "/focus-stack/focus-stack.AppImage")

@@ -232,6 +232,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         except (IndexError, TypeError, AttributeError):
             self.scanner_initialised = False
+            self.scanner = None
             self.disable_stepper_inputs()
             warning = "No Stepper Controller found!"
             self.log_info(warning)
@@ -282,7 +283,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_Energise.pressed.connect(self.energise)
 
         self.ui.horizontalSlider_xAxis.sliderReleased.connect(self.moveStepperX)
-
+        
         self.ui.horizontalSlider_xAxis.valueChanged.connect(self.updateDisplayX)
 
         self.ui.horizontalSlider_yAxis.sliderReleased.connect(self.moveStepperY)
@@ -346,6 +347,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
                 self.scanner.scan_pos[2])
+            self.energise()
 
         self.progress = 0
 
@@ -1692,8 +1694,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # de energise steppers
             self.scanner.deEnergise()
         
-        if self.scanner.controller_type == "Arduino":
-            self.scanner.ser.close()
+            if self.scanner.controller_type == "Arduino":
+                self.scanner.ser.close()
         # report the program is to be closed so threads can be exited
         self.exit_program = True
 

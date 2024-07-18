@@ -9,6 +9,7 @@ import serial.tools.list_ports
 class ScannerController:
     def __init__(self):
         self.controller_type = "Arduino"
+        self.gear_ratio = 5.18
 
         self.stepper_names = ["X", "Y", "Z"]
         self.scan_stepSize = [50, 80, 500]
@@ -18,7 +19,8 @@ class ScannerController:
         com = None
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
-            if "USB-SERIAL CH340"  in desc or "USB2.0-Ser!" in desc:
+            print(port, desc)
+            if "USB-SERIAL CH340" or "USB2.0-Ser!" or "Arduino" in desc:
                 com = port
 
         if com:
@@ -29,8 +31,7 @@ class ScannerController:
             self.ser=None
             print("No Serial Connection to Arduino")
 
-        
-    
+
         #Change Microstepping Resolution here
         # 1 = Full Step
         # 2 = Half Step
@@ -64,27 +65,42 @@ class ScannerController:
         self.ser.readline()
 
     def setStepMode(self, step_mode):
-        # if step_mode == 1:
-        #     ms_pins = [0, 0, 0]
-        # elif step_mode == 2:
-        #     ms_pins = [1, 0, 0]
-        # elif step_mode == 4:
-        #     ms_pins = [0, 1, 0]
-        # elif step_mode == 8:
-        #     ms_pins = [1, 1, 0]
-        # elif step_mode == 16:
-        #     ms_pins = [1, 1, 1]
-        # else:
-        #     ms_pins = [1, 1, 0] #Eighth as default
-        
-        print("Setting up step resolution")
+
+        #For a4988:
+            # if step_mode == 1:
+            #     ms_pins = [0, 0, 0]
+            # elif step_mode == 2:
+            #     ms_pins = [1, 0, 0]
+            # elif step_mode == 4:
+            #     ms_pins = [0, 1, 0]
+            # elif step_mode == 8:
+            #     ms_pins = [1, 1, 0]
+            # elif step_mode == 16:
+            #     ms_pins = [1, 1, 1]
+            # else:
+            #     ms_pins = [1, 1, 0] #Eighth as default
+        #----------------------------------------------------------------
+        #For TMC2208:
+            # if step_mode == 2:
+            #   ms_pins = [1,0]
+            # elif step_mode == 4:
+            #   ms_pins = [0,1]
+            # elif step_mode == 8:
+            #   ms_pins = [0,0]
+            # elif step_mode == 16:
+            #   ms_pins = [1,1]
+
+        # print("Setting up step resolution")
         command = "STEPMODE " + str(step_mode) + "     \n"
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
 
     def moveToPosition(self, stepper, pos):
 
-        pos = str(pos)
+        if self.stepper_names[stepper] == "X":
+            pos = str(int(self.gear_ratio*pos))
+        else:
+            pos = str(pos)
         num_space = 8 - len(pos)
         spaces = ""
         for _ in range(num_space):
@@ -99,7 +115,7 @@ class ScannerController:
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
         new_pos = int(self.ser.readline().decode("utf-8"))
-        print("Current pos = " + str(new_pos))
+        # print("Current pos = " + str(new_pos))
         self.stepper_position[stepper] = new_pos
         return new_pos
     
@@ -150,29 +166,29 @@ class ScannerController:
 
         return step_name
 
-    def runScan(self):
-        for posX in self.scan_pos[0]:
-            self.moveToPosition(0, posX)
-            for posY in self.scan_pos[1]:
-                self.moveToPosition(1, posY + self.completedRotations * self.stepper_maxPos[1])
-                for posZ in self.scan_pos[2]:
-                    self.moveToPosition(2, posZ)
-                    # to follow the naming convention when focus stacking
-                    # img_name = self.outputFolder + "x_" + self.correctName(posX) + "_y_" + self.correctName(
-                    #     posY) + "_step_" + self.correctName(posZ) + "_.tif"
+    # def runScan(self):
+    #     for posX in self.scan_pos[0]:
+    #         self.moveToPosition(0, posX)
+    #         for posY in self.scan_pos[1]:
+    #             self.moveToPosition(1, posY + self.completedRotations * self.stepper_maxPos[1])
+    #             for posZ in self.scan_pos[2]:
+    #                 self.moveToPosition(2, posZ)
+    #                 # to follow the naming convention when focus stacking
+    #                 # img_name = self.outputFolder + "x_" + self.correctName(posX) + "_y_" + self.correctName(
+    #                 #     posY) + "_step_" + self.correctName(posZ) + "_.tif"
 
-                    # self.cam.capture_image(img_name=img_name)
-                    # self.progress = self.getProgress()
+    #                 # self.cam.capture_image(img_name=img_name)
+    #                 # self.progress = self.getProgress()
 
-                self.completedStacks += 1
+    #             self.completedStacks += 1
 
-            self.completedRotations += 1
+    #         self.completedRotations += 1
 
-        # return to default position
-        print("Returning to default position")
-        scAnt.moveToPosition(stepper=0, pos=190)
-        scAnt.moveToPosition(stepper=1, pos=self.completedRotations * self.stepper_maxPos[1])
-        scAnt.moveToPosition(stepper=2, pos=190)
+    #     # return to default position
+    #     print("Returning to default position")
+    #     scAnt.moveToPosition(stepper=0, pos=190)
+    #     scAnt.moveToPosition(stepper=1, pos=self.completedRotations * self.stepper_maxPos[1])
+    #     scAnt.moveToPosition(stepper=2, pos=190)
     
 if __name__ == "__main__":
     # try:
@@ -181,6 +197,7 @@ if __name__ == "__main__":
     #     print("WARNING: PySpin module not found! You can ignore this message when not using FLIR cameras.")
     print("Testing funcitonality of components")
     scAnt = ScannerController()
+    scAnt.resume()
     # scAnt.initCam(customFLIR())
 
     # Home all steppers
