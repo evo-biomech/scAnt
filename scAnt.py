@@ -477,12 +477,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def homeX_finished(self):
         self.log_info("Homed X Axis")
-        self.sliders_enabled(True)
         if not self.homed_Z:
             self.ui.horizontalSlider_zAxis.setEnabled(False)
         self.ui.lcdNumber_xAxis.display(0)
         self.ui.horizontalSlider_xAxis.setValue(0)
         self.homed_X = True
+        self.sliders_enabled(True)
         self.posX = 0
 
     def resetY(self):
@@ -503,12 +503,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
  
     def homeZ_finished(self):
         self.log_info("Homed Z Axis")
-        self.sliders_enabled(True)
-        if not self.homed_X:
-            self.ui.horizontalSlider_xAxis.setEnabled(False)
         self.ui.lcdNumber_zAxis.display(0)
         self.ui.horizontalSlider_zAxis.setValue(0)
         self.homed_Z = True
+        self.sliders_enabled(True)
         self.posZ = 0
 
     def moveStepperX(self):
@@ -560,12 +558,21 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.zMoving = False
 
     def sliders_enabled(self, enabled):
-        self.ui.horizontalSlider_xAxis.setEnabled(enabled)
-        self.ui.pushButton_xHome.setEnabled(enabled)
+        if enabled:
+            if self.homed_X:
+                self.ui.horizontalSlider_xAxis.setEnabled(enabled)
+            self.ui.pushButton_xHome.setEnabled(enabled)
+            if self.homed_Z:            
+                self.ui.horizontalSlider_zAxis.setEnabled(enabled)
+            self.ui.pushButton_zHome.setEnabled(enabled)
+        else:
+            self.ui.horizontalSlider_zAxis.setEnabled(enabled)
+            self.ui.pushButton_zHome.setEnabled(enabled)         
+            self.ui.horizontalSlider_xAxis.setEnabled(enabled)
+            self.ui.pushButton_xHome.setEnabled(enabled)
+
         self.ui.horizontalSlider_yAxis.setEnabled(enabled)
         self.ui.pushButton_yReset.setEnabled(enabled)
-        self.ui.horizontalSlider_zAxis.setEnabled(enabled)
-        self.ui.pushButton_zHome.setEnabled(enabled)
     """
     Camera Settings
     """

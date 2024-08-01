@@ -14,16 +14,16 @@ SpeedyStepper stepper_X;
 SpeedyStepper stepper_Y;
 SpeedyStepper stepper_Z;
 
-const int X_STEP_PIN = 3;
-const int X_DIR_PIN = 2;
-const int ENDSTOP_X = 18;
+const int X_STEP_PIN = 7;
+const int X_DIR_PIN = 6;
+const int ENDSTOP_X = 19;
 
 const int Y_STEP_PIN = 5;
 const int Y_DIR_PIN = 4;
 
-const int Z_STEP_PIN = 7;
-const int Z_DIR_PIN = 6;
-const int ENDSTOP_Z = 19;
+const int Z_STEP_PIN = 3;
+const int Z_DIR_PIN = 2;
+const int ENDSTOP_Z = 18;
 
 const int ENABLE_PIN = 8;
 const int M1_PIN = 12;
@@ -208,7 +208,7 @@ void loop() {
 
               stepper_X.setupStop();
               
-              offset_x = stepper_X.getCurrentPositionInSteps();
+              offset_x = stepper_X.getCurrentPositionInSteps() + 100;
 
               glob_x = 0;
 
@@ -225,7 +225,7 @@ void loop() {
             }
             else if (strcmp(sPtr[1], "Z") == 0 )
             {
-              stepper_Z.setupMoveInSteps(-12000);
+              stepper_Z.setupMoveInSteps(-11000);
               while(!(digitalRead(ENDSTOP_Z) == LOW))
               {
                 stepper_Z.processMovement(); // this call moves the motor
@@ -233,7 +233,7 @@ void loop() {
 
               stepper_Z.setupStop();
               
-              offset_z = stepper_Z.getCurrentPositionInSteps();
+              offset_z = stepper_Z.getCurrentPositionInSteps() + 100;
 
               glob_z = 0;
 

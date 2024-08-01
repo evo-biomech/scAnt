@@ -1,7 +1,8 @@
 import time
 import numpy as np
-import os
-import math
+# import os
+# import math
+from re import findall
 from pathlib import Path
 import serial
 import serial.tools.list_ports
@@ -20,13 +21,15 @@ class ScannerController:
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
             print(port, desc)
-            if "USB-SERIAL CH340" or "USB2.0-Ser!" or "Arduino" in desc:
+            ard_desc = ["USB-SERIAL CH340", "USB2.0-Ser!", "Arduino"]
+            ard_desc = [s.lower() for s in ard_desc]
+            if any(findall("|".join(ard_desc), desc.lower())):
                 com = port
 
         if com:
             self.ser = serial.Serial(com, baudrate=9600, timeout=None)
             time.sleep(2)
-            print("arduino found on port:" + com)
+            print("Arduino found on port:" + com)
         else:
             self.ser=None
             print("No Serial Connection to Arduino")
@@ -41,14 +44,14 @@ class ScannerController:
         self.stepper_stepMode = 8
         self.setStepMode(self.stepper_stepMode)
 
-        self.stepper_maxPos = [450, 1600, 11000]
+        self.stepper_maxPos = [450, 1600, 4500]
         self.stepper_minPos = [0, -1600, 0]
 
         # self.stepper_position = [None, None, None]
         self.scan_pos = [None, None, None]
         self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
         self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
-        self.setScanRange(stepper=2, min=0, max=11000, step=self.scan_stepSize[2])
+        self.setScanRange(stepper=2, min=0, max=4500, step=self.scan_stepSize[2])
 
         
         # keep track of position during scanning, skip to next full rotation of Y Axis
