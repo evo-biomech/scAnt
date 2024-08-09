@@ -455,13 +455,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def energise(self):
         self.scanner.resume()
+        if self.scanner_initialised:
+            self.sliders_enabled(True)
         self.log_info("Energised steppers")
 
     def deEnergise(self):
         self.scanner.deEnergise()
         self.log_info("De-energised steppers")
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
+        self.sliders_enabled(False)
         self.homed_X = False
         self.homed_Z = False
 
@@ -1072,6 +1073,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.log_info("Loaded config-file successfully!")
 
                 print(config)
+                self.begin_live_view()
             else:
                 self.log_warning("The selected config file was generated for a different camera type!")
                 QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
@@ -1342,9 +1344,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_openCameraInfo.setEnabled(True)
         if self.scanner_initialised:
             self.enable_stepper_inputs()
-        if self.cam:
-            self.select_camera()
-    
+        if self.camera_type == "FLIR":
+            self.enable_FLIR_inputs()
+        elif self.camera_type == "DSLR":
+            self.enable_DSLR_inputs()
+
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
         self.ui.doubleSpinBox_exposureTime.setEnabled(False)
@@ -1540,12 +1544,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.abortScan = True
             self.log_info("SCAN ABORTED!")
+            self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-start-50.png"))
             if self.stackImages:
                 self.postScanStacking = True
 
     def runScanAndReport_threaded(self, progress_callback):
         # number of images taken over the number of images to take
-        self.saved_imgs = 0
+        self.saved_imgs = []
         self.images_taken = 0
         self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
             self.scanner.scan_pos[2])
@@ -1608,8 +1613,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if self.stackImages:
             self.log_info("Stacking remaining images in queue...")
             self.postScanStacking = True
+        self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-start-50.png"))
+        self.enable_stepper_inputs()
         self.images_taken = 0
-        self.saved_imgs = 0
+        self.saved_imgs = []
         self.deEnergise()
         self.homeX()
         self.homeZ()
@@ -1639,7 +1646,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         try:
                             img[0].Save(img[1])
                             print('Image saved as %s' % img[1])
-                            self.saved_imgs +=1
+                            self.saved_imgs.append(img[1])
                             # Release image
                         except Exception as error_save_FLIR_img:
                             print("Failed to save:", img[1])
@@ -1667,8 +1674,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         stack = self.stackList[0]
         del self.stackList[0]
 
-        if not self.postScanStacking + self.empty_at_start:
-            while self.saved_imgs != self.images_taken:
+        if not self.postScanStacking and self.empty_at_start:
+            while not all(e in self.saved_imgs for e in stack):
                 pass
 
         # stack images
@@ -1676,6 +1683,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # using try / except to continue stacking with other images in case an error occurs
 
         try:
+
             stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
                                           sharpen=self.stackSharpen)
 

@@ -185,7 +185,7 @@ void loop() {
               // digitalWrite(M3_PIN, LOW);
             }
 
-            stepper_X.setSpeedInStepsPerSecond(80*step_mode);
+            stepper_X.setSpeedInStepsPerSecond(150*step_mode);
             stepper_X.setAccelerationInStepsPerSecondPerSecond(10*step_mode);
           
             stepper_Y.setSpeedInStepsPerSecond(100*step_mode);
@@ -208,7 +208,7 @@ void loop() {
 
               stepper_X.setupStop();
               
-              offset_x = stepper_X.getCurrentPositionInSteps() + 100;
+              offset_x = stepper_X.getCurrentPositionInSteps() + 50;
 
               glob_x = 0;
 

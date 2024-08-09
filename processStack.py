@@ -148,7 +148,9 @@ def process_stack_threaded(name, q):
             queueLock.release()
 
 def process_stack(data, output_folder, path_to_external, params):
-    stack_name = data.split(" ")[1]
+    path_names = data.split(" ")[1:]
+    paths = [Path(p) for p in path_names]
+    stack_name = path_names[0]
     stack_name = Path(stack_name).name[:-15]
 
     temp_output_folder = output_folder.joinpath(stack_name)
