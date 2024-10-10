@@ -1597,7 +1597,7 @@
           <double>0.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>430.000000000000000</double>
+          <double>450.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>5.000000000000000</double>
@@ -1644,13 +1644,13 @@
           <double>0.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>430.000000000000000</double>
+          <double>450.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>5.000000000000000</double>
          </property>
          <property name="value">
-          <double>47.000000000000000</double>
+          <double>50.000000000000000</double>
          </property>
         </widget>
        </item>
@@ -1691,13 +1691,13 @@
           <double>0.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>430.000000000000000</double>
+          <double>450.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>5.000000000000000</double>
          </property>
          <property name="value">
-          <double>423.000000000000000</double>
+          <double>450.000000000000000</double>
          </property>
         </widget>
        </item>
@@ -2358,7 +2358,7 @@
           <number>0</number>
          </property>
          <property name="minimum">
-          <double>50.000000000000000</double>
+          <double>1.000000000000000</double>
          </property>
          <property name="maximum">
           <double>10000.000000000000000</double>
@@ -2408,13 +2408,13 @@
           <double>0.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>7000.000000000000000</double>
+          <double>5000.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>100.000000000000000</double>
          </property>
          <property name="value">
-          <double>7000.000000000000000</double>
+          <double>4500.000000000000000</double>
          </property>
         </widget>
        </item>
@@ -2430,7 +2430,7 @@
           </sizepolicy>
          </property>
          <property name="maximum">
-          <number>430</number>
+          <number>450</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -2474,7 +2474,7 @@
           <number>0</number>
          </property>
          <property name="maximum">
-          <number>7000</number>
+          <number>5000</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
