@@ -4,6 +4,7 @@ import sys
 import traceback
 import os
 import cgitb
+from cv2 import ximgproc
 from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -84,7 +85,7 @@ class Worker(QtCore.QRunnable):
         # Add the callback to our kwargs
         self.kwargs['progress_callback'] = self.signals.progress
 
-    @QtCore.pyqtSlot()
+    # @QtCore.pyqtSlot()
     def run(self):
         '''
         Initialise the runner function with passed args, kwargs.
@@ -455,14 +456,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def energise(self):
         self.scanner.resume()
-        if self.scanner_initialised:
-            self.sliders_enabled(True)
         self.log_info("Energised steppers")
 
     def deEnergise(self):
         self.scanner.deEnergise()
         self.log_info("De-energised steppers")
-        self.sliders_enabled(False)
+        self.ui.horizontalSlider_xAxis.setEnabled(False)
+        self.ui.horizontalSlider_zAxis.setEnabled(False)
         self.homed_X = False
         self.homed_Z = False
 
@@ -843,10 +843,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.camera_type == "FLIR":
                 worker = Worker(self.update_live_view)
                 self.threadpool.start(worker)
-            else:
+            elif self.camera_type == "DSLR":
                 # starts live view in external Window
                 self.ui.label_liveView.setText("Live view opened in external DCC window!")
                 self.cam.start_live_view()
+            else:
+                self.log_info("No Camera connected!")
 
         else:
             self.ui.checkBox_highlightExposure.setEnabled(False)
@@ -929,6 +931,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             mask_artifact_size_black = config["masking"]["min_artifact_size_black"]
             mask_artifact_size_white = config["masking"]["min_artifact_size_white"]
 
+            if mask_images_check:
+                self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
 
             stacks = []
             stack = []
@@ -952,7 +956,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                     if mask_images_check:
                         mask_images(input_paths=stacked_output, min_rgb=mask_thresh_min, max_rgb=mask_thresh_max,
-                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True)
+                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True, edgeDetector=self.edgeDetector)
 
                         if self.createCutout:
                             write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
@@ -1073,7 +1077,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.log_info("Loaded config-file successfully!")
 
                 print(config)
-                self.begin_live_view()
             else:
                 self.log_warning("The selected config file was generated for a different camera type!")
                 QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
@@ -1344,11 +1347,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.pushButton_openCameraInfo.setEnabled(True)
         if self.scanner_initialised:
             self.enable_stepper_inputs()
-        if self.camera_type == "FLIR":
-            self.enable_FLIR_inputs()
-        elif self.camera_type == "DSLR":
-            self.enable_DSLR_inputs()
-
+        if self.cam:
+            self.select_camera()
+    
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
         self.ui.doubleSpinBox_exposureTime.setEnabled(False)
@@ -1511,6 +1512,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # save configuration file
             self.writeConfig()
 
+            if self.maskImages:
+                self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
+
             raw_loc = self.output_location_folder.joinpath("RAW")
             self.empty_at_start = (len(os.listdir(raw_loc)) == 0)
             # enable and show progress
@@ -1524,6 +1528,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.homed_X and self.homed_Z:
                 if not self.xMoving and not self.yMoving and not self.zMoving:
                     self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-stop-48.png"))
+                    self.ui.action_runScan.setText("Abort Scan")    
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
@@ -1545,6 +1550,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.abortScan = True
             self.log_info("SCAN ABORTED!")
             self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-start-50.png"))
+            self.ui.action_runScan.setText("Start Scan")
             if self.stackImages:
                 self.postScanStacking = True
 
@@ -1692,7 +1698,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.maskImages:
                 time.sleep(3)
                 mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
-                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True)
+                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True, edgeDetector=self.edgeDetector)
 
                 if self.createCutout:
                     write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
