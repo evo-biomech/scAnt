@@ -30,6 +30,8 @@ const int M1_PIN = 12;
 const int M2_PIN = 11;
 // const int M3_PIN = 10;
 
+const int LIGHT_PIN = 10;
+
 signed long pos;
 signed long offset_x = 0;
 signed long offset_y = 0;
@@ -73,6 +75,9 @@ void setup() {
 
   // pinMode(M3_PIN, OUTPUT);
   // digitalWrite(M3_PIN, LOW);
+
+  pinMode(LIGHT_PIN, OUTPUT);
+  digitalWrite(LIGHT_PIN, LOW);
 
   pinMode(ENDSTOP_X, INPUT_PULLUP);
   debouncer.attach(ENDSTOP_X);
@@ -144,6 +149,14 @@ void loop() {
 
 
           }
+  
+          else if (strcmp(sPtr [0], "FLASH_LIGHT") == 0)
+          {
+            digitalWrite(LIGHT_PIN, HIGH);
+            delay(300);
+            digitalWrite(LIGHT_PIN, LOW);
+          }
+          
           else if (strcmp(sPtr[0], "STEPMODE") == 0)
           {
             int step_mode = atoi(sPtr[1]);
@@ -192,7 +205,7 @@ void loop() {
             stepper_Y.setAccelerationInStepsPerSecondPerSecond(20*step_mode);
 
             stepper_Z.setSpeedInStepsPerSecond(6000*step_mode);
-            stepper_Z.setAccelerationInStepsPerSecondPerSecond(100*step_mode);
+            stepper_Z.setAccelerationInStepsPerSecondPerSecond(50*step_mode);
           }
           
           else if (strcmp(sPtr[0], "HOME") == 0)

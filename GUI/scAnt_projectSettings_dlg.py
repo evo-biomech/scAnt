@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(453, 327)
+        Dialog.resize(439, 285)
         self.gridLayout = QtWidgets.QGridLayout(Dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
@@ -28,7 +28,7 @@ class Ui_Dialog(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.frame_outputSettings.sizePolicy().hasHeightForWidth())
         self.frame_outputSettings.setSizePolicy(sizePolicy)
-        self.frame_outputSettings.setMinimumSize(QtCore.QSize(271, 0))
+        self.frame_outputSettings.setMinimumSize(QtCore.QSize(421, 237))
         self.frame_outputSettings.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.frame_outputSettings.setFrameShape(QtWidgets.QFrame.Box)
         self.frame_outputSettings.setFrameShadow(QtWidgets.QFrame.Raised)

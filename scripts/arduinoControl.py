@@ -44,14 +44,14 @@ class ScannerController:
         self.stepper_stepMode = 8
         self.setStepMode(self.stepper_stepMode)
 
-        self.stepper_maxPos = [450, 1600, 4500]
+        self.stepper_maxPos = [450, 1600, 5000]
         self.stepper_minPos = [0, -1600, 0]
 
         # self.stepper_position = [None, None, None]
         self.scan_pos = [None, None, None]
         self.setScanRange(stepper=0, min=0, max=450, step=self.scan_stepSize[0])
         self.setScanRange(stepper=1, min=-1600, max=1600, step=self.scan_stepSize[1])
-        self.setScanRange(stepper=2, min=0, max=4500, step=self.scan_stepSize[2])
+        self.setScanRange(stepper=2, min=0, max=5000, step=self.scan_stepSize[2])
 
         
         # keep track of position during scanning, skip to next full rotation of Y Axis
@@ -135,6 +135,11 @@ class ScannerController:
             self.ser.write(command.encode("utf-8"))
             print(self.ser.readline())
 
+    def flash(self):
+        command = "FLASH_LIGHT     \n"
+        self.ser.write(command.encode("utf-8"))
+        print(self.ser.readline())
+
     def setScanRange(self, stepper, min, max, step):
         # set min and max poses according to input (within range)
         if max >= self.stepper_maxPos[stepper]:
@@ -208,20 +213,20 @@ if __name__ == "__main__":
     #     scAnt.home(stepper)
 
     # Movement test of steppers
-    scAnt.moveToPosition(stepper=0, pos=800)
-    scAnt.moveToPosition(stepper=0, pos=1600)
-    scAnt.moveToPosition(stepper=0, pos=800)
-    scAnt.moveToPosition(stepper=0, pos=0)
+    # scAnt.moveToPosition(stepper=0, pos=800)
+    # scAnt.moveToPosition(stepper=0, pos=1600)
+    # scAnt.moveToPosition(stepper=0, pos=800)
+    # scAnt.moveToPosition(stepper=0, pos=0)
     
-    scAnt.moveToPosition(stepper=1, pos=800)
-    scAnt.moveToPosition(stepper=1, pos=1600)
-    scAnt.moveToPosition(stepper=1, pos=800)
-    scAnt.moveToPosition(stepper=1, pos=0)
+    # scAnt.moveToPosition(stepper=1, pos=800)
+    # scAnt.moveToPosition(stepper=1, pos=1600)
+    # scAnt.moveToPosition(stepper=1, pos=800)
+    # scAnt.moveToPosition(stepper=1, pos=0)
 
-    scAnt.moveToPosition(stepper=2, pos=800)
-    scAnt.moveToPosition(stepper=2, pos=1600)
-    scAnt.moveToPosition(stepper=2, pos=800)
-    scAnt.moveToPosition(stepper=2, pos=0)
+    # scAnt.moveToPosition(stepper=2, pos=800)
+    # scAnt.moveToPosition(stepper=2, pos=1600)
+    # scAnt.moveToPosition(stepper=2, pos=800)
+    # scAnt.moveToPosition(stepper=2, pos=0)
 
     # capture image, using custom FLIR scripts
     # scAnt.cam.capture_image(img_name="testy_mac_testface.tif")
@@ -246,7 +251,9 @@ if __name__ == "__main__":
     # # scAnt.cam.exit_cam()
 
     # print("\nDemo completed successfully!")
-
+    scAnt.flash()
+    scAnt.moveToPosition(stepper=0, pos=800)
+    
 
 
     
