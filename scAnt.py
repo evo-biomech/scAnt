@@ -320,6 +320,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.pushButton_openCameraInfo.pressed.connect(self.open_camera_settings)
 
+        #Flash Info
+
+        self.ui.spinBox_flashDelay.valueChanged.connect(self.set_delay)
+
+        self.ui.spinBox_flashLength.valueChanged.connect(self.set_length)
+
         # Update make and model in camera and lens info if cam found
 
         if self.FLIR_found or self.DSLR_found:
@@ -822,7 +828,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.file_format = ".CR2"
         else:
             self.file_format = ".jpg"
-            self.log_warning("Unknown image file format! Using JPEG as default!")
+            self.log_warning("Unknown image file format! Using JPEG as default!")#
+
+    # Flash Settings
+
+    def set_delay(self):
+        self.delay = self.ui.spinBox_flashDelay.value()/1000
+
+    def set_length(self):
+        self.scanner.flash_length(self.ui.spinBox_flashLength.value())
+
     # Info & Threading functions
 
     def log_info(self, info):
@@ -887,6 +902,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.create_output_folders()
         # create unique filename
         file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_" + self.file_format)))
+        if self.scanner_initialised:    
+            self.scanner.flash()
+            time.sleep(self.delay)
         self.cam.capture_image(file_name)
         self.log_info("Captured " + file_name)
 
@@ -1364,6 +1382,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.pushButton_openPostWindow.setEnabled(True)
 
+        self.ui.label_flashSettings.setEnabled(True)
+        self.ui.label_flashDelay.setEnabled(True)
+        self.ui.label_flashLength.setEnabled(True)
+        self.ui.spinBox_flashDelay.setEnabled(True)
+        self.ui.spinBox_flashLength.setEnabled(True)
+
         self.ui.pushButton_openCameraInfo.setEnabled(True)
         if self.scanner_initialised:
             self.enable_stepper_inputs()
@@ -1616,11 +1640,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     stackName.append(img_name)
 
                     self.scanner.flash()
+                    time.sleep(self.delay)
+
                     if self.camera_type == "FLIR":
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
                         # wait for the camera to capture the image before moving further
-                        time.sleep(0.1)
+                        time.sleep(0.2)
                         
                     if self.camera_type == "DSLR":
                         self.cam.capture_image(img_name)

@@ -9,6 +9,9 @@ const unsigned int MAX_COMMAND_LENGTH = 100;
 #define SPTR_SIZE   20
 char   *sPtr [SPTR_SIZE];
 signed long number;
+// int delay 300;
+int length 300;
+
 
 SpeedyStepper stepper_X;
 SpeedyStepper stepper_Y;
@@ -149,11 +152,25 @@ void loop() {
 
 
           }
+          
+          // else if (strcmp(sPtr [0], "SET_DELAY") == 0)
+          // {
+          //   delay = atoi(sPtr[1]);
+          //   Serial.print("Flash delay set to ");
+          //   Serial.println(delay);
+          // }
+          
+          else if (strcmp(sPtr [0], "SET_LENGTH") == 0)
+          {
+            length = atoi(sPtr[1]);
+            Serial.print("Flash delay set to ");
+            Serial.println(length);
+          }
   
           else if (strcmp(sPtr [0], "FLASH_LIGHT") == 0)
           {
             digitalWrite(LIGHT_PIN, HIGH);
-            delay(300);
+            delay(length);
             digitalWrite(LIGHT_PIN, LOW);
           }
           

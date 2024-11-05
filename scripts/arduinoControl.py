@@ -17,6 +17,11 @@ class ScannerController:
         self.stepper_position = [None, None, None]
         self.stepper_home = ['rev', None, 'rev']
 
+        # self.flash_delay = 100
+        self.flash_length = 300
+        # self.setDelay(self.flash_delay)
+        self.setLength(self.flash_length)
+
         com = None
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
@@ -105,9 +110,7 @@ class ScannerController:
         else:
             pos = str(pos)
         num_space = 8 - len(pos)
-        spaces = ""
-        for _ in range(num_space):
-            spaces+=" "
+        spaces = " " * num_space
         command = "MOVE " + str(self.stepper_names[stepper]) + " " + pos + spaces + "\n"
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
@@ -133,6 +136,22 @@ class ScannerController:
             print("Resetting Y axis")
             command = "RESET_Y        \n"
             self.ser.write(command.encode("utf-8"))
+            print(self.ser.readline())
+    
+    # def setDelay(self, delay):
+    #     num_space = 6 - len(delay)
+    #     spaces = " " * num_space
+    #     command = "SET_DELAY " + delay + spaces + "\n"
+    #     self.ser.write(command.encode("utf-8"))
+    #     for _ in range(2):
+    #         print(self.ser.readline())
+    
+    def setLength(self, length):
+        num_space = 5 - len(length)
+        spaces = " " * num_space
+        command = "SET_LENGTH " + length + spaces + "\n"
+        self.ser.write(command.encode("utf-8"))
+        for _ in range(2):
             print(self.ser.readline())
 
     def flash(self):
