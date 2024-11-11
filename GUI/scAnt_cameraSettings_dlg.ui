@@ -7,15 +7,27 @@
     <x>0</x>
     <y>0</y>
     <width>389</width>
-    <height>415</height>
+    <height>438</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>389</width>
+    <height>438</height>
+   </size>
+  </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Camera Info</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
     <widget class="QFrame" name="frame_exinf">
+     <property name="minimumSize">
+      <size>
+       <width>371</width>
+       <height>368</height>
+      </size>
+     </property>
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -43,6 +55,7 @@
         <property name="font">
          <font>
           <pointsize>11</pointsize>
+          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -56,6 +69,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -76,6 +90,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -96,6 +111,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -119,6 +135,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -142,6 +159,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -165,6 +183,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -188,6 +207,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -208,15 +228,10 @@
       </item>
       <item row="8" column="0">
        <widget class="QLabel" name="label_sensorWidth">
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -243,6 +258,7 @@
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>

@@ -1,14 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>PostDialog</class>
+ <widget class="QDialog" name="PostDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>332</width>
-    <height>166</height>
+    <width>351</width>
+    <height>173</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>351</width>
+    <height>173</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Just Processing</string>
@@ -16,6 +28,12 @@
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
     <widget class="QFrame" name="frame_justPostProcess">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="minimumSize">
       <size>
        <width>314</width>
@@ -34,6 +52,12 @@
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>292</width>
+          <height>30</height>
+         </size>
+        </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
@@ -43,6 +67,7 @@
         <property name="font">
          <font>
           <pointsize>11</pointsize>
+          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -54,11 +79,18 @@
       <item row="1" column="0">
        <widget class="QPushButton" name="pushButton_processingOutput">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>76</width>
+          <height>24</height>
+         </size>
         </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -70,7 +102,13 @@
       <item row="1" column="1">
        <widget class="QLineEdit" name="lineEdit_processingFolder">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>210</width>
+          <height>19</height>
+         </size>
         </property>
         <property name="text">
          <string>path/to/scan/RAW</string>
@@ -80,11 +118,18 @@
       <item row="2" column="0" colspan="2">
        <widget class="QPushButton" name="pushButton_runPostProcessing">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>292</width>
+          <height>27</height>
+         </size>
         </property>
         <property name="font">
          <font>
           <pointsize>11</pointsize>
+          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>

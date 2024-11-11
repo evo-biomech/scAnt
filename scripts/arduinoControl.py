@@ -17,11 +17,6 @@ class ScannerController:
         self.stepper_position = [None, None, None]
         self.stepper_home = ['rev', None, 'rev']
 
-        # self.flash_delay = 100
-        self.flash_length = 300
-        # self.setDelay(self.flash_delay)
-        self.setLength(self.flash_length)
-
         com = None
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
@@ -39,6 +34,9 @@ class ScannerController:
             self.ser=None
             print("No Serial Connection to Arduino")
 
+
+        self.flash_length = "300"
+        self.setLength(self.flash_length)
 
         #Change Microstepping Resolution here
         # 1 = Full Step
@@ -121,7 +119,7 @@ class ScannerController:
         self.ser.write(command.encode("utf-8"))
         print(self.ser.readline())
         new_pos = int(self.ser.readline().decode("utf-8"))
-        # print("Current pos = " + str(new_pos))
+        print("Current pos = " + str(new_pos))
         self.stepper_position[stepper] = new_pos
         return new_pos
     

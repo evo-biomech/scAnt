@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'scAnt_justProcessing.ui'
+# Form implementation generated from reading ui file '.\scAnt_justProcessing.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -12,12 +12,23 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_PostDialog(object):
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(332, 166)
-        self.gridLayout_2 = QtWidgets.QGridLayout(Dialog)
+    def setupUi(self, PostDialog):
+        PostDialog.setObjectName("PostDialog")
+        PostDialog.resize(351, 173)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(PostDialog.sizePolicy().hasHeightForWidth())
+        PostDialog.setSizePolicy(sizePolicy)
+        PostDialog.setMinimumSize(QtCore.QSize(351, 173))
+        self.gridLayout_2 = QtWidgets.QGridLayout(PostDialog)
         self.gridLayout_2.setObjectName("gridLayout_2")
-        self.frame_justPostProcess = QtWidgets.QFrame(Dialog)
+        self.frame_justPostProcess = QtWidgets.QFrame(PostDialog)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.frame_justPostProcess.sizePolicy().hasHeightForWidth())
+        self.frame_justPostProcess.setSizePolicy(sizePolicy)
         self.frame_justPostProcess.setMinimumSize(QtCore.QSize(314, 148))
         self.frame_justPostProcess.setFrameShape(QtWidgets.QFrame.Box)
         self.frame_justPostProcess.setFrameShadow(QtWidgets.QFrame.Raised)
@@ -26,52 +37,59 @@ class Ui_PostDialog(object):
         self.gridLayout.setObjectName("gridLayout")
         self.label_postProcessParam_2 = QtWidgets.QLabel(self.frame_justPostProcess)
         self.label_postProcessParam_2.setEnabled(True)
+        self.label_postProcessParam_2.setMinimumSize(QtCore.QSize(292, 30))
         self.label_postProcessParam_2.setMaximumSize(QtCore.QSize(16777215, 30))
         font = QtGui.QFont()
         font.setPointSize(11)
         font.setBold(True)
+        font.setWeight(75)
         self.label_postProcessParam_2.setFont(font)
         self.label_postProcessParam_2.setObjectName("label_postProcessParam_2")
         self.gridLayout.addWidget(self.label_postProcessParam_2, 0, 0, 1, 2)
         self.pushButton_processingOutput = QtWidgets.QPushButton(self.frame_justPostProcess)
-        self.pushButton_processingOutput.setEnabled(False)
+        self.pushButton_processingOutput.setEnabled(True)
+        self.pushButton_processingOutput.setMinimumSize(QtCore.QSize(76, 24))
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.pushButton_processingOutput.setFont(font)
         self.pushButton_processingOutput.setObjectName("pushButton_processingOutput")
         self.gridLayout.addWidget(self.pushButton_processingOutput, 1, 0, 1, 1)
         self.lineEdit_processingFolder = QtWidgets.QLineEdit(self.frame_justPostProcess)
-        self.lineEdit_processingFolder.setEnabled(False)
+        self.lineEdit_processingFolder.setEnabled(True)
+        self.lineEdit_processingFolder.setMinimumSize(QtCore.QSize(210, 19))
         self.lineEdit_processingFolder.setObjectName("lineEdit_processingFolder")
         self.gridLayout.addWidget(self.lineEdit_processingFolder, 1, 1, 1, 1)
         self.pushButton_runPostProcessing = QtWidgets.QPushButton(self.frame_justPostProcess)
-        self.pushButton_runPostProcessing.setEnabled(False)
+        self.pushButton_runPostProcessing.setEnabled(True)
+        self.pushButton_runPostProcessing.setMinimumSize(QtCore.QSize(292, 27))
         font = QtGui.QFont()
         font.setPointSize(11)
         font.setBold(True)
+        font.setWeight(75)
         self.pushButton_runPostProcessing.setFont(font)
         self.pushButton_runPostProcessing.setObjectName("pushButton_runPostProcessing")
         self.gridLayout.addWidget(self.pushButton_runPostProcessing, 2, 0, 1, 2)
         self.gridLayout_2.addWidget(self.frame_justPostProcess, 0, 0, 1, 1)
 
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.retranslateUi(PostDialog)
+        QtCore.QMetaObject.connectSlotsByName(PostDialog)
 
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self, PostDialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Just Processing"))
-        self.label_postProcessParam_2.setText(_translate("Dialog", "Choose a project to stack and mask"))
-        self.pushButton_processingOutput.setText(_translate("Dialog", "RAW Folder"))
-        self.lineEdit_processingFolder.setText(_translate("Dialog", "path/to/scan/RAW"))
-        self.pushButton_runPostProcessing.setText(_translate("Dialog", "Run Only Post Processing"))
+        PostDialog.setWindowTitle(_translate("PostDialog", "Just Processing"))
+        self.label_postProcessParam_2.setText(_translate("PostDialog", "Choose a project to stack and mask"))
+        self.pushButton_processingOutput.setText(_translate("PostDialog", "RAW Folder"))
+        self.lineEdit_processingFolder.setText(_translate("PostDialog", "path/to/scan/RAW"))
+        self.pushButton_runPostProcessing.setText(_translate("PostDialog", "Run Only Post Processing"))
 
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
+    PostDialog = QtWidgets.QDialog()
     ui = Ui_PostDialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
+    ui.setupUi(PostDialog)
+    PostDialog.show()
     sys.exit(app.exec_())

@@ -10,7 +10,7 @@ const unsigned int MAX_COMMAND_LENGTH = 100;
 char   *sPtr [SPTR_SIZE];
 signed long number;
 // int delay 300;
-int length 300;
+int long length = 300;
 
 
 SpeedyStepper stepper_X;
@@ -331,15 +331,15 @@ void loop() {
           {
              if (strcmp(sPtr[1], "X") == 0)
              {
-              Serial.println(glob_x);
+              Serial.println(stepper_X.getCurrentPositionInSteps() + offset_x);
              }
              else if (strcmp(sPtr[1], "Y") == 0)
              {
-              Serial.println(glob_y);
+              Serial.println(stepper_Y.getCurrentPositionInSteps() + offset_y);
              }
              else if (strcmp(sPtr[1], "Z") == 0)
              {
-              Serial.println(glob_z);
+              Serial.println(stepper_Z.getCurrentPositionInSteps() - offset_z);
              }
           }
           else

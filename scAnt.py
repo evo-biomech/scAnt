@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import qdarktheme
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
-from GUI.scAnt_projectSettings_dlg import Ui_Dialog
+from GUI.scAnt_projectSettings_dlg import Ui_SettingsDialog
 from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
 from GUI.scAnt_justProcessing import Ui_PostDialog
 
@@ -104,10 +104,10 @@ class Worker(QtCore.QRunnable):
         finally:
             self.signals.finished.emit()  # Done
 
-class Dialog(QtWidgets.QDialog):
+class SettingsDialog(QtWidgets.QDialog):
     def __init__(self):
-        super(Dialog, self).__init__()
-        self.ui = Ui_Dialog()
+        super(SettingsDialog, self).__init__()
+        self.ui = Ui_SettingsDialog()
         self.ui.setupUi(self)
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
@@ -144,7 +144,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         #Initialise Project Settings Dialog window
-        self.dialog = Dialog()
+        self.settings_dialog = SettingsDialog()
         self.camera_dialog = CameraDialog()
         self.post_dialog = PostDialog()
 
@@ -158,7 +158,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.pushButton_captureImage.pressed.connect(self.capture_image)
 
-        self.dialog.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
+        self.settings_dialog.ui.lineEdit_projectName.textChanged.connect(self.set_project_title)
 
         self.configPath = ""
 
@@ -367,6 +367,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
             self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
 
+            self.set_delay()
+
             self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
                 self.scanner.scan_pos[2])
             self.energise()
@@ -389,12 +391,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.showExposure = False
 
         # Scanner output setup
-        self.dialog.ui.checkBox_includePresets.stateChanged.connect(self.enableConfigEntry)
+        self.settings_dialog.ui.checkBox_includePresets.stateChanged.connect(self.enableConfigEntry)
         self.output_location = str(Path.cwd())
         self.update_output_location()
-        self.dialog.ui.pushButton_browseOutput.pressed.connect(self.setOutputLocation)
-        self.dialog.ui.pushButton_chooseConfig.pressed.connect(self.preloadConfig)
-        self.dialog.accepted.connect(self.confirmProjectSettings)
+        self.settings_dialog.ui.pushButton_browseOutput.pressed.connect(self.setOutputLocation)
+        self.settings_dialog.ui.pushButton_chooseConfig.pressed.connect(self.preloadConfig)
+        self.settings_dialog.accepted.connect(self.confirmProjectSettings)
 
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
@@ -836,7 +838,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.delay = self.ui.spinBox_flashDelay.value()/1000
 
     def set_length(self):
-        self.scanner.flash_length(self.ui.spinBox_flashLength.value())
+        self.scanner.setLength(str(self.ui.spinBox_flashLength.value()))
 
     # Info & Threading functions
 
@@ -945,7 +947,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_raw_location()
 
-    def runPostProcessing(self):
+    def runPostProcessing_threaded(self):
         config_present = False
         raw_folder_loc = self.raw_location
         parent = Path(raw_folder_loc).parent
@@ -1002,6 +1004,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             
         else:
             print("No config file found!")
+    
+    def runPostProcessing(self):
+        worker = Worker(self.runPostProcessing_threaded)
+        self.threadpool.start(worker)
 
     def loadConfig(self):
         if self.configPath == "":
@@ -1108,6 +1114,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.camera_dialog.ui.lineEdit_focalLength.setText(config["exif_data"]["FocalLength"])
                 self.camera_dialog.ui.lineEdit_focalLengthIn35mmFormat.setText(config["exif_data"]["FocalLengthIn35mmFormat"])
                 self.exif = config["exif_data"]
+
+                try:
+                    self.ui.spinBox_flashLength.setValue(config["flash"]["flash_length"])
+                    self.ui.spinBox_flashDelay.setValue(config["flash"]["flash_delay"])
+                except:
+                    print("No flash parameters found")
+
                 
                 self.loadedConfig = True
                 self.log_info("Loaded config-file successfully!")
@@ -1123,15 +1136,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
                                                         str(Path(basedir)), "config file (*.yaml)")
             self.configPath = file[0]
-            self.dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
+            self.settings_dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
         
     def confirmProjectSettings(self):
-        self.name = self.dialog.ui.lineEdit_projectName.text()
+        self.name = self.settings_dialog.ui.lineEdit_projectName.text()
         self.set_project_title()
-        self.output_location = self.dialog.ui.lineEdit_outputLocation.text()
+        self.output_location = self.settings_dialog.ui.lineEdit_outputLocation.text()
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
     
-        if self.dialog.ui.checkBox_includePresets.checkState() and self.configPath:
+        if self.settings_dialog.ui.checkBox_includePresets.checkState() and self.configPath:
             self.loadConfig()
 
         self.enableEditing()
@@ -1189,6 +1202,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                               'mask_thresh_max': self.ui.spinBox_thresholdMax.value(),
                               'min_artifact_size_black': self.maskArtifactSizeBlack,
                               'min_artifact_size_white': self.maskArtifactSizeWhite},
+                    "flash": {"flash_length": self.ui.spinBox_flashLength.value(),
+                              "flash_delay": self.ui.spinBox_flashDelay.value()},
                   "exif_data": self.exif}
 
         self.create_output_folders()
@@ -1203,7 +1218,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             for file in os.listdir(dir):
 
                 if file.lower().endswith(".yaml"):
-                    # self.dialog.ui.lineEdit_projectName.setText(os.path.basename(dir))
+                    # self.settings_dialog.ui.lineEdit_projectName.setText(os.path.basename(dir))
                     self.configPath = str(dir.joinpath(file))
                     self.loadConfig()
                     self.output_location = str(dir.parent.absolute())
@@ -1216,7 +1231,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     break
     
     def openDialog(self):
-        self.dialog.show()
+        self.settings_dialog.show()
 
     def darkMode(self):
         qdarktheme.setup_theme("dark")
@@ -1226,7 +1241,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         qdarktheme.setup_theme("light")
 
     def update_output_location(self):
-        self.dialog.ui.lineEdit_outputLocation.setText(self.output_location)
+        self.settings_dialog.ui.lineEdit_outputLocation.setText(self.output_location)
     
     def update_raw_location(self):
         self.post_dialog.ui.lineEdit_processingFolder.setText(self.raw_location)
@@ -1236,8 +1251,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.label_threshold.setEnabled(self.stackImages)
         self.ui.checkBox_threshold.setEnabled(self.stackImages)
-        self.ui.label_maskImages.setEnabled(self.stackImages)
-        self.ui.checkBox_maskImages.setEnabled(self.stackImages)
 
 
     def enableThresholding(self):
@@ -1260,10 +1273,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
     
     def enableConfigEntry(self):
-        self.loadPresets = self.dialog.ui.checkBox_includePresets.isChecked()
+        self.loadPresets = self.settings_dialog.ui.checkBox_includePresets.isChecked()
 
-        self.dialog.ui.pushButton_chooseConfig.setEnabled(self.loadPresets)
-        self.dialog.ui.lineEdit_chosenConfig.setEnabled(self.loadPresets)
+        self.settings_dialog.ui.pushButton_chooseConfig.setEnabled(self.loadPresets)
+        self.settings_dialog.ui.lineEdit_chosenConfig.setEnabled(self.loadPresets)
 
     def displayProgress(self, progress):
         print("Displaying progress!")
@@ -1375,10 +1388,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.checkBox_stackImages.setEnabled(True)
         self.ui.label_stackImages.setEnabled(True)
+        self.ui.label_maskImages.setEnabled(self.stackImages)
+        self.ui.checkBox_maskImages.setEnabled(self.stackImages)
         self.ui.label_postProcessParam.setEnabled(True)
-        self.post_dialog.ui.pushButton_processingOutput.setEnabled(True)
-        self.post_dialog.ui.lineEdit_processingFolder.setEnabled(True)
-        self.post_dialog.ui.pushButton_runPostProcessing.setEnabled(True)
 
         self.ui.pushButton_openPostWindow.setEnabled(True)
 
@@ -1538,7 +1550,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_whiteBalance.setEnabled(enableInputs)
 
         # project name
-        self.dialog.ui.lineEdit_projectName.setEnabled(enableInputs)
+        self.settings_dialog.ui.lineEdit_projectName.setEnabled(enableInputs)
 
     def runScanAndReport(self):
         if not self.scanner_initialised:
@@ -1546,8 +1558,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.abortScan = True
             return
 
-        try:
-            int(self.camera_dialog.ui.label_focalLength.text())
+        try:  
+            int(self.camera_dialog.ui.lineEdit_focalLengthIn35mmFormat.text())
         except ValueError:
             self.log_warning("Enter lens focal length in camera settings before starting!")
             self.abortScan = True
@@ -1631,6 +1643,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         return
 
                     self.scanner.moveToPosition(2, posZ)
+
+                    while self.scanner.getStepperPosition(2) != posZ:
+                        pass
                     # to follow the naming convention when focus stacking
                     img_name = str(self.output_location_folder.joinpath("RAW",
                                                                         "_x_" + self.scanner.correctName(posX)
@@ -1684,6 +1699,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.scanner.moveToPosition(1, self.ui.doubleSpinBox_yStep.value())
         self.resetY()
         self.scanner.completedRotations = 0
+        self.enableEditing()
 
     """
     process captured images simultaneously
@@ -1792,8 +1808,9 @@ if __name__ == "__main__":
     cgitb.enable(format='text')
 
     basedir = os.path.dirname(__file__) 
-    
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     app = QtWidgets.QApplication([])
+    app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     qdarktheme.setup_theme("light")
     application = scAnt_mainWindow()
 

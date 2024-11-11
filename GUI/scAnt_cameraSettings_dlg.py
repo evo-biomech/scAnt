@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'scAnt_cameraSettings_dlg.ui'
+# Form implementation generated from reading ui file '.\scAnt_cameraSettings_dlg.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -14,10 +14,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_CameraDialog(object):
     def setupUi(self, CameraDialog):
         CameraDialog.setObjectName("CameraDialog")
-        CameraDialog.resize(389, 415)
+        CameraDialog.resize(389, 438)
+        CameraDialog.setMinimumSize(QtCore.QSize(389, 438))
         self.gridLayout_2 = QtWidgets.QGridLayout(CameraDialog)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.frame_exinf = QtWidgets.QFrame(CameraDialog)
+        self.frame_exinf.setMinimumSize(QtCore.QSize(371, 368))
         self.frame_exinf.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.frame_exinf.setAcceptDrops(False)
         self.frame_exinf.setFrameShape(QtWidgets.QFrame.Box)
@@ -30,6 +32,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(11)
         font.setBold(True)
+        font.setWeight(75)
         self.label.setFont(font)
         self.label.setObjectName("label")
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
@@ -37,6 +40,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_make.setFont(font)
         self.label_make.setObjectName("label_make")
         self.gridLayout.addWidget(self.label_make, 1, 0, 1, 1)
@@ -48,6 +52,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_model.setFont(font)
         self.label_model.setObjectName("label_model")
         self.gridLayout.addWidget(self.label_model, 2, 0, 1, 1)
@@ -59,6 +64,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_serialNumber.setFont(font)
         self.label_serialNumber.setObjectName("label_serialNumber")
         self.gridLayout.addWidget(self.label_serialNumber, 3, 0, 1, 1)
@@ -74,6 +80,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_lens.setFont(font)
         self.label_lens.setObjectName("label_lens")
         self.gridLayout.addWidget(self.label_lens, 4, 0, 1, 1)
@@ -89,6 +96,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_lensManufacturer.setFont(font)
         self.label_lensManufacturer.setObjectName("label_lensManufacturer")
         self.gridLayout.addWidget(self.label_lensManufacturer, 5, 0, 1, 1)
@@ -104,6 +112,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_lensModel.setFont(font)
         self.label_lensModel.setObjectName("label_lensModel")
         self.gridLayout.addWidget(self.label_lensModel, 6, 0, 1, 1)
@@ -119,6 +128,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_focalLength.setFont(font)
         self.label_focalLength.setObjectName("label_focalLength")
         self.gridLayout.addWidget(self.label_focalLength, 7, 0, 1, 1)
@@ -131,10 +141,10 @@ class Ui_CameraDialog(object):
         self.lineEdit_focalLength.setObjectName("lineEdit_focalLength")
         self.gridLayout.addWidget(self.lineEdit_focalLength, 7, 1, 1, 1)
         self.label_sensorWidth = QtWidgets.QLabel(self.frame_exinf)
-        self.label_sensorWidth.setMaximumSize(QtCore.QSize(16777215, 20))
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_sensorWidth.setFont(font)
         self.label_sensorWidth.setObjectName("label_sensorWidth")
         self.gridLayout.addWidget(self.label_sensorWidth, 8, 0, 1, 1)
@@ -151,6 +161,7 @@ class Ui_CameraDialog(object):
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(False)
+        font.setWeight(50)
         self.label_focalLengthIn35mmFormat.setFont(font)
         self.label_focalLengthIn35mmFormat.setObjectName("label_focalLengthIn35mmFormat")
         self.gridLayout.addWidget(self.label_focalLengthIn35mmFormat, 9, 0, 1, 1)
@@ -177,7 +188,7 @@ class Ui_CameraDialog(object):
 
     def retranslateUi(self, CameraDialog):
         _translate = QtCore.QCoreApplication.translate
-        CameraDialog.setWindowTitle(_translate("CameraDialog", "Dialog"))
+        CameraDialog.setWindowTitle(_translate("CameraDialog", "Camera Info"))
         self.label.setText(_translate("CameraDialog", "Camera and Lens Info"))
         self.label_make.setText(_translate("CameraDialog", "Make"))
         self.label_model.setText(_translate("CameraDialog", "Model"))

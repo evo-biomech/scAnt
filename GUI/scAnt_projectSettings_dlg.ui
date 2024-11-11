@@ -1,21 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>SettingsDialog</class>
+ <widget class="QDialog" name="SettingsDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>439</width>
-    <height>285</height>
+    <width>462</width>
+    <height>299</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>462</width>
+    <height>299</height>
+   </size>
+  </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Project Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="minimumSize">
+      <size>
+       <width>421</width>
+       <height>23</height>
+      </size>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -59,9 +71,16 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>133</width>
+          <height>16</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -81,9 +100,16 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>260</width>
+          <height>21</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -102,13 +128,14 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>0</width>
-          <height>0</height>
+          <width>260</width>
+          <height>21</height>
          </size>
         </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <italic>true</italic>
           <bold>false</bold>
          </font>
@@ -126,9 +153,16 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>133</width>
+          <height>24</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
+          <weight>50</weight>
           <bold>false</bold>
          </font>
         </property>
@@ -141,6 +175,12 @@
        <widget class="QLineEdit" name="lineEdit_chosenConfig">
         <property name="enabled">
          <bool>false</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>176</width>
+          <height>19</height>
+         </size>
         </property>
         <property name="text">
          <string>path/to/preset.yaml</string>
@@ -155,9 +195,16 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>217</width>
+          <height>19</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <pointsize>11</pointsize>
+          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -171,6 +218,12 @@
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>78</width>
+          <height>23</height>
+         </size>
+        </property>
         <property name="text">
          <string>Choose Config</string>
         </property>
@@ -178,6 +231,12 @@
       </item>
       <item row="6" column="0">
        <widget class="QCheckBox" name="checkBox_includePresets">
+        <property name="minimumSize">
+         <size>
+          <width>133</width>
+          <height>20</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <pointsize>10</pointsize>
@@ -201,7 +260,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>SettingsDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -217,7 +276,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>SettingsDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
