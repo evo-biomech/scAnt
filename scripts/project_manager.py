@@ -65,6 +65,15 @@ def write_config_file(content, path):
     with open(path.joinpath(content["general"]["project_name"] + "_config.yaml"), "w") as f:
         yaml.dump(content, f, default_flow_style=False, sort_keys=False)
 
+def read_session_file(path):
+    with open(path) as f:
+        ses_dict = yaml.load(f, Loader=yaml.FullLoader)
+
+    return ses_dict   
+
+def write_session_file(content, path):
+    with open(path.joinpath("session_info.yml"), "w") as f:
+        yaml.dump(content, f, default_flow_style=False, sort_keys=False)
 
 if __name__ == '__main__':
     config = read_config_file(Path.cwd().parent.joinpath("example_config.yaml"))

@@ -4,11 +4,12 @@ import sys
 import traceback
 import os
 import cgitb
-from cv2 import ximgproc
+from cv2 import ximgproc, imread
 from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
 import qdarktheme
+import subprocess
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 from GUI.scAnt_projectSettings_dlg import Ui_SettingsDialog
@@ -95,7 +96,7 @@ class Worker(QtCore.QRunnable):
         # Retrieve args/kwargs here; and fire processing using them
         try:
             result = self.fn(*self.args, **self.kwargs)
-        except:
+        except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
@@ -164,6 +165,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.path_to_external = Path.cwd().joinpath("external")
 
+
         #Add camera makes to combobox
         with open(self.path_to_external.joinpath("cameraMakes.txt"), "r") as f:
             self.makes = [make[:-1] for make in f.readlines()]
@@ -230,7 +232,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                 self.threadpool.start(worker)
 
-        except:
+        except Exception:
             self.log_info("No DSLR camera found!")
             self.DSLR_found = False
 
@@ -251,6 +253,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             warning = "No Stepper Controller found!"
             self.log_info(warning)
             print(warning)
+        
 
         self.ui.pushButton_openPostWindow.pressed.connect(self.open_post_settings)
 
@@ -839,6 +842,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def set_length(self):
         self.scanner.setLength(str(self.ui.spinBox_flashLength.value()))
+        self.length = self.ui.spinBox_flashLength.value()/1000
 
     # Info & Threading functions
 
@@ -931,11 +935,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("scAnt:  " + self.name)
 
     def setOutputLocation(self):
-        new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
+        self.readSessionFile()
+        if self.output_location:
+            new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
+                                                                  str(Path(self.output_location)))
+        else:
+            new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
                                                                   str(Path(basedir)))
         if new_location:
             self.output_location = new_location
 
+        self.updateSessionFile()
         self.update_output_location()
 
     def set_post_location(self):
@@ -947,7 +957,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_raw_location()
 
-    def runPostProcessing_threaded(self):
+    def runPostProcessing_threaded(self, progress_callback):
         config_present = False
         raw_folder_loc = self.raw_location
         parent = Path(raw_folder_loc).parent
@@ -1086,7 +1096,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 
                 try:
                     self.ui.checkBox_threshold.setChecked(config["stacking"]["threshold_images"])
-                except:
+                except Exception:
                     print("No \"threshold_images\" check found")
                 
                 self.stackFocusThreshold = config["stacking"]["threshold"]
@@ -1118,7 +1128,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 try:
                     self.ui.spinBox_flashLength.setValue(config["flash"]["flash_length"])
                     self.ui.spinBox_flashDelay.setValue(config["flash"]["flash_delay"])
-                except:
+                except Exception:
                     print("No flash parameters found")
 
                 
@@ -1150,6 +1160,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.enableEditing()
 
         self.create_output_folders()
+        self.updateSessionFile()
 
     def writeConfig(self):
 
@@ -1212,7 +1223,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
     def actionOpenProject(self):
-        dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
+        self.readSessionFile()
+        if self.prev_open_path:
+            dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(self.prev_open_path)))
+        else:
+            dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
+            self.prev_open_path = str(Path(dir).parent)
+            self.updateSessionFile()
         if dir:
             dir = Path(dir)
             for file in os.listdir(dir):
@@ -1229,6 +1246,18 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.configPath = ""
                     self.enableEditing()
                     break
+    
+    def updateSessionFile(self):
+        content = {"prev_open_path" : self.prev_open_path, "prev_new_path": self.output_location}
+        ymlRW.write_session_file(content, Path(basedir))
+
+    def readSessionFile(self):
+        ses = ymlRW.read_session_file("session_info.yml")
+        if ses:
+            self.prev_open_path = ses["prev_open_path"]
+            self.output_location = ses["prev_new_path"]
+        else:
+            self.prev_open_path = None
     
     def openDialog(self):
         self.settings_dialog.show()
@@ -1619,6 +1648,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def runScanAndReport_threaded(self, progress_callback):
         # number of images taken over the number of images to take
+        flash_time = 0
         self.saved_imgs = []
         self.images_taken = 0
         self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
@@ -1639,45 +1669,51 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                 for posZ in self.scanner.scan_pos[2]:
                     save_time = time.time()
-                    if self.abortScan:
-                        return
-
-                    self.scanner.moveToPosition(2, posZ)
-
-                    while self.scanner.getStepperPosition(2) != posZ:
-                        pass
                     # to follow the naming convention when focus stacking
                     img_name = str(self.output_location_folder.joinpath("RAW",
                                                                         "_x_" + self.scanner.correctName(posX)
                                                                         + "_y_" + self.scanner.correctName(posY)
                                                                         + "_step_" + self.scanner.correctName(
                                                                             posZ) + "_" + self.file_format))
+                    if self.abortScan:
+                        return
+
+                    self.scanner.moveToPosition(2, posZ)
+                    while self.scanner.getStepperPosition(2) != posZ:
+                        pass
+
+
                     stackName.append(img_name)
 
-                    self.scanner.flash()
-                    time.sleep(self.delay)
 
                     if self.camera_type == "FLIR":
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
                         # wait for the camera to capture the image before moving further
-                        time.sleep(0.2)
+                        # time.sleep(0.2)
                         
                     if self.camera_type == "DSLR":
                         self.cam.capture_image(img_name)
                         # wait for the camera to capture the image before moving further
-                        time.sleep(0.2)
+                        # time.sleep(0.2)
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
 
+                    time.sleep(self.delay)
+                    self.scanner.flash()
+
+                    imread_output = "WARN"
+                    while "WARN" in imread_output:
+                        imread_output = subprocess.run("python scripts/imread.py -p " + img_name, text = True, capture_output=True).stderr
+                            
+
+                    print(img_name, " saved!")
+                    self.saved_imgs.append(img_name)
+
+
                     print('Time to write image to device:', time.time() - save_time, "seconds")
-
-                if self.camera_type == "DSLR":
-                    # TODO this is a temporary fix to ensure images are fully saved to the computer before stacking
-                    time.sleep(2)
-
 
                 self.stackList.append(stackName)
                 self.scanner.completedStacks += 1
@@ -1753,7 +1789,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if not self.postScanStacking and self.empty_at_start:
             while not all(e in self.saved_imgs for e in stack):
                 pass
-
+        
+        time.sleep(1)
         # stack images
         print("\nSTACKING: \n\n", stack)
         # using try / except to continue stacking with other images in case an error occurs
