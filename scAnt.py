@@ -4,7 +4,7 @@ import sys
 import traceback
 import os
 import cgitb
-from cv2 import ximgproc, imread
+from cv2 import ximgproc, imwrite, imread
 from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -912,6 +912,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.scanner.flash()
             time.sleep(self.delay)
         self.cam.capture_image(file_name)
+        if self.ui.checkBox_focusOverlay:
+            img = imread(file_name)
+            new_img = self.cam.showFocus(img, img)
+            imwrite(file_name, new_img)
         self.log_info("Captured " + file_name)
 
     def create_output_folders(self):
@@ -1686,6 +1690,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     stackName.append(img_name)
 
 
+                    self.scanner.flash()
+                    time.sleep(self.delay)
+    
                     if self.camera_type == "FLIR":
                         captured_image = self.cam.capture_image(img_name, return_image=True)
                         self.FLIR_image_queue.append([captured_image, img_name])
@@ -1701,15 +1708,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
 
-                    time.sleep(self.delay)
-                    self.scanner.flash()
-
                     imread_output = "WARN"
                     while "WARN" in imread_output:
                         imread_output = subprocess.run("python scripts/imread.py -p " + img_name, text = True, capture_output=True).stderr
                             
 
-                    print(img_name, " saved!")
+                    print(img_name, "saved!")
                     self.saved_imgs.append(img_name)
 
 
