@@ -936,7 +936,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def setOutputLocation(self):
         self.readSessionFile()
-        if self.output_location:
+        if Path.exists(Path(self.output_location)):
             new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
                                                                   str(Path(self.output_location)))
         else:
@@ -1224,7 +1224,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def actionOpenProject(self):
         self.readSessionFile()
-        if self.prev_open_path:
+        if Path.exists(Path(self.prev_open_path)):
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(self.prev_open_path)))
         else:
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
