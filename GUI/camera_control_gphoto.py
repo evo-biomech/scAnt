@@ -145,7 +145,7 @@ class CustomGPhotoCamera:
         return tree
     
     
-    def initialise_camera(self):
+    def initialise_camera(self, print_settings=False):
         """Initialize camera and build configuration tree"""
         try:
             if not self.camera:
@@ -161,7 +161,8 @@ class CustomGPhotoCamera:
             logging.info("Successfully initialized camera!")
             
             # Print available settings
-            self._print_settings()
+            if print_settings:
+                self._print_settings()
             
         except Exception as e:
             logging.error(f"Error initializing camera: {str(e)}")
@@ -297,15 +298,22 @@ class CustomGPhotoCamera:
             logging.info("Camera released")
 
     def get_setting_choices(self, setting_name):
-        """Get available choices for a camera setting"""
+        """Get available choices or range for a camera setting"""
         try:
             OK, widget = gp.gp_widget_get_child_by_name(self.config, setting_name)
             if OK >= gp.GP_OK:
-                if widget.get_type() in (gp.GP_WIDGET_RADIO, gp.GP_WIDGET_MENU):
+                widget_type = widget.get_type()
+                if widget_type in (gp.GP_WIDGET_RADIO, gp.GP_WIDGET_MENU):
                     choices = [c for c in widget.get_choices()]
                     return choices
+                elif widget_type == gp.GP_WIDGET_RANGE:
+                    min_value, max_value, increment = widget.get_range()
+                    # Convert to integers if increment is a whole number
+                    if increment.is_integer():
+                        return (int(min_value), int(max_value), int(increment))
+                    return (min_value, max_value, increment)
                 else:
-                    logging.warning(f"Setting {setting_name} does not have choices")
+                    logging.warning(f"Setting {setting_name} does not have choices or range")
                     return None
             else:
                 logging.warning(f"Setting {setting_name} not found")
@@ -370,7 +378,7 @@ class CustomGPhotoCamera:
                 except Exception as e:
                     logging.warning(f"Could not get info for {widget.get_name()}: {str(e)}")
         
-        print_widget_choices(self.config)
+        print_widget_choices(self.config_tree)
 
     def print_image_format_options(self):
         """Print all available image format and quality options"""
@@ -395,6 +403,7 @@ class CustomGPhotoCamera:
                     logging.info(f"{prop}:")
                     logging.info(f"  Current: {current}")
                     logging.info(f"  Available options: {[c for c in choices]}")
+                    return choices, current
             except Exception as e:
                 continue
 
@@ -486,7 +495,7 @@ class CustomGPhotoCamera:
                 # Try to set the Kelvin value as integer
                 self.set_setting(prop, kelvin_val)
                 logging.info(f"White balance temperature set to {kelvin_val}K")
-                #return True
+                break
             except Exception as e:
                 logging.warning(f"Error setting {prop}: {str(e)}")
                 continue
@@ -672,8 +681,45 @@ if __name__ == '__main__':
         camera_list = get_camera_choices()
         camera._detect_camera()
         camera.initialise_camera()
+
+        # Get available choices for major camera settings
+        logging.info("\nAvailable choices for major settings:")
         
-        camera.set_white_balance_kelvin(2000)
+        # ISO
+        iso_choices = camera.get_setting_choices("iso")
+        if not iso_choices:
+            iso_choices = camera.get_setting_choices("iso speed")  # Alternative name
+        logging.info(f"ISO options: {iso_choices}")
+        
+        # Shutter speed
+        if camera.camera_make == "Nikon":
+            shutter_choices = camera.get_setting_choices("shutterspeed2")
+        else:
+            shutter_choices = camera.get_setting_choices("shutterspeed")
+        logging.info(f"Shutter speed options: {shutter_choices}")
+        
+        # Aperture 
+        if camera.camera_make in ["Nikon", "Sony"]:
+            aperture_choices = camera.get_setting_choices("f-number")
+        else:
+            aperture_choices = camera.get_setting_choices("aperture")
+        logging.info(f"Aperture options: {aperture_choices}")
+        
+        # White balance
+        wb_choices = camera.get_setting_choices("whitebalance")
+        if not wb_choices:
+            wb_choices = camera.get_setting_choices("whitebalancemode")
+        logging.info(f"White balance options: {wb_choices}")
+
+        # Get white balance color temperature choices
+        kelvin_choices = camera.get_setting_choices("colortemperature")
+        if not kelvin_choices:
+            kelvin_choices = camera.get_setting_choices("whitebalancetemperature")
+        logging.info(f"White balance color temperature options: {kelvin_choices}")
+        
+        exit()
+
+        camera.set_white_balance_kelvin(5000)
         camera.set_iso("400")
         camera.set_shutterspeed("1/30")
         camera.set_aperture("5.6")
