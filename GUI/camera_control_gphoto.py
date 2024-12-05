@@ -50,11 +50,8 @@ class CustomGPhotoCamera:
         # Store camera config
         self.config = None
         self.config_tree = {}
-        
-        # Detect cameras
-        self._detect_camera()
 
-    def _detect_camera(self):
+    def _detect_camera(self, name=None, addr=None):
         """
         Detect and initialize the camera connection.
 
@@ -64,8 +61,9 @@ class CustomGPhotoCamera:
             Exception: If no camera is detected or connection fails.
         """
         try:
-            # Get user selection
-            name, addr = select_camera()
+            if name is None or addr is None:
+                # by default, get first camera found
+                name, addr = select_camera_cli()
             
             # Initialize camera with selected device
             self.camera = gp.Camera()
@@ -156,6 +154,9 @@ class CustomGPhotoCamera:
             # Get and store camera config
             self.config = self.camera.get_config(self.context)
             self.config_tree = self._build_config_tree(self.config)
+
+            self.camera_model = self.camera_make + " " + str(self.camera.get_summary(self.context)).split("Model: ")[1].split("\n")[0]
+            logging.info(f"Camera model: {self.camera_model}")
             
             logging.info("Successfully initialized camera!")
             
@@ -609,8 +610,19 @@ def display_image(image_path, window_name="Captured Image", wait_time=0):
     except Exception as e:
         logging.error(f"Error displaying image: {str(e)}")
 
+def get_camera_choices():
+    """
+    Return a list of camera choices
+    """
+    camera_list = list(gp.Camera.autodetect())
+    # Remove any cameras that are detected as mass storage devices
+    camera_list = [cam for cam in camera_list if "Mass Storage" not in cam[0]]
+    if not camera_list:
+        logging.warning("No compatible cameras found after filtering mass storage devices")
 
-def select_camera():
+    return camera_list
+
+def select_camera_cli():
     """
     Allow user to select a camera when multiple cameras are detected.
     
@@ -636,7 +648,7 @@ def select_camera():
         logging.info("\nAvailable cameras:")
         for index, (name, addr) in enumerate(camera_list):
             logging.info(f'{index}:  {addr}  {name}')
-            
+
         # Ask user to choose one
         while True:
             try:
@@ -657,9 +669,11 @@ if __name__ == '__main__':
     try:
         # Initialize camera
         camera = CustomGPhotoCamera()
+        camera_list = get_camera_choices()
+        camera._detect_camera()
         camera.initialise_camera()
         
-        camera.set_white_balance_kelvin(5600)
+        camera.set_white_balance_kelvin(2000)
         camera.set_iso("400")
         camera.set_shutterspeed("1/30")
         camera.set_aperture("5.6")
