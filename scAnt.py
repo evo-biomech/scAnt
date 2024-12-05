@@ -10,6 +10,7 @@ from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
 import qdarktheme
 import subprocess
+import platform
 
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 from GUI.scAnt_projectSettings_dlg import Ui_SettingsDialog
@@ -212,29 +213,56 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.FLIR_found = False
             self.disable_FLIR_inputs()
 
-        try:
-            # TODO add support for the selection of multiple connected DSLR cameras
-            from GUI.Live_view_DSLR import customDSLR
-            self.DSLR_initialised = False
-            self.DSLR = customDSLR()
-            self.log_info("Found " + str(self.DSLR.camera_model))
+        # If on Windows, try to find DSLR cameras via DigiCamControl
+        if platform.system() == "Windows":
+            try:
+                # TODO add support for the selection of multiple connected DSLR cameras
+                from GUI.Live_view_DSLR import customDSLR
+                self.DSLR_initialised = False
+                self.DSLR = customDSLR()
+                self.log_info("Found " + str(self.DSLR.camera_model))
 
-            self.ui.comboBox_selectCamera.addItem(str(self.DSLR.camera_model))
-            self.DSLR_found = True
-            if not self.FLIR_found:
-                self.ui.stacked_camera_settings.setCurrentIndex(1)
-                self.cam = self.DSLR
-                self.camera_type = "DSLR"
-                self.camera_model = self.DSLR.camera_model
-                # initialise DSLR by launching an instance of DigiCamControl
-                worker = Worker(self.launch_DCC_threaded)
-                worker.signals.finished.connect(self.finished_DCC_launch)
+                self.ui.comboBox_selectCamera.addItem(str(self.DSLR.camera_model) + " DCC")
+                self.DSLR_found = True
+                if not self.FLIR_found:
+                    self.ui.stacked_camera_settings.setCurrentIndex(1)
+                    self.cam = self.DSLR
+                    self.camera_type = "DSLR"
+                    self.camera_model = self.DSLR.camera_model
+                    # initialise DSLR by launching an instance of DigiCamControl
+                    worker = Worker(self.launch_DCC_threaded)
+                    worker.signals.finished.connect(self.finished_DCC_launch)
 
-                self.threadpool.start(worker)
+                    self.threadpool.start(worker)
 
-        except Exception:
-            self.log_info("No DSLR camera found!")
+            except:
+                self.log_info("No DSLR camera found!")
+                self.DSLR_found = False
+
+        # On Linux, try to find gphoto2-compatible cameras
+        else:
+            # on Linux DSLR cameras are not supported via DCC but instead via gphoto2
+            # this is a temporary naming thing and we'll change it once the gphoto2 support is complete
             self.DSLR_found = False
+            try:
+                import GUI.camera_control_gphoto
+                self.gphoto_cam = GUI.camera_control_gphoto.CustomGPhotoCamera()
+                self.gphoto_camera_choices = GUI.camera_control_gphoto.get_camera_choices()
+                for camera in self.gphoto_camera_choices:
+                    self.ui.comboBox_selectCamera.addItem(str(camera[0]) + " GPhoto")
+                
+                # by default, select the first camera in the list
+                self.gphoto_cam._detect_camera(name=self.gphoto_camera_choices[0][0], 
+                                               addr=self.gphoto_camera_choices[0][1])
+                self.gphoto_cam.initialise_camera()
+
+                ### CONTINUE HERE ###
+                self.gphoto_found = True
+                self.cam = self.gphoto_cam
+
+            except Exception as e:
+                self.log_info(f"No gphoto2-compatible camera found: {str(e)}")
+                self.gphoto_found = False
 
         # connect camera selection combo box to respective function
         self.ui.comboBox_selectCamera.currentTextChanged.connect(self.select_camera)
@@ -605,8 +633,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     """
 
     def select_camera(self):
+        # disable all camera inputs before selecting a new one
         self.disable_FLIR_inputs()
         self.disable_DSLR_inputs()
+        self.disable_GPhoto_inputs()
+
         selected_camera = self.ui.comboBox_selectCamera.currentText()
         self.log_info("Selected camera: " + str(selected_camera))
 
@@ -633,7 +664,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.file_format = ".tif"
 
         # new camera -> DSLR
-        else:
+        elif selected_camera.split(" ")[-1] == "DCC":
             self.cam = self.DSLR
             self.camera_type = "DSLR"
             self.camera_model = self.DSLR.camera_model
@@ -642,6 +673,31 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             worker.signals.finished.connect(self.finished_DCC_launch)
 
             self.threadpool.start(worker)
+
+        # new camera -> GPhoto
+        elif selected_camera.split(" ")[-1] == "GPhoto":
+            self.cam = self.gphoto_cam
+            self.camera_type = "GPhoto"
+            self.camera_model = self.gphoto_cam.camera_model
+
+            # Get name and address of selected camera from gphoto_camera_choices
+            selected_name = selected_camera.replace(" GPhoto", "")
+            selected_addr = None
+            for camera in self.gphoto_camera_choices:
+                if camera[0] == selected_name:
+                    selected_addr = camera[1]
+                    break
+            
+            # initialise the selected camera
+            self.gphoto_cam._detect_camera(name=selected_name, 
+                                            addr=selected_addr)
+            self.gphoto_cam.initialise_camera()
+            self.enable_GPhoto_inputs()
+
+
+        # not sure what would trigger this, but let's catch it just in case
+        else:
+            self.log_warning("Unknown camera type!")
 
     def launch_DCC_threaded(self, progress_callback):
         self.cam.initialise_camera()
@@ -912,7 +968,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.scanner.flash()
             time.sleep(self.delay)
         self.cam.capture_image(file_name)
-        if self.ui.checkBox_focusOverlay:
+        if self.ui.checkBox_focusOverlay.isChecked():
             img = imread(file_name)
             new_img = self.cam.showFocus(img, img)
             imwrite(file_name, new_img)
@@ -1527,6 +1583,75 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_compression.setEnabled(True)
 
     def disable_DSLR_inputs(self):
+        self.ui.action_runScan.setEnabled(False)
+        self.ui.pushButton_captureImage.setEnabled(False)
+        self.ui.comboBox_shutterSpeed.setEnabled(False)
+        self.ui.comboBox_aperture.setEnabled(False)
+        self.ui.comboBox_iso.setEnabled(False)
+        self.ui.comboBox_compression.setEnabled(False)
+        self.ui.comboBox_whiteBalance.setEnabled(False)
+
+
+    def enable_GPhoto_inputs(self):
+        # set the index of the stacked widget to 1 to access DSLR settings
+        self.ui.stacked_camera_settings.setCurrentIndex(1)
+        # set retrieved values as combo box entries for each setting.
+        # Clear each combo box in case different options are available for different cameras
+        self.ui.comboBox_shutterSpeed.clear()
+        """
+        for shutterspeed in self.cam.all_shutterspeed_vals:
+            self.ui.comboBox_shutterSpeed.addItem(shutterspeed)
+        # set current value to the selected item
+        self.ui.comboBox_shutterSpeed.setCurrentIndex(
+            self.ui.comboBox_shutterSpeed.findText(self.cam.shutterspeed))
+        """
+
+        self.ui.comboBox_aperture.clear()
+        """
+        for aperture in self.cam.all_aperture_vals:
+            self.ui.comboBox_aperture.addItem(aperture)
+        # set current value to the selected item
+        self.ui.comboBox_aperture.setCurrentIndex(
+            self.ui.comboBox_aperture.findText(self.cam.aperture))
+        """
+
+        self.ui.comboBox_iso.clear()
+        """
+        for iso in self.cam.all_iso_vals:
+            self.ui.comboBox_iso.addItem(iso)
+        # set current value to the selected item
+        self.ui.comboBox_iso.setCurrentIndex(
+            self.ui.comboBox_iso.findText(self.cam.iso))
+        """
+
+        self.ui.comboBox_whiteBalance.clear()
+        """
+        for whitebalance in self.cam.all_whitebalance_vals:
+            self.ui.comboBox_whiteBalance.addItem(whitebalance)
+        # set current value to the selected item
+        self.ui.comboBox_whiteBalance.setCurrentIndex(
+            self.ui.comboBox_whiteBalance.findText(self.cam.whitebalance))
+        """
+    
+        self.ui.comboBox_compression.clear()
+        """
+        for compression in self.cam.all_compression_vals:
+            self.ui.comboBox_compression.addItem(compression)
+        # set current value to the selected item
+        self.ui.comboBox_compression.setCurrentIndex(
+            self.ui.comboBox_compression.findText(self.cam.compression))
+        """
+        # enable capture/scanning
+        self.ui.action_runScan.setEnabled(True)
+        self.ui.pushButton_captureImage.setEnabled(True)
+
+        self.ui.comboBox_shutterSpeed.setEnabled(True)
+        self.ui.comboBox_aperture.setEnabled(True)
+        self.ui.comboBox_iso.setEnabled(True)
+        self.ui.comboBox_whiteBalance.setEnabled(True)
+        self.ui.comboBox_compression.setEnabled(True)
+
+    def disable_GPhoto_inputs(self):
         self.ui.action_runScan.setEnabled(False)
         self.ui.pushButton_captureImage.setEnabled(False)
         self.ui.comboBox_shutterSpeed.setEnabled(False)
