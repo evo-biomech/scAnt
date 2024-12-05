@@ -15,6 +15,7 @@ dependencies:
   - pip:
     - pyqtdarktheme
     - pyserial
+    - gphoto2 --only-binary :all:
   - numpy
   - matplotlib
   - opencv
