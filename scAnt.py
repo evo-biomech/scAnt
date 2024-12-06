@@ -1597,50 +1597,53 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.stacked_camera_settings.setCurrentIndex(1)
         # set retrieved values as combo box entries for each setting.
         # Clear each combo box in case different options are available for different cameras
+
+        # populating the spinboxes leads to the setting change being triggered. Ignore this while reading out values
+        self.DSLR_read_out = True
+
         self.ui.comboBox_shutterSpeed.clear()
-        """
-        for shutterspeed in self.cam.all_shutterspeed_vals:
+        current_shutterspeed, shutterspeed_options = self.gphoto_cam.get_shutterspeed()
+        for shutterspeed in shutterspeed_options:
             self.ui.comboBox_shutterSpeed.addItem(shutterspeed)
         # set current value to the selected item
         self.ui.comboBox_shutterSpeed.setCurrentIndex(
-            self.ui.comboBox_shutterSpeed.findText(self.cam.shutterspeed))
-        """
+            self.ui.comboBox_shutterSpeed.findText(current_shutterspeed))
 
         self.ui.comboBox_aperture.clear()
-        """
-        for aperture in self.cam.all_aperture_vals:
+        current_aperture, aperture_options = self.gphoto_cam.get_aperture()
+        for aperture in aperture_options:
             self.ui.comboBox_aperture.addItem(aperture)
         # set current value to the selected item
         self.ui.comboBox_aperture.setCurrentIndex(
-            self.ui.comboBox_aperture.findText(self.cam.aperture))
-        """
+            self.ui.comboBox_aperture.findText(current_aperture))
 
         self.ui.comboBox_iso.clear()
-        """
-        for iso in self.cam.all_iso_vals:
+        current_iso, iso_options = self.gphoto_cam.get_iso()
+        for iso in iso_options:
             self.ui.comboBox_iso.addItem(iso)
         # set current value to the selected item
         self.ui.comboBox_iso.setCurrentIndex(
-            self.ui.comboBox_iso.findText(self.cam.iso))
-        """
+            self.ui.comboBox_iso.findText(current_iso))
 
         self.ui.comboBox_whiteBalance.clear()
-        """
-        for whitebalance in self.cam.all_whitebalance_vals:
-            self.ui.comboBox_whiteBalance.addItem(whitebalance)
+        current_wb, wb_options = self.gphoto_cam.get_whitebalance()
+        for wb in wb_options:
+            self.ui.comboBox_whiteBalance.addItem(wb)
         # set current value to the selected item
         self.ui.comboBox_whiteBalance.setCurrentIndex(
-            self.ui.comboBox_whiteBalance.findText(self.cam.whitebalance))
-        """
-    
+            self.ui.comboBox_whiteBalance.findText(current_wb))
+
         self.ui.comboBox_compression.clear()
-        """
-        for compression in self.cam.all_compression_vals:
-            self.ui.comboBox_compression.addItem(compression)
+        current_format, format_options = self.gphoto_cam.get_format()
+        for fmt in format_options:
+            self.ui.comboBox_compression.addItem(fmt)
         # set current value to the selected item
         self.ui.comboBox_compression.setCurrentIndex(
-            self.ui.comboBox_compression.findText(self.cam.compression))
-        """
+            self.ui.comboBox_compression.findText(current_format))
+        
+        # Enable changes to the settings
+        self.DSLR_read_out = False
+
         # enable capture/scanning
         self.ui.action_runScan.setEnabled(True)
         self.ui.pushButton_captureImage.setEnabled(True)

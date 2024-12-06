@@ -322,7 +322,7 @@ class CustomGPhotoCamera:
             logging.warning(f"Error getting choices for {setting_name}: {str(e)}")
             return None
 
-    def set_image_format(self, format_type='Fine'):
+    def set_compression(self, format_type='Fine'):
         """Set the image format. Common names: 'imageformat', 'imagequality'"""
         format_props = ["imageformat", "imagequality"]
         
@@ -407,7 +407,7 @@ class CustomGPhotoCamera:
             except Exception as e:
                 continue
 
-    def set_white_balance_mode(self, mode='Choose Color Temperature'):
+    def set_whitebalance(self, mode='Choose Color Temperature'):
         """
         Set the white balance mode.
         Common property names: 'whitebalance', 'whitebalancemode'
