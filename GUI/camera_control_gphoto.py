@@ -771,9 +771,8 @@ if __name__ == '__main__':
             logging.info(f"  Current: {current}")
             logging.info(f"  Available options: {options}\n")
 
-        exit()
 
-        camera.set_white_balance_kelvin(5000)
+        camera.set_white_balance_kelvin(4000)
         camera.set_iso("400")
         camera.set_shutterspeed("1/30")
         camera.set_aperture("5.6")
