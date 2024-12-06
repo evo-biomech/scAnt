@@ -543,10 +543,81 @@ class CustomGPhotoCamera:
     def set_aperture(self, aperture):
         """Set the aperture value"""
 
-        if self.camera_make == "Nikon" or self.camera_make == "Sony":
+        if self.camera_make in ["Nikon", "Sony"]:
             self.set_setting("f-number", "f/" + str(aperture))
         else:
             self.set_setting("aperture", aperture)
+
+    def get_format(self):
+        """Get current image format/quality and available options"""
+        # Common property names for image format/quality settings
+        format_props = [
+            "imageformat", 
+            "imagequality",
+            "compression",
+            "compressionsetting",
+            "captureformat"
+        ]
+        
+        for prop in format_props:
+            try:
+                OK, widget = gp.gp_widget_get_child_by_name(self.config, prop)
+                if OK >= gp.GP_OK:
+                    choices = [c for c in widget.get_choices()]
+                    current = widget.get_value()
+                    return current, choices
+            except Exception as e:
+                continue
+        
+        logging.warning("No image format/quality settings found")
+        return None, None
+
+    def get_iso(self):
+        """Get current ISO and available options"""
+        iso_choices = self.get_setting_choices("iso")
+        current_iso = self.get_setting("iso")
+        if not iso_choices:
+            iso_choices = self.get_setting_choices("iso speed")
+            current_iso = self.get_setting("iso speed")
+        return current_iso, iso_choices
+
+    def get_shutterspeed(self):
+        """Get current shutter speed and available options"""
+        if self.camera_make == "Nikon":
+            shutter_choices = self.get_setting_choices("shutterspeed2")
+            current_shutter = self.get_setting("shutterspeed2")
+        else:
+            shutter_choices = self.get_setting_choices("shutterspeed")
+            current_shutter = self.get_setting("shutterspeed")
+        return current_shutter, shutter_choices
+
+    def get_aperture(self):
+        """Get current aperture and available options"""
+        if self.camera_make in ["Nikon", "Sony"]:
+            aperture_choices = self.get_setting_choices("f-number")
+            current_aperture = self.get_setting("f-number")
+        else:
+            aperture_choices = self.get_setting_choices("aperture")
+            current_aperture = self.get_setting("aperture")
+        return current_aperture, aperture_choices
+
+    def get_whitebalance(self):
+        """Get current white balance mode and available options"""
+        wb_choices = self.get_setting_choices("whitebalance")
+        current_wb = self.get_setting("whitebalance")
+        if not wb_choices:
+            wb_choices = self.get_setting_choices("whitebalancemode")
+            current_wb = self.get_setting("whitebalancemode")
+        return current_wb, wb_choices
+
+    def get_colortemperature(self):
+        """Get current color temperature and available options"""
+        kelvin_choices = self.get_setting_choices("colortemperature")
+        current_kelvin = self.get_setting("colortemperature")
+        if not kelvin_choices:
+            kelvin_choices = self.get_setting_choices("whitebalancetemperature")
+            current_kelvin = self.get_setting("whitebalancetemperature")
+        return current_kelvin, kelvin_choices
 
 def list_connected_cameras():
     """
@@ -683,40 +754,23 @@ if __name__ == '__main__':
         camera.initialise_camera()
 
         # Get available choices for major camera settings
-        logging.info("\nAvailable choices for major settings:")
+        logging.info("Available choices for major settings:\n")
         
-        # ISO
-        iso_choices = camera.get_setting_choices("iso")
-        if not iso_choices:
-            iso_choices = camera.get_setting_choices("iso speed")  # Alternative name
-        logging.info(f"ISO options: {iso_choices}")
-        
-        # Shutter speed
-        if camera.camera_make == "Nikon":
-            shutter_choices = camera.get_setting_choices("shutterspeed2")
-        else:
-            shutter_choices = camera.get_setting_choices("shutterspeed")
-        logging.info(f"Shutter speed options: {shutter_choices}")
-        
-        # Aperture 
-        if camera.camera_make in ["Nikon", "Sony"]:
-            aperture_choices = camera.get_setting_choices("f-number")
-        else:
-            aperture_choices = camera.get_setting_choices("aperture")
-        logging.info(f"Aperture options: {aperture_choices}")
-        
-        # White balance
-        wb_choices = camera.get_setting_choices("whitebalance")
-        if not wb_choices:
-            wb_choices = camera.get_setting_choices("whitebalancemode")
-        logging.info(f"White balance options: {wb_choices}")
+        # Get and display all major settings
+        settings = [
+            ("Image format/quality", camera.get_format()),
+            ("ISO", camera.get_iso()),
+            ("Shutter speed", camera.get_shutterspeed()),
+            ("Aperture", camera.get_aperture()),
+            ("White balance", camera.get_whitebalance()),
+            ("Color temperature", camera.get_colortemperature())
+        ]
 
-        # Get white balance color temperature choices
-        kelvin_choices = camera.get_setting_choices("colortemperature")
-        if not kelvin_choices:
-            kelvin_choices = camera.get_setting_choices("whitebalancetemperature")
-        logging.info(f"White balance color temperature options: {kelvin_choices}")
-        
+        for setting_name, (current, options) in settings:
+            logging.info(f"{setting_name}:")
+            logging.info(f"  Current: {current}")
+            logging.info(f"  Available options: {options}\n")
+
         exit()
 
         camera.set_white_balance_kelvin(5000)
