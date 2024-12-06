@@ -963,7 +963,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.create_output_folders()
         # create unique filename
-        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_" + self.file_format)))
+        file_name = str(self.output_location_folder.joinpath(now.strftime("%Y-%m-%d_%H-%M-%S-%MS_")))# + self.file_format)))
         if self.scanner_initialised:    
             self.scanner.flash()
             time.sleep(self.delay)
