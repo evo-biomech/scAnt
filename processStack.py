@@ -123,6 +123,7 @@ def checkFocus(image_path, threshold, usable_images, rejected_images):
 
     # if the focus measure is less than the supplied threshold,
     # then the image should be considered "blurry"
+    print("fm = ", fm, "thresh = " , threshold)
     if fm < threshold:
         text = "BLURRY"
         color_text = (0, 0, 255)

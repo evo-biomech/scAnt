@@ -370,6 +370,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
             self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
 
+            self.set_length()
             self.set_delay()
 
             self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
@@ -414,6 +415,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.stackSharpen = False
         self.ui.checkBox_stackImages.stateChanged.connect(self.enableStacking)
         self.ui.checkBox_threshold.stateChanged.connect(self.enableThresholding)
+        self.ui.doubleSpinBox_threshold.valueChanged.connect(self.set_threshold)
 
 
         self.maskImages = False
@@ -760,7 +762,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 if self.ui.checkBox_highlightExposure.isChecked():
                     img = self.cam.showExposure(img)
                 #if enabled, display focus score overlay
-                if self.ui.checkBox_focusOverlay.isChecked():
+                if self.ui.checkBox_focusOverlay.isChecked() and self.camera_type == "FLIR":
+
                     img = self.cam.showFocus(temp, img)
 
                 live_img = QtGui.QImage(img, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
@@ -1293,6 +1296,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_threshold.setEnabled(self.thresholdImages)
         self.ui.label_focusOverlay.setEnabled(self.thresholdImages)
         self.ui.checkBox_focusOverlay.setEnabled(self.thresholdImages)
+    
+    def set_threshold(self):
+        self.stackFocusThreshold = self.ui.doubleSpinBox_threshold.value()
 
     def enableMasking(self, set_to=False):
         self.maskImages = self.ui.checkBox_maskImages.isChecked()
@@ -1437,7 +1443,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if self.scanner_initialised:
             self.enable_stepper_inputs()
         if self.cam:
-            self.select_camera()
+            if self.camera_type == "FLIR":
+                self.enable_FLIR_inputs()
+            else:
+                self.enable_DSLR_inputs()
     
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
@@ -1652,7 +1661,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def runScanAndReport_threaded(self, progress_callback):
         # number of images taken over the number of images to take
-        flash_time = 0
         self.saved_imgs = []
         self.images_taken = 0
         self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
@@ -1691,6 +1699,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
                     self.scanner.flash()
+                    flash_start = time.time()
                     time.sleep(self.delay)
     
                     if self.camera_type == "FLIR":
@@ -1711,7 +1720,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     imread_output = "WARN"
                     while "WARN" in imread_output:
                         imread_output = subprocess.run("python scripts/imread.py -p " + img_name, text = True, capture_output=True).stderr
-                            
+                    
+                    while time.time() - flash_start < self.length:
+                        pass
 
                     print(img_name, "saved!")
                     self.saved_imgs.append(img_name)
@@ -1729,6 +1740,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.log_info("Stacking remaining images in queue...")
             self.postScanStacking = True
         self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-start-50.png"))
+        self.ui.action_runScan.setText("Run Scan!")
         self.enable_stepper_inputs()
         self.images_taken = 0
         self.saved_imgs = []
