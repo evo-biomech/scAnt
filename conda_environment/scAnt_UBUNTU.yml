@@ -4,7 +4,7 @@
 # © Fabian Plum, 2020
 # MIT License
 
-name: scAnt
+name: scAnt-dev2
 channels:
   - anaconda
   - conda-forge
@@ -15,8 +15,9 @@ dependencies:
   - pip:
     - pyqtdarktheme
     - pyserial
-    - gphoto2 --only-binary :all:
   - numpy
+  - libtiff=4.1
+  - pyyaml
   - matplotlib
   - opencv
   - pyqt
