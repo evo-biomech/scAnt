@@ -15,9 +15,10 @@ dependencies:
   - pip:
     - pyqtdarktheme
     - pyserial
+    - gphoto2 --only-binary :all:
   - numpy
   - matplotlib
-  - opencv=4.1.0
+  - opencv
   - pyqt
   - imutils
   - pillow

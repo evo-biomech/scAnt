@@ -8,3 +8,6 @@ scripts/__pycache__/*
 
 # jupyter related
 .ipynb_checkpoints/*
+
+# session files
+session_info.yml
