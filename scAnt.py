@@ -1287,7 +1287,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def actionOpenProject(self):
         self.readSessionFile()
-        if Path.exists(Path(self.prev_open_path)):
+        if self.prev_open_path and Path.exists(Path(self.prev_open_path)):
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(self.prev_open_path)))
         else:
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
