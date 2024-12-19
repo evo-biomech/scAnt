@@ -732,7 +732,8 @@
          <property name="font">
           <font>
            <pointsize>11</pointsize>
-           <bold>false</bold>
+           <weight>75</weight>
+           <bold>true</bold>
           </font>
          </property>
          <property name="frameShadow">
@@ -1229,7 +1230,7 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>15</height>
+           <height>20</height>
           </size>
          </property>
          <property name="maximum">
@@ -1254,7 +1255,7 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>15</height>
+           <height>20</height>
           </size>
          </property>
          <property name="minimum">
@@ -1282,7 +1283,7 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>15</height>
+           <height>20</height>
           </size>
          </property>
          <property name="minimum">
