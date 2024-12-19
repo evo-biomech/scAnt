@@ -259,6 +259,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 ### CONTINUE HERE ###
                 self.gphoto_found = True
                 self.cam = self.gphoto_cam
+                self.camera_type = "GPhoto"
 
             except Exception as e:
                 self.log_info(f"No gphoto2-compatible camera found: {str(e)}")
@@ -1049,6 +1050,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             stack = []
             prev_xy = ""
             for i,file in enumerate(os.listdir(raw_folder_loc)):
+                print(file)
+
                 xy_pos = file[:-10]
                 if xy_pos != prev_xy and i != 0:
                     stacks.append(stack)    
@@ -1058,7 +1061,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 stack.append(str(Path(raw_folder_loc).joinpath(file)))
                 prev_xy = xy_pos
             
+            if len(stacks) == 0:
+                stacks.append(stack)
+
+            print(stacks)
+
             for stack in stacks:
+                print(stack)
                 try:
                     stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
                                                 sharpen=sharpen)
@@ -1496,12 +1505,16 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.spinBox_flashLength.setEnabled(True)
 
         self.ui.pushButton_openCameraInfo.setEnabled(True)
+
         if self.scanner_initialised:
             self.enable_stepper_inputs()
         if self.cam:
+            print("camera type:", self.camera_type)
             if self.camera_type == "FLIR":
                 self.enable_FLIR_inputs()
-            else:
+            elif self.camera_type == "GPhoto":
+                self.enable_GPhoto_inputs()
+            elif self.camera_type == "DSLR":
                 self.enable_DSLR_inputs()
     
     def disable_FLIR_inputs(self):
@@ -1840,14 +1853,19 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         self.cam.capture_image(img_name)
                         # wait for the camera to capture the image before moving further
                         # time.sleep(0.2)
+
+                    if self.camera_type == "GPhoto":
+                        img_name = self.cam.capture_image(img_name)
+
                     self.images_taken += 1
                     self.getProgress()
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
 
-                    imread_output = "WARN"
-                    while "WARN" in imread_output:
-                        imread_output = subprocess.run("python scripts/imread.py -p " + img_name, text = True, capture_output=True).stderr
+                    if platform.system() == "Windows":
+                        imread_output = "WARN"
+                        while "WARN" in imread_output:
+                            imread_output = subprocess.run("python scripts/imread.py -p " + img_name, text = True, capture_output=True).stderr
                     
                     while time.time() - flash_start < self.length:
                         pass

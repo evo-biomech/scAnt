@@ -261,8 +261,9 @@ class CustomGPhotoCamera:
                         gp.GP_FILE_TYPE_NORMAL)
                     
                     # automatically add the correctfile extension to the filename
-                    camera_file.save(img_name.split(".")[0] + "." + file_path.name.split(".")[1])
-                    logging.info(f"Image saved as {img_name}")
+                    updated_img_name = img_name.split(".")[0] + "." + file_path.name.split(".")[1]
+                    camera_file.save(updated_img_name)
+                    logging.info(f"Image saved as {updated_img_name}")
                     
                     # Clean up camera memory
                     self.camera.file_delete(
@@ -287,6 +288,9 @@ class CustomGPhotoCamera:
             
             # Wait after capture to ensure camera stability
             time.sleep(capture_delay)
+
+            # Return the updated image name
+            return updated_img_name
             
         except Exception as e:
             logging.error(f"Error capturing image: {str(e)}")
