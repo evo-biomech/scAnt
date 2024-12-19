@@ -11,29 +11,32 @@ char   *sPtr [SPTR_SIZE];
 signed long number;
 // int delay 300;
 int long length = 300;
+int long PWM_low = 12;
+int long PWM_high = 70;
+
 
 
 SpeedyStepper stepper_X;
 SpeedyStepper stepper_Y;
 SpeedyStepper stepper_Z;
 
-const int X_STEP_PIN = 7;
-const int X_DIR_PIN = 6;
+const int X_STEP_PIN = 8;
+const int X_DIR_PIN = 7;
 const int ENDSTOP_X = 19;
 
-const int Y_STEP_PIN = 5;
-const int Y_DIR_PIN = 4;
+const int Y_STEP_PIN = 6;
+const int Y_DIR_PIN = 5;
 
-const int Z_STEP_PIN = 3;
+const int Z_STEP_PIN = 4;
 const int Z_DIR_PIN = 2;
 const int ENDSTOP_Z = 18;
 
-const int ENABLE_PIN = 8;
+const int ENABLE_PIN = 9;
 const int M1_PIN = 12;
 const int M2_PIN = 11;
 // const int M3_PIN = 10;
 
-const int LIGHT_PIN = 10;
+const int LIGHT_PIN = 3;
 
 signed long pos;
 signed long offset_x = 0;
@@ -67,6 +70,8 @@ void setup() {
     // start communication
   Serial.begin(9600);
 
+  TCB1_CTRLA = 0b00000011;  // pin D3
+
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, HIGH);
 
@@ -80,8 +85,8 @@ void setup() {
   // digitalWrite(M3_PIN, LOW);
 
   pinMode(LIGHT_PIN, OUTPUT);
-  digitalWrite(LIGHT_PIN, LOW);
-
+  analogWrite(LIGHT_PIN, PWM_low);
+  
   pinMode(ENDSTOP_X, INPUT_PULLUP);
   debouncer.attach(ENDSTOP_X);
   debouncer.interval(0.2);
@@ -159,7 +164,20 @@ void loop() {
           //   Serial.print("Flash delay set to ");
           //   Serial.println(delay);
           // }
-          
+
+          else if (strcmp(sPtr [0], "SET_LOW") == 0)
+          {
+            PWM_low = atoi(sPtr[1]);
+            analogWrite(LIGHT_PIN, PWM_low);
+            Serial.print("Low light value set to ");
+            Serial.println(PWM_low);
+          }
+          else if (strcmp(sPtr [0], "SET_HIGH") == 0)
+          {
+            PWM_high = atoi(sPtr[1]);
+            Serial.print("High light value set to ");
+            Serial.println(PWM_high);
+          }   
           else if (strcmp(sPtr [0], "SET_LENGTH") == 0)
           {
             length = atoi(sPtr[1]);
@@ -169,9 +187,9 @@ void loop() {
   
           else if (strcmp(sPtr [0], "FLASH_LIGHT") == 0)
           {
-            digitalWrite(LIGHT_PIN, HIGH);
+            analogWrite(LIGHT_PIN, PWM_high);
             delay(length);
-            digitalWrite(LIGHT_PIN, LOW);
+            analogWrite(LIGHT_PIN, PWM_low);
           }
           
           else if (strcmp(sPtr[0], "STEPMODE") == 0)
