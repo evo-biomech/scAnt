@@ -15,6 +15,7 @@ import argparse
 import queue
 import threading
 import time
+from scripts.hsv_x_focus_masking import detect_subject
 
 class FocusCheckingThread(threading.Thread):
     def __init__(self, threadID, name, q):
@@ -158,7 +159,7 @@ def process_stack(data, output_folder, path_to_external, params):
 
     used_platform = platform.system()
 
-    output_path = str(output_folder.joinpath(stack_name)) + ".tif"
+    output_path = str(output_folder.joinpath(stack_name)) + ".jpg"
     print(output_path)
 
     # stack_params = ""
@@ -174,11 +175,12 @@ def process_stack(data, output_folder, path_to_external, params):
         if used_platform == "Windows":
             os.system(
                 str(path_to_external) + "\\focus-stack\\focus-stack " +
-                data + " --output=" + output_path + " --no-whitebalance --no-contrast --align-keep-size"
+                data + " --output=" + output_path + " --no-whitebalance --no-contrast --align-keep-size --wait-images=0.0"
             )
         elif used_platform == "Linux":
             os.system("chmod u+x " + str(path_to_external) + "/focus-stack/focus-stack.AppImage")
-            os.system(str(path_to_external) + "/focus-stack/focus-stack.AppImage " + data + " --output=" + output_path)
+            os.system(str(path_to_external) + "/focus-stack/focus-stack.AppImage " + data + " --output=" + output_path
+                      + " --no-whitebalance --no-contrast --align-keep-size --wait-images=5.0")
     else:
         if used_platform == "Linux":
             os.system("align_image_stack -m -x -c 200 -a " + str(
@@ -246,7 +248,7 @@ def process_stack(data, output_folder, path_to_external, params):
     return output_path
 
 
-def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
+def stack_images(input_paths, check_focus=False, threshold=0.0, sharpen=False):
     images = Path(input_paths[0]).parent
 
     all_image_paths = []
@@ -255,6 +257,8 @@ def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
 
     usable_images = []
     rejected_images = []
+
+    print(input_paths)
 
     for path in all_image_paths:
         if check_focus:
@@ -460,7 +464,8 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
     "mask_thresh_max": 100,
     "min_artifact_size_black": 1000,
     "min_artifact_size_white": 2000,
-    "CLAHE":1.0
+    "CLAHE":1.0,
+    "hsv_x_focus_masking": True
 }):
     """
     create alpha mask for the image located in path
@@ -470,158 +475,169 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
     """
     src = cv2.imread(data, 1)
 
-    if not params["full_resolution"]:
-        print("Using downscaled image for mask generation at 1500 px x 1500 px...")
-        orig_res = src.shape
-        kernel_gauss = (5, 5)
-        print("Original resolution:", orig_res)
-        src = cv2.resize(src, (1500, 1500), interpolation=cv2.INTER_AREA)
+    if params["hsv_x_focus_masking"]:
+        print("INFO: Using HSV-based focus masking")
+        out_mask = detect_subject(data, 
+                                  saturation_threshold=70, 
+                                  focus_threshold=20, 
+                                  gaussian_kernel_size=3, 
+                                  cleanup_kernel_size=3)
     else:
-        print("Using full resolution input image for mask generation [potentially significantly slower]")
-        orig_res = src.shape
-        kernel_gauss = (5, 5)
-        print("Original resolution:", orig_res)
 
-    img_enhanced = apply_local_contrast(src, clip_limit=params["CLAHE"])
+        if not params["full_resolution"]:
+            print("Using downscaled image for mask generation at 1500 px x 1500 px...")
+            orig_res = src.shape
+            kernel_gauss = (5, 5)
+            print("Original resolution:", orig_res)
+            src = cv2.resize(src, (1500, 1500), interpolation=cv2.INTER_AREA)
+        else:
+            print("Using full resolution input image for mask generation [potentially significantly slower]")
+            orig_res = src.shape
+            kernel_gauss = (5, 5)
+            print("Original resolution:", orig_res)
 
-    # reduce noise in the image before detecting edges
-    blurred = cv2.GaussianBlur(img_enhanced, kernel_gauss, 0)
+        img_enhanced = apply_local_contrast(src, clip_limit=params["CLAHE"])
 
-    # turn image into float array
-    blurred_float = blurred.astype(np.float32) / 255.0
-    edges = edgeDetector.detectEdges(blurred_float) * 255.0
-    if threadName:
-        print("%s : Filtering out salt & pepper grain of %s" % (threadName, data.split("\\")[-1]))
-    edges_8u = np.asarray(edges, np.uint8)
-    filterOutSaltPepperNoise(edges_8u)
+        # reduce noise in the image before detecting edges
+        blurred = cv2.GaussianBlur(img_enhanced, kernel_gauss, 0)
 
-    if threadName:
-        print("%s : Extracting largest coherent contour of %s" % (threadName, data.split("\\")[-1]))
-    contour = findSignificantContour(edges_8u)
-    # Draw the contour on the original image
-    contourImg = np.copy(src)
-    cv2.drawContours(contourImg, [contour], 0, (0, 255, 0), 2, cv2.LINE_AA, maxLevel=1)
-    # cv2.imwrite(data[:-4] + '_contour.png', contourImg)
+        # turn image into float array
+        blurred_float = blurred.astype(np.float32) / 255.0
+        edges = edgeDetector.detectEdges(blurred_float) * 255.0
+        if threadName:
+            print("%s : Filtering out salt & pepper grain of %s" % (threadName, data.split("\\")[-1]))
+        edges_8u = np.asarray(edges, np.uint8)
+        filterOutSaltPepperNoise(edges_8u)
 
-    mask = np.zeros_like(edges_8u)
-    cv2.fillPoly(mask, [contour], 255)
+        if threadName:
+            print("%s : Extracting largest coherent contour of %s" % (threadName, data.split("\\")[-1]))
+        contour = findSignificantContour(edges_8u)
+        # Draw the contour on the original image
+        contourImg = np.copy(src)
+        cv2.drawContours(contourImg, [contour], 0, (0, 255, 0), 2, cv2.LINE_AA, maxLevel=1)
+        # cv2.imwrite(data[:-4] + '_contour.png', contourImg)
 
-    # calculate sure foreground area by dilating the mask
-    mapFg = cv2.erode(mask, np.ones((5, 5), np.uint8), iterations=10)
+        mask = np.zeros_like(edges_8u)
+        cv2.fillPoly(mask, [contour], 255)
 
-    # mark inital mask as "probably background"
-    # and mapFg as sure foreground
-    trimap = np.copy(mask)
-    trimap[mask == 0] = cv2.GC_BGD
-    trimap[mask == 255] = cv2.GC_PR_BGD
-    trimap[mapFg == 255] = cv2.GC_FGD
+        # calculate sure foreground area by dilating the mask
+        mapFg = cv2.erode(mask, np.ones((5, 5), np.uint8), iterations=10)
 
-    # visualize trimap
-    trimap_print = np.copy(trimap)
-    trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
-    trimap_print[trimap_print == cv2.GC_FGD] = 255
-    # cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
+        # mark inital mask as "probably background"
+        # and mapFg as sure foreground
+        trimap = np.copy(mask)
+        trimap[mask == 0] = cv2.GC_BGD
+        trimap[mask == 255] = cv2.GC_PR_BGD
+        trimap[mapFg == 255] = cv2.GC_FGD
 
-    if threadName:
-        print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
-    # run grabcut
-    bgdModel = np.zeros((1, 65), np.float64)
-    fgdModel = np.zeros((1, 65), np.float64)
-    rect = (0, 0, mask.shape[0] - 1, mask.shape[1] - 1)
-    cv2.grabCut(src, trimap, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_MASK)
+        # visualize trimap
+        trimap_print = np.copy(trimap)
+        trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
+        trimap_print[trimap_print == cv2.GC_FGD] = 255
+        # cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
 
-    # create mask again
-    mask2 = np.where(
-        (trimap == cv2.GC_FGD) | (trimap == cv2.GC_PR_FGD),
-        255,
-        0
-    ).astype('uint8')
+        if threadName:
+            print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
+        # run grabcut
+        bgdModel = np.zeros((1, 65), np.float64)
+        fgdModel = np.zeros((1, 65), np.float64)
+        rect = (0, 0, mask.shape[0] - 1, mask.shape[1] - 1)
+        cv2.grabCut(src, trimap, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_MASK)
 
-    contour2 = findSignificantContour(mask2)
-    mask3 = np.zeros_like(mask2)
-    cv2.fillPoly(mask3, [contour2], 255)
+        # create mask again
+        mask2 = np.where(
+            (trimap == cv2.GC_FGD) | (trimap == cv2.GC_PR_FGD),
+            255,
+            0
+        ).astype('uint8')
 
-    # blended alpha cut-out
-    mask3 = np.repeat(mask3[:, :, np.newaxis], 3, axis=2)
-    mask4 = cv2.GaussianBlur(mask3, (3, 3), 0)
-    alpha = mask4.astype(float) * 1.1  # making blend stronger
-    alpha[mask3 > 0] = 255
-    alpha[alpha > 255] = 255
-    alpha = alpha.astype(float)
+        contour2 = findSignificantContour(mask2)
+        mask3 = np.zeros_like(mask2)
+        cv2.fillPoly(mask3, [contour2], 255)
 
-    foreground = np.copy(src).astype(float)
-    foreground[mask4 == 0] = 0
-    background = np.ones_like(foreground, dtype=float) * 255
+        # blended alpha cut-out
+        mask3 = np.repeat(mask3[:, :, np.newaxis], 3, axis=2)
+        mask4 = cv2.GaussianBlur(mask3, (3, 3), 0)
+        alpha = mask4.astype(float) * 1.1  # making blend stronger
+        alpha[mask3 > 0] = 255
+        alpha[alpha > 255] = 255
+        alpha = alpha.astype(float)
 
-    # Normalize the alpha mask to keep intensity between 0 and 1
-    alpha = alpha / 255.0
-    # Multiply the foreground with the alpha matte
-    foreground = cv2.multiply(alpha, foreground)
-    # Multiply the background with ( 1 - alpha )
-    background = cv2.multiply(1.0 - alpha, background)
-    # Add the masked foreground and background.
-    cutout = cv2.add(foreground, background)
+        foreground = np.copy(src).astype(float)
+        foreground[mask4 == 0] = 0
+        background = np.ones_like(foreground, dtype=float) * 255
 
-    cv2.imwrite(data[:-4] + '_contour.png', cutout)
-    cutout = cv2.imread(data[:-4] + '_contour.png')
+        # Normalize the alpha mask to keep intensity between 0 and 1
+        alpha = alpha / 255.0
+        # Multiply the foreground with the alpha matte
+        foreground = cv2.multiply(alpha, foreground)
+        # Multiply the background with ( 1 - alpha )
+        background = cv2.multiply(1.0 - alpha, background)
+        # Add the masked foreground and background.
+        cutout = cv2.add(foreground, background)
 
-    used_platform = platform.system()
+        cv2.imwrite(data[:-4] + '_contour.png', cutout)
+        cutout = cv2.imread(data[:-4] + '_contour.png')
 
-    if used_platform == "Linux":
-        os.system("rm " + data[:-4] + '_contour.png')
-    else:
-        os.system("del " + data[:-4] + '_contour.png')
+        used_platform = platform.system()
 
-    # cutout = cv2.imread(source, 1)  # TEMPORARY
+        if used_platform == "Linux":
+            os.system("rm " + data[:-4] + '_contour.png')
+        else:
+            os.system("del " + data[:-4] + '_contour.png')
 
-    cutout_blurred = cv2.GaussianBlur(cutout, (5, 5), 0)
+        # cutout = cv2.imread(source, 1)  # TEMPORARY
 
-    gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
-    # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                                  cv2.THRESH_BINARY_INV, blockSize=501,C=2)
+        cutout_blurred = cv2.GaussianBlur(cutout, (5, 5), 0)
 
-    # front and back light
-    # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
-    # upper_gray = np.array([215, 215, 215])
-    # front light only
-    min_rgb = float(params["mask_thresh_min"])
-    max_rgb = float(params["mask_thresh_max"])
-    lower_gray = np.array([min_rgb, min_rgb, min_rgb])  # [R value, G value, B value]
-    upper_gray = np.array([max_rgb, max_rgb, max_rgb])
+        gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
+        # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        #                                  cv2.THRESH_BINARY_INV, blockSize=501,C=2)
 
-    mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
+        # front and back light
+        # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
+        # upper_gray = np.array([215, 215, 215])
+        # front light only
+        min_rgb = float(params["mask_thresh_min"])
+        max_rgb = float(params["mask_thresh_max"])
+        lower_gray = np.array([min_rgb, min_rgb, min_rgb])  # [R value, G value, B value]
+        upper_gray = np.array([max_rgb, max_rgb, max_rgb])
 
-    # binarise
-    ret, image_bin = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY_INV)
-    image_bin[image_bin < 127] = 0
-    image_bin[image_bin > 127] = 1
+        mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
 
-    #cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
+        # binarise
+        ret, image_bin = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY_INV)
+        image_bin[image_bin < 127] = 0
+        image_bin[image_bin > 127] = 1
 
-    print("cleaning up thresholding result, using connected component labelling of %s"
-          % (data.split("\\")[-1]))
+        #cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
-    # remove black artifacts
-    blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
+        print("cleaning up thresholding result, using connected component labelling of %s"
+            % (data.split("\\")[-1]))
 
-    image_cleaned = remove_holes(blobs_labels, min_num_pixel=params["min_artifact_size_black"])
+        # remove black artifacts
+        blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
 
-    image_cleaned_inv = 1 - image_cleaned
+        image_cleaned = remove_holes(blobs_labels, min_num_pixel=params["min_artifact_size_black"])
 
-    # cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
+        image_cleaned_inv = 1 - image_cleaned
 
-    # remove white artifacts
-    blobs_labels_white = measure.label(image_cleaned_inv, background=0)
+        # cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
-    image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=params["min_artifact_size_white"])
+        # remove white artifacts
+        blobs_labels_white = measure.label(image_cleaned_inv, background=0)
 
-    if not params["full_resolution"]:
-        # up-scaling masks to original resolution
-        image_cleaned_white = cv2.resize(image_cleaned_white,
-                                            (orig_res[1], orig_res[0]),
-                                            interpolation=cv2.INTER_AREA)
+        image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=params["min_artifact_size_white"])
 
-    cv2.imwrite(data[:-4] + "_masked.png", image_cleaned_white, [cv2.IMWRITE_PNG_BILEVEL, 1])
+        if not params["full_resolution"]:
+            # up-scaling masks to original resolution
+            image_cleaned_white = cv2.resize(image_cleaned_white,
+                                                (orig_res[1], orig_res[0]),
+                                                interpolation=cv2.INTER_AREA)
+        
+        out_mask = image_cleaned_white
+
+    cv2.imwrite(data[:-4] + "_masked.png", out_mask, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
     if params["create_cutout"]:
         image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
@@ -658,7 +674,8 @@ def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout, ed
               "min_artifact_size_black": min_bl,
               "min_artifact_size_white": min_wh,
               "full_resolution":False,
-              "CLAHE": 1.0}
+              "CLAHE": 1.0,
+              "hsv_x_focus_masking": True}
 
     for img in input_paths:
         createAlphaMask(img, edgeDetector, params=params)
@@ -699,6 +716,8 @@ if __name__ == "__main__":
     ap.add_argument("-ex", "--new_focus_stack", type=bool, default=True, help="Use new stacking method")
     ap.add_argument("-fr_align", "--full_resolution_align", type=bool, default=False, help="Use full resolution images in alignment (default max 2048 px)")
     ap.add_argument("-jpg", "--jpgquality", help="Quality for saving in JPG format (0-100, default 95)")
+    ap.add_argument("-hf", "--hsv_x_focus_masking", type=bool, default=True,
+                    help="Use HSV-based focus masking for subject detection")
 
     args = vars(ap.parse_args())
     project_dir = Path(args["path"])
@@ -953,11 +972,11 @@ if __name__ == "__main__":
 
             print("Using images from", stacked_dir)
             # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-            file_type = "tif"
+            file_types = ["tif", "jpg"]
             all_image_paths = []
             for imagePath in sorted(paths.list_images(stacked_dir)):
-                # create an alpha mask for all TIF images in the source folder
-                if imagePath[-3::] == file_type:
+                # create an alpha mask for all TIF/JPG images in the source folder
+                if any(imagePath.lower().endswith(ft) for ft in file_types):
                     all_image_paths.append(imagePath)
                     print("added", imagePath, "to queue")
 
