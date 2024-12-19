@@ -9,5 +9,9 @@ scripts/__pycache__/*
 # jupyter related
 .ipynb_checkpoints/*
 
-# session files
+test_project
+dist
+build
+scAnt.spec
+spinnaker_python-2.7.0.128-cp37-cp37m-win_amd64.whl
 session_info.yml
