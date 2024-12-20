@@ -1492,8 +1492,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.checkBox_stackImages.setEnabled(True)
         self.ui.label_stackImages.setEnabled(True)
-        self.ui.label_maskImages.setEnabled(self.stackImages)
-        self.ui.checkBox_maskImages.setEnabled(self.stackImages)
+        self.ui.label_maskImages.setEnabled(True)
+        self.ui.checkBox_maskImages.setEnabled(True)
         self.ui.label_postProcessParam.setEnabled(True)
 
         self.ui.pushButton_openPostWindow.setEnabled(True)
@@ -1835,10 +1835,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     while self.scanner.getStepperPosition(2) != posZ:
                         pass
 
-
-                    stackName.append(img_name)
-
-
                     self.scanner.flash()
                     flash_start = time.time()
                     time.sleep(self.delay)
@@ -1873,6 +1869,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     print(img_name, "saved!")
                     self.saved_imgs.append(img_name)
 
+                    stackName.append(img_name)
 
                     print('Time to write image to device:', time.time() - save_time, "seconds")
 
