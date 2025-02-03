@@ -1000,7 +1000,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def setOutputLocation(self):
         self.readSessionFile()
-        if Path.exists(Path(self.output_location)):
+        if self.output_location and Path.exists(Path(self.output_location)):
             new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
                                                                   str(Path(self.output_location)))
         else:

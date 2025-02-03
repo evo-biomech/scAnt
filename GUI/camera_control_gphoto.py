@@ -473,13 +473,13 @@ class CustomGPhotoCamera:
         kelvin_props = ["colortemperature", "whitebalancetemperature"]
         
         if camera.camera_make == "Sony":
-            self.set_white_balance_mode("Choose Color Temperature")
+            self.set_whitebalance(mode = "Choose Color Temperature")
             kelvin_val = int(kelvin)
         elif camera.camera_make == "Canon":
-            self.set_white_balance_mode("Color Temperature")
+            self.set_whitebalance(mode = "Color Temperature")
             kelvin_val = str(kelvin)
         elif camera.camera_make == "Nikon":
-            self.set_white_balance_mode("Color Temperature")
+            self.set_whitebalance(mode = "Color Temperature")
             kelvin_val = int(kelvin)
             # Now this is slightly more tricky, as the Nikon camera uses a different property name
             # The Nikon camera uses "White Balance Colour Temperature" but this cannot be accessed directly
