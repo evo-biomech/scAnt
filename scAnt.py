@@ -271,8 +271,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         try:
             self.scanner = ScannerController()
             # Uncomment if prefered homing on startup
-            # self.homeX()
-            # self.homeZ()
+            # self.home_x()
+            # self.home_z()
             self.scanner_initialised = True
 
         except (IndexError, TypeError, AttributeError):
@@ -320,27 +320,27 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # Stepper settings
 
-        self.ui.pushButton_xHome.pressed.connect(self.homeX)
+        self.ui.pushButton_xHome.pressed.connect(self.home_x)
 
-        self.ui.pushButton_yReset.pressed.connect(self.resetY)
+        self.ui.pushButton_yReset.pressed.connect(self.reset_y)
 
-        self.ui.pushButton_zHome.pressed.connect(self.homeZ)
+        self.ui.pushButton_zHome.pressed.connect(self.home_z)
 
-        self.ui.pushButton_stepperDeEnergise.pressed.connect(self.deEnergise)
+        self.ui.pushButton_stepperDeEnergise.pressed.connect(self.de_energise)
 
         self.ui.pushButton_Energise.pressed.connect(self.energise)
 
-        self.ui.horizontalSlider_xAxis.sliderReleased.connect(self.moveStepperX)
+        self.ui.horizontalSlider_xAxis.sliderReleased.connect(self.move_stepper_x)
         
-        self.ui.horizontalSlider_xAxis.valueChanged.connect(self.updateDisplayX)
+        self.ui.horizontalSlider_xAxis.valueChanged.connect(self.update_display_x)
 
-        self.ui.horizontalSlider_yAxis.sliderReleased.connect(self.moveStepperY)
+        self.ui.horizontalSlider_yAxis.sliderReleased.connect(self.move_stepper_y)
 
-        self.ui.horizontalSlider_yAxis.valueChanged.connect(self.updateDisplayY)
+        self.ui.horizontalSlider_yAxis.valueChanged.connect(self.update_display_y)
 
-        self.ui.horizontalSlider_zAxis.sliderReleased.connect(self.moveStepperZ)
+        self.ui.horizontalSlider_zAxis.sliderReleased.connect(self.move_stepper_z)
 
-        self.ui.horizontalSlider_zAxis.valueChanged.connect(self.updateDisplayZ)
+        self.ui.horizontalSlider_zAxis.valueChanged.connect(self.update_display_z)
 
         #Camera Info
 
@@ -373,12 +373,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         if self.scanner_initialised:
             # disable stepper control before they have been homed (except for y axis)
-            # self.deEnergise()
+            # self.de_energise()
             self.homed_X = False
             self.homed_Z = False
             self.ui.horizontalSlider_xAxis.setEnabled(False)
             self.ui.horizontalSlider_zAxis.setEnabled(False)
-            self.resetY()
+            self.reset_y()
 
             # get default scanner Range
             self.ui.doubleSpinBox_xMin.setValue(self.scanner.scan_pos[0][0])
@@ -389,15 +389,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.doubleSpinBox_zMax.setValue(self.scanner.scan_pos[2][-1] + self.scanner.scan_stepSize[2])
 
             # adjust scanner range on input
-            self.ui.doubleSpinBox_xMin.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_xStep.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_xMax.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_yMin.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_yStep.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_yMax.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_zMin.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_zStep.valueChanged.connect(self.setScannerRange)
-            self.ui.doubleSpinBox_zMax.valueChanged.connect(self.setScannerRange)
+            self.ui.doubleSpinBox_xMin.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_xStep.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_xMax.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_yMin.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_yStep.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_yMax.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_zMin.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_zStep.valueChanged.connect(self.set_scanner_range)
+            self.ui.doubleSpinBox_zMax.valueChanged.connect(self.set_scanner_range)
 
             self.set_length()
             self.set_delay()
@@ -408,7 +408,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.progress = 0
 
-        self.ui.action_runScan.triggered.connect(self.runScanAndReport)
+        self.ui.action_runScan.triggered.connect(self.run_scan_and_report)
 
         self.xMoving = False
         self.yMoving = False
@@ -424,12 +424,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.showExposure = False
 
         # Scanner output setup
-        self.settings_dialog.ui.checkBox_includePresets.stateChanged.connect(self.enableConfigEntry)
+        self.settings_dialog.ui.checkBox_includePresets.stateChanged.connect(self.enable_config_entry)
         self.output_location = str(Path.cwd())
         self.update_output_location()
-        self.settings_dialog.ui.pushButton_browseOutput.pressed.connect(self.setOutputLocation)
-        self.settings_dialog.ui.pushButton_chooseConfig.pressed.connect(self.preloadConfig)
-        self.settings_dialog.accepted.connect(self.confirmProjectSettings)
+        self.settings_dialog.ui.pushButton_browseOutput.pressed.connect(self.set_output_location)
+        self.settings_dialog.ui.pushButton_chooseConfig.pressed.connect(self.preload_config)
+        self.settings_dialog.accepted.connect(self.confirm_project_settings)
 
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
@@ -442,8 +442,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.stackFocusThreshold = 10.0
         self.stackDisplayFocus = False
         self.stackSharpen = False
-        self.ui.checkBox_stackImages.stateChanged.connect(self.enableStacking)
-        self.ui.checkBox_threshold.stateChanged.connect(self.enableThresholding)
+        self.ui.checkBox_stackImages.stateChanged.connect(self.enable_stacking)
+        self.ui.checkBox_threshold.stateChanged.connect(self.enable_thresholding)
         self.ui.doubleSpinBox_threshold.valueChanged.connect(self.set_threshold)
 
 
@@ -452,30 +452,30 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskThreshMax = 240
         self.maskArtifactSizeBlack = 1000
         self.maskArtifactSizeWhite = 2000
-        self.ui.checkBox_maskImages.stateChanged.connect(self.enableMasking)
+        self.ui.checkBox_maskImages.stateChanged.connect(self.enable_masking)
 
-        self.post_dialog.ui.pushButton_runPostProcessing.pressed.connect(self.runPostProcessing)
+        self.post_dialog.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
 
         # once the scan has been started check if new sets of images are available for stacking
         self.timerStack = QtCore.QTimer(self)
-        self.timerStack.timeout.connect(self.checkActiveStackThreads)
+        self.timerStack.timeout.connect(self.check_active_stack_threads)
 
         self.exif = get_default_values()
         self.createCutout = True
 
         # use config file
         self.loadedConfig = False
-        self.ui.action_loadConfig.triggered.connect(self.loadConfig)
+        self.ui.action_loadConfig.triggered.connect(self.load_config)
 
-        self.ui.action_save.triggered.connect(self.writeConfig)
+        self.ui.action_save.triggered.connect(self.write_config)
 
-        self.ui.action_newProject.triggered.connect(self.openDialog)
+        self.ui.action_newProject.triggered.connect(self.open_dialog)
 
-        self.ui.action_openProject.triggered.connect(self.actionOpenProject)
+        self.ui.action_openProject.triggered.connect(self.action_open_project)
 
-        self.ui.action_darkMode.triggered.connect(self.darkMode)
+        self.ui.action_darkMode.triggered.connect(self.dark_mode)
 
-        self.ui.action_lightMode.triggered.connect(self.lightMode)
+        self.ui.action_lightMode.triggered.connect(self.light_mode)
 
         # stack and mask images
         self.maxStackThreads = max(min([int(getThreads() / 6), 2]), 1)
@@ -488,7 +488,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     Stepper Control
     """
 
-    def setScannerRange(self):
+    def set_scanner_range(self):
         self.scanner.setScanRange(stepper=0, min=self.ui.doubleSpinBox_xMin.value(),
                                   max=self.ui.doubleSpinBox_xMax.value() + self.ui.doubleSpinBox_xStep.value(),
                                   step=self.ui.doubleSpinBox_xStep.value())
@@ -499,15 +499,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                   max=self.ui.doubleSpinBox_zMax.value() + self.ui.doubleSpinBox_zStep.value(),
                                   step=self.ui.doubleSpinBox_zStep.value())
 
-    def updateDisplayX(self):
+    def update_display_x(self):
         pos = self.ui.horizontalSlider_xAxis.value()
         self.ui.lcdNumber_xAxis.display(pos)
 
-    def updateDisplayY(self):
+    def update_display_y(self):
         pos = self.ui.horizontalSlider_yAxis.value()
         self.ui.lcdNumber_yAxis.display(pos)
 
-    def updateDisplayZ(self):
+    def update_display_z(self):
         pos = self.ui.horizontalSlider_zAxis.value()
         self.ui.lcdNumber_zAxis.display(pos)
 
@@ -515,7 +515,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.scanner.resume()
         self.log_info("Energised steppers")
 
-    def deEnergise(self):
+    def de_energise(self):
         self.scanner.deEnergise()
         self.log_info("De-energised steppers")
         self.ui.horizontalSlider_xAxis.setEnabled(False)
@@ -523,17 +523,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.homed_X = False
         self.homed_Z = False
 
-    def homeX(self):
+    def home_x(self):
         self.sliders_enabled(False)
-        worker = Worker(self.homeX_threaded)
+        worker = Worker(self.home_x_threaded)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.homeX_finished)
+        worker.signals.finished.connect(self.home_x_finished)
 
-    def homeX_threaded(self, progress_callback):
+    def home_x_threaded(self, progress_callback):
         self.scanner.home(0)
         self.scanner.getStepperPosition(0)
 
-    def homeX_finished(self):
+    def home_x_finished(self):
         self.log_info("Homed X Axis")
         if not self.homed_Z:
             self.ui.horizontalSlider_zAxis.setEnabled(False)
@@ -543,23 +543,23 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.sliders_enabled(True)
         self.posX = 0
 
-    def resetY(self):
+    def reset_y(self):
         self.ui.horizontalSlider_yAxis.setValue(0)
-        self.updateDisplayY()
+        self.update_display_y()
         self.scanner.home(1)
         self.log_info("Reset Y Axis")
 
-    def homeZ(self):
+    def home_z(self):
         self.sliders_enabled(False)
-        worker = Worker(self.homeZ_threaded)
+        worker = Worker(self.home_z_threaded)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.homeZ_finished)
+        worker.signals.finished.connect(self.home_z_finished)
 
-    def homeZ_threaded(self, progress_callback):
+    def home_z_threaded(self, progress_callback):
         self.scanner.home(2)
         self.scanner.getStepperPosition(2)   
  
-    def homeZ_finished(self):
+    def home_z_finished(self):
         self.log_info("Homed Z Axis")
         self.ui.lcdNumber_zAxis.display(0)
         self.ui.horizontalSlider_zAxis.setValue(0)
@@ -567,51 +567,51 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.sliders_enabled(True)
         self.posZ = 0
 
-    def moveStepperX(self):
+    def move_stepper_x(self):
         self.xMoving = True
         self.sliders_enabled(False)
-        worker = Worker(self.moveStepperX_threaded)
+        worker = Worker(self.move_stepper_x_threaded)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.moveStepperX_finished)    
+        worker.signals.finished.connect(self.move_stepper_x_finished)    
     
-    def moveStepperX_threaded(self, progress_callback):
+    def move_stepper_x_threaded(self, progress_callback):
         pos = self.ui.horizontalSlider_xAxis.value()
         self.scanner.moveToPosition(stepper=0, pos=pos)
         self.posX = pos
     
-    def moveStepperX_finished(self):
+    def move_stepper_x_finished(self):
         self.sliders_enabled(True)
         self.xMoving = False
 
-    def moveStepperY(self):
+    def move_stepper_y(self):
         self.yMoving = True
         self.sliders_enabled(False)
-        worker = Worker(self.moveStepperY_threaded)
+        worker = Worker(self.move_stepper_y_threaded)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.moveStepperY_finished)
+        worker.signals.finished.connect(self.move_stepper_y_finished)
 
-    def moveStepperY_threaded(self, progress_callback):
+    def move_stepper_y_threaded(self, progress_callback):
         pos = self.ui.horizontalSlider_yAxis.value()
         self.scanner.moveToPosition(stepper=1, pos=pos)
         self.posY = pos
 
-    def moveStepperY_finished(self):
+    def move_stepper_y_finished(self):
         self.sliders_enabled(True)
         self.yMoving = False
     
-    def moveStepperZ(self):
+    def move_stepper_z(self):
         self.zMoving = True
         self.sliders_enabled(False)
-        worker = Worker(self.moveStepperZ_threaded)
+        worker = Worker(self.move_stepper_z_threaded)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.moveStepperZ_finished)
+        worker.signals.finished.connect(self.move_stepper_z_finished)
     
-    def moveStepperZ_threaded(self, progress_callback):
+    def move_stepper_z_threaded(self, progress_callback):
         pos = self.ui.horizontalSlider_zAxis.value()
         self.scanner.moveToPosition(stepper=2, pos=pos)
         self.posZ = pos
     
-    def moveStepperZ_finished(self):
+    def move_stepper_z_finished(self):
         self.sliders_enabled(True)
         self.zMoving = False
 
@@ -925,7 +925,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 os.remove(self.output_location_folder.joinpath("stacked").joinpath(file))
 
         self.scanInProgress = False
-        self.changeInputState()
+        self.change_input_state()
         self.log_info("Scanning completed!")
 
     def begin_live_view(self):
@@ -992,14 +992,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     Scanner Setup
     """
 
-    def getProgress(self):
+    def get_progress(self):
         self.progress = min(int(100 * (self.images_taken / self.images_to_take)), 100)
 
     def set_project_title(self):
         self.setWindowTitle("scAnt:  " + self.name)
 
-    def setOutputLocation(self):
-        self.readSessionFile()
+    def set_output_location(self):
+        self.read_session_file()
         if self.output_location and Path.exists(Path(self.output_location)):
             new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose output location",
                                                                   str(Path(self.output_location)))
@@ -1009,7 +1009,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if new_location:
             self.output_location = new_location
 
-        self.updateSessionFile()
+        self.update_session_file()
         self.update_output_location()
 
     def set_post_location(self):
@@ -1021,7 +1021,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.update_raw_location()
 
-    def runPostProcessing_threaded(self, progress_callback):
+    def run_post_processing_threaded(self, progress_callback):
         config_present = False
         raw_folder_loc = self.raw_location
         parent = Path(raw_folder_loc).parent
@@ -1087,11 +1087,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             print("No config file found!")
     
-    def runPostProcessing(self):
-        worker = Worker(self.runPostProcessing_threaded)
+    def run_post_processing(self):
+        worker = Worker(self.run_post_processing_threaded)
         self.threadpool.start(worker)
 
-    def loadConfig(self):
+    def load_config(self):
         if self.configPath == "":
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
                                                         str(Path(basedir)), "config file (*.yaml)")
@@ -1159,7 +1159,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.ui.doubleSpinBox_yStep.setValue(config["scanner_settings"]["y_step"])
                     self.ui.doubleSpinBox_zStep.setValue(config["scanner_settings"]["z_step"])
 
-                    self.setScannerRange()
+                    self.set_scanner_range()
                 else:
                     self.log_warning("Stepper controllers are not connected!")
 
@@ -1213,28 +1213,31 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(self, "Failed to load " + str(config_location.name),
                                                "The selected config file was generated for a different camera type!")
 
-    def preloadConfig(self):
+    def preload_config(self):
     
             file = QtWidgets.QFileDialog.getOpenFileName(self, "Load existing config file",
                                                         str(Path(basedir)), "config file (*.yaml)")
             self.configPath = file[0]
             self.settings_dialog.ui.lineEdit_chosenConfig.setText(self.configPath)
         
-    def confirmProjectSettings(self):
+    def confirm_project_settings(self):
         self.name = self.settings_dialog.ui.lineEdit_projectName.text()
         self.set_project_title()
         self.output_location = self.settings_dialog.ui.lineEdit_outputLocation.text()
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
     
         if self.settings_dialog.ui.checkBox_includePresets.checkState() and self.configPath:
-            self.loadConfig()
+            self.load_config()
 
-        self.enableEditing()
+        self.enable_editing()
 
         self.create_output_folders()
-        self.updateSessionFile()
+        print(self.output_location)
+        self.read_session_file()
+        print("These are the things", self.prev_open_path, self.output_location)
+        self.update_session_file()
 
-    def writeConfig(self):
+    def write_config(self):
 
         if self.camera_type == "DSLR":
             self.get_DSLR_file_ending()
@@ -1294,14 +1297,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.log_info("Exported config_file successfully!")
 
 
-    def actionOpenProject(self):
-        self.readSessionFile()
+    def action_open_project(self):
+        self.read_session_file()
         if self.prev_open_path and Path.exists(Path(self.prev_open_path)):
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(self.prev_open_path)))
         else:
             dir = QtWidgets.QFileDialog.getExistingDirectory(self, "Open existing scAnt Project", str(Path(basedir)))
-            self.prev_open_path = str(Path(dir).parent)
-            self.updateSessionFile()
+        self.prev_open_path = str(Path(dir).parent)
+        self.update_session_file()
         if dir:
             dir = Path(dir)
             for file in os.listdir(dir):
@@ -1309,21 +1312,21 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 if file.lower().endswith(".yaml"):
                     # self.settings_dialog.ui.lineEdit_projectName.setText(os.path.basename(dir))
                     self.configPath = str(dir.joinpath(file))
-                    self.loadConfig()
+                    self.load_config()
                     self.output_location = str(dir.parent.absolute())
                     self.name = file[:-12]
                     self.output_location_folder = Path(self.output_location).joinpath(self.name)  
                     # self.update_output_location()
                     self.set_project_title()
                     self.configPath = ""
-                    self.enableEditing()
+                    self.enable_editing()
                     break
-    
-    def updateSessionFile(self):
+                    
+    def update_session_file(self):
         content = {"prev_open_path" : self.prev_open_path, "prev_new_path": self.output_location}
         ymlRW.write_session_file(content, Path(basedir))
 
-    def readSessionFile(self):
+    def read_session_file(self):
         ses = ymlRW.read_session_file("session_info.yml")
         if ses:
             self.prev_open_path = ses["prev_open_path"]
@@ -1331,14 +1334,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         else:
             self.prev_open_path = None
     
-    def openDialog(self):
+    def open_dialog(self):
         self.settings_dialog.show()
 
-    def darkMode(self):
+    def dark_mode(self):
         qdarktheme.setup_theme("dark")
 
     
-    def lightMode(self):
+    def light_mode(self):
         qdarktheme.setup_theme("light")
 
     def update_output_location(self):
@@ -1347,14 +1350,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def update_raw_location(self):
         self.post_dialog.ui.lineEdit_processingFolder.setText(self.raw_location)
 
-    def enableStacking(self, set_to=False):
+    def enable_stacking(self, set_to=False):
         self.stackImages = self.ui.checkBox_stackImages.isChecked()
 
         self.ui.label_threshold.setEnabled(self.stackImages)
         self.ui.checkBox_threshold.setEnabled(self.stackImages)
 
 
-    def enableThresholding(self):
+    def enable_thresholding(self):
         self.thresholdImages = self.ui.checkBox_threshold.isChecked()
 
         self.ui.label_thresholdFocus.setEnabled(self.thresholdImages)
@@ -1365,7 +1368,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def set_threshold(self):
         self.stackFocusThreshold = self.ui.doubleSpinBox_threshold.value()
 
-    def enableMasking(self, set_to=False):
+    def enable_masking(self, set_to=False):
         self.maskImages = self.ui.checkBox_maskImages.isChecked()
 
         self.ui.label_thresholdMasking.setEnabled(self.maskImages)
@@ -1376,13 +1379,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # self.ui.label_suggestedValues.setEnabled(self.maskImages)
         # self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
     
-    def enableConfigEntry(self):
+    def enable_config_entry(self):
         self.loadPresets = self.settings_dialog.ui.checkBox_includePresets.isChecked()
 
         self.settings_dialog.ui.pushButton_chooseConfig.setEnabled(self.loadPresets)
         self.settings_dialog.ui.lineEdit_chosenConfig.setEnabled(self.loadPresets)
 
-    def displayProgress(self, progress):
+    def display_progress(self, progress):
         print("Displaying progress!")
         self.ui.progressBar_total.setValue(int(progress))
         self.ui.horizontalSlider_xAxis.setValue(self.posX)
@@ -1460,7 +1463,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
 
-    def enableEditing(self):
+    def enable_editing(self):
         
         self.ui.menubar.setEnabled(True)
         self.ui.action_loadConfig.setEnabled(True)
@@ -1633,7 +1636,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.comboBox_aperture.clear()
         current_aperture, aperture_options = self.gphoto_cam.get_aperture()
-        for aperture in aperture_options:
+        current_aperture = str(current_aperture)
+        for str(aperture) in aperture_options:
             self.ui.comboBox_aperture.addItem(aperture)
         # set current value to the selected item
         self.ui.comboBox_aperture.setCurrentIndex(
@@ -1685,7 +1689,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_compression.setEnabled(False)
         self.ui.comboBox_whiteBalance.setEnabled(False)
 
-    def changeInputState(self):
+    def change_input_state(self):
         enableInputs = True
         if self.scanInProgress:
             enableInputs = False
@@ -1735,7 +1739,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # project name
         self.settings_dialog.ui.lineEdit_projectName.setEnabled(enableInputs)
 
-    def runScanAndReport(self):
+    def run_scan_and_report(self):
         if not self.scanner_initialised:
             self.log_warning("No stepper drivers set up! Aborting scan!")
             self.abortScan = True
@@ -1756,7 +1760,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # create output folder
             self.create_output_folders()
             # save configuration file
-            self.writeConfig()
+            self.write_config()
 
             if self.maskImages:
                 self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
@@ -1767,8 +1771,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
 
-            worker = Worker(self.runScanAndReport_threaded)
-            worker.signals.progress.connect(self.displayProgress)
+            worker = Worker(self.run_scan_and_report_threaded)
+            worker.signals.progress.connect(self.display_progress)
             worker.signals.finished.connect(self.thread_complete)
 
             if self.homed_X and self.homed_Z:
@@ -1776,7 +1780,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-stop-48.png"))
                     self.ui.action_runScan.setText("Abort Scan")    
                     self.scanInProgress = True
-                    self.changeInputState()
+                    self.change_input_state()
                     self.abortScan = False
 
                     self.log_info("Running Scan!")
@@ -1800,7 +1804,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.stackImages:
                 self.postScanStacking = True
 
-    def runScanAndReport_threaded(self, progress_callback):
+    def run_scan_and_report_threaded(self, progress_callback):
         # number of images taken over the number of images to take
         self.saved_imgs = []
         self.images_taken = 0
@@ -1854,7 +1858,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         img_name = self.cam.capture_image(img_name)
 
                     self.images_taken += 1
-                    self.getProgress()
+                    self.get_progress()
                     self.posZ = posZ
                     progress_callback.emit(self.progress)
 
@@ -1887,20 +1891,20 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.enable_stepper_inputs()
         self.images_taken = 0
         self.saved_imgs = []
-        self.deEnergise()
-        self.homeX()
-        self.homeZ()
-        self.resetY()
+        self.de_energise()
+        self.home_x()
+        self.home_z()
+        self.reset_y()
         self.scanner.moveToPosition(1, self.ui.doubleSpinBox_yStep.value())
-        self.resetY()
+        self.reset_y()
         self.scanner.completedRotations = 0
-        self.enableEditing()
+        self.enable_editing()
 
     """
     process captured images simultaneously
     """
 
-    def checkActiveStackThreads(self):
+    def check_active_stack_threads(self):
         # prevent multiple simultaneous saving processes
         if not self.ActiveSavingProcess:
             if self.camera_type == "FLIR":
@@ -1928,7 +1932,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.stackImages:
                 if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
-                    worker = Worker(self.processStack)
+                    worker = Worker(self.process_stack)
                     self.activeThreads += 1
                     self.threadpool.start(worker)
 
@@ -1937,11 +1941,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # additionally ensure that stacking is continued when capture finishes
         if self.postScanStacking:
             if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
-                worker = Worker(self.processStack)
+                worker = Worker(self.process_stack)
                 self.activeThreads += 1
                 self.threadpool.start(worker)
 
-    def processStack(self, progress_callback):
+    def process_stack(self, progress_callback):
         stack = self.stackList[0]
         del self.stackList[0]
 
@@ -1979,7 +1983,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if self.scanner_initialised:
             print("de energising stepper motors")
             # de energise steppers
-            self.scanner.deEnergise()
+            self.scanner.de_energise()
         
             if self.scanner.controller_type == "Arduino":
                 self.scanner.ser.close()
