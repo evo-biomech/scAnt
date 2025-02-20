@@ -1637,8 +1637,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_aperture.clear()
         current_aperture, aperture_options = self.gphoto_cam.get_aperture()
         current_aperture = str(current_aperture)
-        for str(aperture) in aperture_options:
-            self.ui.comboBox_aperture.addItem(aperture)
+        for aperture in aperture_options:
+            self.ui.comboBox_aperture.addItem(str(aperture))
         # set current value to the selected item
         self.ui.comboBox_aperture.setCurrentIndex(
             self.ui.comboBox_aperture.findText(current_aperture))
