@@ -1232,9 +1232,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.enable_editing()
 
         self.create_output_folders()
-        print(self.output_location)
         self.read_session_file()
-        print("These are the things", self.prev_open_path, self.output_location)
         self.update_session_file()
 
     def write_config(self):
@@ -1329,8 +1327,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def read_session_file(self):
         ses = ymlRW.read_session_file("session_info.yml")
         if ses:
-            self.prev_open_path = ses["prev_open_path"]
-            self.output_location = ses["prev_new_path"]
+            if ses["prev_open_path"] and Path.exists(Path(ses["prev_open_path"])):
+                self.prev_open_path = ses["prev_open_path"]
+            else:
+                self.prev_open_path = str(Path.cwd())
+            if ses["prev_new_path"] and Path.exists(Path(ses["prev_new_path"])):
+                self.output_location = ses["prev_new_path"]
+            else:
+                self.output_location = str(Path.cwd())
         else:
             self.prev_open_path = None
     
@@ -1637,8 +1641,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.comboBox_aperture.clear()
         current_aperture, aperture_options = self.gphoto_cam.get_aperture()
         current_aperture = str(current_aperture)
-        for str(aperture) in aperture_options:
-            self.ui.comboBox_aperture.addItem(aperture)
+        for aperture in aperture_options:
+            self.ui.comboBox_aperture.addItem(str(aperture))
         # set current value to the selected item
         self.ui.comboBox_aperture.setCurrentIndex(
             self.ui.comboBox_aperture.findText(current_aperture))
@@ -1983,7 +1987,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if self.scanner_initialised:
             print("de energising stepper motors")
             # de energise steppers
-            self.scanner.de_energise()
+            self.scanner.deEnergise()
         
             if self.scanner.controller_type == "Arduino":
                 self.scanner.ser.close()
