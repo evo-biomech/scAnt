@@ -478,8 +478,8 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
     if params["hsv_x_focus_masking"]:
         print("INFO: Using HSV-based focus masking")
         out_mask = detect_subject(data, 
-                                  saturation_threshold=70, 
-                                  focus_threshold=20, 
+                                  saturation_threshold=params["hsv_x_saturation_threshold"], 
+                                  focus_threshold=params["hsv_x_focus_threshold"], 
                                   gaussian_kernel_size=3, 
                                   cleanup_kernel_size=3)
     else:
@@ -662,8 +662,7 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
         cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
 
 
-
-def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout, edgeDetector):
+def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout, hf_st, hf_ft, edgeDetector):
     # load pre-trained edge detector model
     # edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
     print("loaded edge detector...")
@@ -675,7 +674,9 @@ def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout, ed
               "min_artifact_size_white": min_wh,
               "full_resolution":False,
               "CLAHE": 1.0,
-              "hsv_x_focus_masking": True}
+              "hsv_x_focus_masking": True,
+              "hsv_x_saturation_threshold": hf_st,
+              "hsv_x_focus_threshold": hf_ft}
 
     for img in input_paths:
         createAlphaMask(img, edgeDetector, params=params)
@@ -718,6 +719,8 @@ if __name__ == "__main__":
     ap.add_argument("-jpg", "--jpgquality", help="Quality for saving in JPG format (0-100, default 95)")
     ap.add_argument("-hf", "--hsv_x_focus_masking", type=bool, default=True,
                     help="Use HSV-based focus masking for subject detection")
+    ap.add_argument("-hf_st", "--hsv_x_saturation_threshold", type=int, help="HSV-based masking saturation threshold")
+    ap.add_argument("-hf_ft", "--hsv_x_focus_threshold", type=int, help="HSV-based masking focus threshold")
 
     args = vars(ap.parse_args())
     project_dir = Path(args["path"])
@@ -783,7 +786,17 @@ if __name__ == "__main__":
             pass
         else:
             args["mask_thresh_max"] = config["masking"]["mask_thresh_max"]
-
+        
+        if args["hsv_x_saturation_threshold"]:
+            pass
+        else:
+            args["hsv_x_saturation_threshold"] = config["masking"]["hsv_x_saturation_threshold"]
+        
+        if args["hsv_x_focus_threshold"]:
+            pass
+        else:
+            args["hsv_x_focus_threshold"] = config["masking"]["hsv_x_focus_threshold"]
+        
         args["min_artifact_size_black"] = config["masking"]["min_artifact_size_black"]
         args["min_artifact_size_white"] = config["masking"]["min_artifact_size_white"]
 

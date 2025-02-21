@@ -141,6 +141,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.exit_program = False
 
+        self.editing_enabled = False
+
         self.ui = Ui_MainWindow()
 
         self.ui.setupUi(self)
@@ -452,7 +454,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.maskThreshMax = 240
         self.maskArtifactSizeBlack = 1000
         self.maskArtifactSizeWhite = 2000
+        self.masking_focus_threshold = 20
+        self.masking_saturation_threshold = 70
         self.ui.checkBox_maskImages.stateChanged.connect(self.enable_masking)
+        self.ui.spinBox_maskingFocusThreshold.valueChanged.connect(self.set_masking_focus_threshold)
+        self.ui.spinBox_maskingSaturationThreshold.valueChanged.connect(self.set_masking_saturation_threshold)
+
 
         self.post_dialog.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
 
@@ -512,14 +519,15 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_zAxis.display(pos)
 
     def energise(self):
+        if self.scanner_initialised:
+            self.enable_stepper_inputs()
         self.scanner.resume()
         self.log_info("Energised steppers")
 
     def de_energise(self):
         self.scanner.deEnergise()
         self.log_info("De-energised steppers")
-        self.ui.horizontalSlider_xAxis.setEnabled(False)
-        self.ui.horizontalSlider_zAxis.setEnabled(False)
+        self.disable_stepper_inputs()
         self.homed_X = False
         self.homed_Z = False
 
@@ -1076,7 +1084,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                     if mask_images_check:
                         mask_images(input_paths=stacked_output, min_rgb=mask_thresh_min, max_rgb=mask_thresh_max,
-                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True, edgeDetector=self.edgeDetector)
+                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True, 
+                                    hf_st=self.maskingSaturationThreshold, hf_ft=self.maskingFocusThreshold, edgeDetector=self.edgeDetector)
 
                         if self.createCutout:
                             write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
@@ -1179,12 +1188,17 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                 # masking
                 self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
-                self.maskThreshMin = config["masking"]["mask_thresh_min"]
-                self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
-                self.maskThreshMax = config["masking"]["mask_thresh_max"]
-                self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
-                self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
-                self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
+                # self.maskThreshMin = config["masking"]["mask_thresh_min"]
+                # self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
+                # self.maskThreshMax = config["masking"]["mask_thresh_max"]
+                # self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
+                # self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
+                # self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
+                try:
+                    self.ui.doubleSpinBox_maskingFocusThreshold.setValue(config["masking"]["masking_focus_threshold"])
+                    self.ui.doubleSpinBox_maskingSaturationThreshold.setValue(config["masking"]["masking_saturation_threshold"])
+                except Exception:
+                    print("No masking parameters found")
 
                 # meta data (exif)
                 self.camera_dialog.ui.comboBox_make.setCurrentText(config["exif_data"]["Make"])
@@ -1229,11 +1243,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         if self.settings_dialog.ui.checkBox_includePresets.checkState() and self.configPath:
             self.load_config()
 
-        self.enable_editing()
-
         self.create_output_folders()
         self.read_session_file()
         self.update_session_file()
+        self.enable_editing()
 
     def write_config(self):
 
@@ -1282,10 +1295,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                'display_focus_check': self.stackDisplayFocus,
                                'additional_sharpening': self.stackSharpen},
                   'masking': {'mask_images': self.ui.checkBox_maskImages.isChecked(),
-                              'mask_thresh_min': self.ui.spinBox_thresholdMin.value(),
-                              'mask_thresh_max': self.ui.spinBox_thresholdMax.value(),
-                              'min_artifact_size_black': self.maskArtifactSizeBlack,
-                              'min_artifact_size_white': self.maskArtifactSizeWhite},
+                              'masking_focus_threshold': self.ui.spinBox_maskingFocusThreshold.value(),
+                              'masking_saturation_threshold': self.ui.spinBox_maskingSaturationThreshold.value()},
                     "flash": {"flash_length": self.ui.spinBox_flashLength.value(),
                               "flash_delay": self.ui.spinBox_flashDelay.value()},
                   "exif_data": self.exif}
@@ -1375,13 +1386,24 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def enable_masking(self, set_to=False):
         self.maskImages = self.ui.checkBox_maskImages.isChecked()
 
-        self.ui.label_thresholdMasking.setEnabled(self.maskImages)
-        self.ui.label_thresholdMaskingMin.setEnabled(self.maskImages)
-        self.ui.label_thresholdMaskingMax.setEnabled(self.maskImages)
-        self.ui.spinBox_thresholdMin.setEnabled(self.maskImages)
-        self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
+        # self.ui.label_thresholdMasking.setEnabled(self.maskImages)
+        # self.ui.label_thresholdMaskingMin.setEnabled(self.maskImages)
+        # self.ui.label_thresholdMaskingMax.setEnabled(self.maskImages)
+        # self.ui.spinBox_thresholdMin.setEnabled(self.maskImages)
+        # self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
         # self.ui.label_suggestedValues.setEnabled(self.maskImages)
         # self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
+        self.ui.label_maskingFocusThreshold.setEnabled(self.maskImages)
+        self.ui.label_maskingSaturationThreshold.setEnabled(self.maskImages)
+        self.ui.spinBox_maskingFocusThreshold.setEnabled(self.maskImages)
+        self.ui.spinBox_maskingSaturationThreshold.setEnabled(self.maskImages)
+        
+    
+    def set_masking_focus_threshold(self):
+        self.masking_focus_threshold = self.ui.spinBox_maskingFocusThreshold.value()
+    
+    def set_masking_saturation_threshold(self):
+        self.masking_saturation_threshold = self.ui.spinBox_maskingSaturationThreshold.value()
     
     def enable_config_entry(self):
         self.loadPresets = self.settings_dialog.ui.checkBox_includePresets.isChecked()
@@ -1415,7 +1437,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_xMax.setEnabled(False)
         self.ui.doubleSpinBox_yMax.setEnabled(False)
         self.ui.doubleSpinBox_zMax.setEnabled(False)
-        self.ui.pushButton_Energise.setEnabled(False)
+        # self.ui.pushButton_Energise.setEnabled(False)
         self.ui.pushButton_stepperDeEnergise.setEnabled(False)
         self.ui.action_runScan.setEnabled(False)
         self.ui.lcdNumber_xAxis.setEnabled(False)
@@ -1423,52 +1445,61 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.lcdNumber_zAxis.setEnabled(False)
 
     def enable_stepper_inputs(self):
-        # self.ui.horizontalSlider_xAxis.setEnabled(True)
-        self.ui.horizontalSlider_yAxis.setEnabled(True)
-        # self.ui.horizontalSlider_zAxis.setEnabled(True)
-        self.ui.pushButton_xHome.setEnabled(True)
-        self.ui.pushButton_yReset.setEnabled(True)
-        self.ui.pushButton_zHome.setEnabled(True)
-        self.ui.doubleSpinBox_xMin.setEnabled(True)
-        self.ui.doubleSpinBox_yMin.setEnabled(True)
-        self.ui.doubleSpinBox_zMin.setEnabled(True)
-        self.ui.doubleSpinBox_xStep.setEnabled(True)
-        self.ui.doubleSpinBox_yStep.setEnabled(True)
-        self.ui.doubleSpinBox_zStep.setEnabled(True)
-        self.ui.doubleSpinBox_xMax.setEnabled(True)
-        self.ui.doubleSpinBox_yMax.setEnabled(True)
-        self.ui.doubleSpinBox_zMax.setEnabled(True)
-        self.ui.pushButton_Energise.setEnabled(True)
-        self.ui.pushButton_stepperDeEnergise.setEnabled(True)
-        self.ui.action_runScan.setEnabled(True)
-        self.ui.lcdNumber_xAxis.setEnabled(True)
-        self.ui.lcdNumber_yAxis.setEnabled(True)
-        self.ui.lcdNumber_zAxis.setEnabled(True)
-        self.ui.label_setRange.setEnabled(True)
-        self.ui.label_setRangeXMax.setEnabled(True)
-        self.ui.label_setRangeXStep.setEnabled(True)
-        self.ui.label_setRangeXMin.setEnabled(True)
-        self.ui.label_setRangeYMax.setEnabled(True)
-        self.ui.label_setRangeYStep.setEnabled(True)
-        self.ui.label_setRangeYMin.setEnabled(True)
-        self.ui.label_setRangeZMax.setEnabled(True)
-        self.ui.label_setRangeZStep.setEnabled(True)
-        self.ui.label_setRangeZMin.setEnabled(True)
-        self.ui.label_stepperControl.setEnabled(True)
-        self.ui.label_xAxis.setEnabled(True)
-        self.ui.label_yAxis.setEnabled(True)
-        self.ui.label_zAxis.setEnabled(True)
-        self.ui.label_xAxisSliderMax.setEnabled(True)
-        self.ui.label_xAxisSliderMin.setEnabled(True)
-        self.ui.label_yAxisSliderMax.setEnabled(True)
-        self.ui.label_yAxisSliderMin.setEnabled(True)
-        self.ui.label_zAxisSliderMin.setEnabled(True)
-        self.ui.label_zAxisSliderMax.setEnabled(True)
+        if self.editing_enabled:
+            # self.ui.horizontalSlider_xAxis.setEnabled(True)
+            self.ui.horizontalSlider_yAxis.setEnabled(True)
+            # self.ui.horizontalSlider_zAxis.setEnabled(True)
+            self.ui.pushButton_xHome.setEnabled(True)
+            self.ui.pushButton_yReset.setEnabled(True)
+            self.ui.pushButton_zHome.setEnabled(True)
+            self.ui.doubleSpinBox_xMin.setEnabled(True)
+            self.ui.doubleSpinBox_yMin.setEnabled(True)
+            self.ui.doubleSpinBox_zMin.setEnabled(True)
+            self.ui.doubleSpinBox_xStep.setEnabled(True)
+            self.ui.doubleSpinBox_yStep.setEnabled(True)
+            self.ui.doubleSpinBox_zStep.setEnabled(True)
+            self.ui.doubleSpinBox_xMax.setEnabled(True)
+            self.ui.doubleSpinBox_yMax.setEnabled(True)
+            self.ui.doubleSpinBox_zMax.setEnabled(True)
+            self.ui.pushButton_Energise.setEnabled(True)
+            self.ui.pushButton_stepperDeEnergise.setEnabled(True)
+            self.ui.action_runScan.setEnabled(True)
+            self.ui.lcdNumber_xAxis.setEnabled(True)
+            self.ui.lcdNumber_yAxis.setEnabled(True)
+            self.ui.lcdNumber_zAxis.setEnabled(True)
+            self.ui.label_setRange.setEnabled(True)
+            self.ui.label_setRangeXMax.setEnabled(True)
+            self.ui.label_setRangeXStep.setEnabled(True)
+            self.ui.label_setRangeXMin.setEnabled(True)
+            self.ui.label_setRangeYMax.setEnabled(True)
+            self.ui.label_setRangeYStep.setEnabled(True)
+            self.ui.label_setRangeYMin.setEnabled(True)
+            self.ui.label_setRangeZMax.setEnabled(True)
+            self.ui.label_setRangeZStep.setEnabled(True)
+            self.ui.label_setRangeZMin.setEnabled(True)
+            self.ui.label_stepperControl.setEnabled(True)
+            self.ui.label_xAxis.setEnabled(True)
+            self.ui.label_yAxis.setEnabled(True)
+            self.ui.label_zAxis.setEnabled(True)
+            self.ui.label_xAxisSliderMax.setEnabled(True)
+            self.ui.label_xAxisSliderMin.setEnabled(True)
+            self.ui.label_yAxisSliderMax.setEnabled(True)
+            self.ui.label_yAxisSliderMin.setEnabled(True)
+            self.ui.label_zAxisSliderMin.setEnabled(True)
+            self.ui.label_zAxisSliderMax.setEnabled(True)
+
+            self.ui.label_flashSettings.setEnabled(True)
+            self.ui.label_flashDelay.setEnabled(True)
+            self.ui.label_flashLength.setEnabled(True)
+            self.ui.spinBox_flashDelay.setEnabled(True)
+            self.ui.spinBox_flashLength.setEnabled(True)
 
 
 
     def enable_editing(self):
         
+        self.editing_enabled = True
+
         self.ui.menubar.setEnabled(True)
         self.ui.action_loadConfig.setEnabled(True)
         self.ui.action_save.setEnabled(True)
@@ -1505,14 +1536,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.pushButton_openPostWindow.setEnabled(True)
 
-        self.ui.label_flashSettings.setEnabled(True)
-        self.ui.label_flashDelay.setEnabled(True)
-        self.ui.label_flashLength.setEnabled(True)
-        self.ui.spinBox_flashDelay.setEnabled(True)
-        self.ui.spinBox_flashLength.setEnabled(True)
-
         self.ui.pushButton_openCameraInfo.setEnabled(True)
-
+         
         if self.scanner_initialised:
             self.enable_stepper_inputs()
         if self.cam:
@@ -1523,6 +1548,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.enable_GPhoto_inputs()
             elif self.camera_type == "DSLR":
                 self.enable_DSLR_inputs()
+        
+       
     
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
@@ -1972,7 +1999,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             if self.maskImages:
                 time.sleep(3)
                 mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
-                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True, edgeDetector=self.edgeDetector)
+                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True, 
+                            hf_st=self.masking_saturation_threshold, hf_ft=self.masking_focus_threshold, edgeDetector=self.edgeDetector)
 
                 if self.createCutout:
                     write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
