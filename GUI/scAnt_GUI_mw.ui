@@ -2466,7 +2466,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Masking focus threshold</string>
+          <string>Mask focus thresh</string>
          </property>
         </widget>
        </item>
@@ -2475,8 +2475,13 @@
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
          <property name="text">
-          <string>Masking saturation threshold</string>
+          <string>Mask saturation thresh</string>
          </property>
         </widget>
        </item>
