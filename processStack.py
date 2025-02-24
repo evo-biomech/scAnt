@@ -460,10 +460,6 @@ def createAlphaMask_threaded(threadName, q, edgeDetector):
 def createAlphaMask(data, edgeDetector, threadName=None, params = {
     "create_cutout":True,
     "full_resolution":False,
-    "mask_thresh_min": 80,
-    "mask_thresh_max": 100,
-    "min_artifact_size_black": 1000,
-    "min_artifact_size_white": 2000,
     "CLAHE":1.0,
     "hsv_x_focus_masking": True
 }):
@@ -662,16 +658,12 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
         cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
 
 
-def mask_images(input_paths, min_rgb, max_rgb, min_bl, min_wh, create_cutout, hf_st, hf_ft, edgeDetector):
+def mask_images(input_paths, create_cutout, hf_st, hf_ft, edgeDetector):
     # load pre-trained edge detector model
     # edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
     print("loaded edge detector...")
 
     params = {"create_cutout": create_cutout,
-              "mask_thresh_min": min_rgb,
-              "mask_thresh_max": max_rgb,
-              "min_artifact_size_black": min_bl,
-              "min_artifact_size_white": min_wh,
               "full_resolution":False,
               "CLAHE": 1.0,
               "hsv_x_focus_masking": True,
@@ -778,27 +770,37 @@ if __name__ == "__main__":
         # stack_method = config["stacking"]["stacking_method"]
         exif = config["exif_data"]
         
-        if args["mask_thresh_min"]:
-            pass
-        else:
-            args["mask_thresh_min"] = config["masking"]["mask_thresh_min"]
-        if args["mask_thresh_max"]:
-            pass
-        else:
-            args["mask_thresh_max"] = config["masking"]["mask_thresh_max"]
-        
+        try:
+            if args["mask_thresh_min"]:
+                pass
+            else:
+                args["mask_thresh_min"] = config["masking"]["mask_thresh_min"]
+            if args["mask_thresh_max"]:
+                pass
+            else:
+                args["mask_thresh_max"] = config["masking"]["mask_thresh_max"]
+            
+            args["min_artifact_size_black"] = config["masking"]["min_artifact_size_black"]
+            args["min_artifact_size_white"] = config["masking"]["min_artifact_size_white"]
+        except KeyError:
+            # TEMP fix - this will be removed once the config is updated
+            args["mask_thresh_min"] = None
+            args["mask_thresh_max"] = None
+            args["min_artifact_size_black"] = None
+            args["min_artifact_size_white"] = None
+
+
         if args["hsv_x_saturation_threshold"]:
             pass
         else:
-            args["hsv_x_saturation_threshold"] = config["masking"]["hsv_x_saturation_threshold"]
+            args["hsv_x_saturation_threshold"] = config["masking"]["masking_saturation_threshold"]
         
         if args["hsv_x_focus_threshold"]:
             pass
         else:
-            args["hsv_x_focus_threshold"] = config["masking"]["hsv_x_focus_threshold"]
+            args["hsv_x_focus_threshold"] = config["masking"]["masking_focus_threshold"]
         
-        args["min_artifact_size_black"] = config["masking"]["min_artifact_size_black"]
-        args["min_artifact_size_white"] = config["masking"]["min_artifact_size_white"]
+
 
         if stack_check:
 
