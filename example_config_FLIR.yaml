@@ -27,16 +27,17 @@ scanner_settings:
   z_step: 500.0
 stacking:
   stack_images: false
-  stacking_method: default
-  threshold: 10
+  threshold_images: false
+  threshold: 1.0
   display_focus_check: false
   additional_sharpening: false
 masking:
   mask_images: false
-  mask_thresh_min: 175
-  mask_thresh_max: 215
-  min_artifact_size_black: 1000
-  min_artifact_size_white: 2000
+  masking_focus_threshold: 20
+  masking_saturation_threshold: 70
+flash:
+  flash_length: 300
+  flash_delay: 100
 exif_data:
   Make: FLIR
   Model: BFS-U3-200S6C-C
