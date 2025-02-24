@@ -1046,10 +1046,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             sharpen = config["stacking"]["additional_sharpening"]
             exif = config["exif_data"]
             mask_images_check = config["masking"]["mask_images"]
-            mask_thresh_min = config["masking"]["mask_thresh_min"]
-            mask_thresh_max = config["masking"]["mask_thresh_max"]
-            mask_artifact_size_black = config["masking"]["min_artifact_size_black"]
-            mask_artifact_size_white = config["masking"]["min_artifact_size_white"]
+            masking_focus_threshold = config["masking"]["masking_focus_threshold"]
+            masking_saturation_threshold = config["masking"]["masking_saturation_threshold"]
 
             if mask_images_check:
                 self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
@@ -1083,9 +1081,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
 
                     if mask_images_check:
-                        mask_images(input_paths=stacked_output, min_rgb=mask_thresh_min, max_rgb=mask_thresh_max,
-                                    min_bl=mask_artifact_size_black, min_wh=mask_artifact_size_white, create_cutout=True, 
-                                    hf_st=self.maskingSaturationThreshold, hf_ft=self.maskingFocusThreshold, edgeDetector=self.edgeDetector)
+                        mask_images(input_paths=stacked_output, 
+                                    create_cutout=True, 
+                                    hf_st=masking_saturation_threshold, hf_ft=masking_focus_threshold, edgeDetector=self.edgeDetector)
 
                         if self.createCutout:
                             write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
