@@ -62,7 +62,7 @@ class AlphaExtractionThread(threading.Thread):
 
     def run(self):
         print("Starting " + self.name)
-        createAlphaMask_threaded(self.name, self.q, edgeDetector=edgeDetector)
+        createAlphaMask_threaded(self.name, self.q)
         print("Exiting " + self.name)
 
 def getThreads():
@@ -151,7 +151,6 @@ def process_stack_threaded(name, q):
 
 def process_stack(data, output_folder, path_to_external, params):
     path_names = data.split(" ")[1:]
-    paths = [Path(p) for p in path_names]
     stack_name = path_names[0]
     stack_name = Path(stack_name).name[:-15]
 
@@ -161,15 +160,6 @@ def process_stack(data, output_folder, path_to_external, params):
 
     output_path = str(output_folder.joinpath(stack_name)) + ".jpg"
     print(output_path)
-
-    # stack_params = ""
-    # if params["nocrop"]:
-    #     stack_params += " --nocrop"
-    # if params["full_resolution_align"]:
-    #     stack_params += " --full-resolution-align"
-    # if params["jpgquality"]:
-    #     stack_params += " --jpgquality=" + params["jpgquality"]
-    
 
     if params["new_focus_stack"]:
         if used_platform == "Windows":
@@ -443,7 +433,7 @@ def apply_local_contrast(img, grid_size=(7, 7), clip_limit=1.0):
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
-def createAlphaMask_threaded(threadName, q, edgeDetector):
+def createAlphaMask_threaded(threadName, q):
     while not exitFlag_alpha:
         queueLock_alpha.acquire()
         if not workQueue_alpha.empty():
@@ -451,15 +441,14 @@ def createAlphaMask_threaded(threadName, q, edgeDetector):
             queueLock_alpha.release()
             print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
 
-            createAlphaMask(data, edgeDetector, threadName=threadName, params=args)
+            createAlphaMask(data, threadName=threadName, params=args)
 
         else:
             queueLock_alpha.release()
 
 
-def createAlphaMask(data, edgeDetector, threadName=None, params = {
+def createAlphaMask(data, threadName=None, params = {
     "create_cutout":True,
-    "full_resolution":False,
     "CLAHE":1.0,
     "hsv_x_focus_masking": True
 }):
@@ -478,160 +467,6 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
                                   focus_threshold=params["hsv_x_focus_threshold"], 
                                   gaussian_kernel_size=3, 
                                   cleanup_kernel_size=3)
-    else:
-
-        if not params["full_resolution"]:
-            print("Using downscaled image for mask generation at 1500 px x 1500 px...")
-            orig_res = src.shape
-            kernel_gauss = (5, 5)
-            print("Original resolution:", orig_res)
-            src = cv2.resize(src, (1500, 1500), interpolation=cv2.INTER_AREA)
-        else:
-            print("Using full resolution input image for mask generation [potentially significantly slower]")
-            orig_res = src.shape
-            kernel_gauss = (5, 5)
-            print("Original resolution:", orig_res)
-
-        img_enhanced = apply_local_contrast(src, clip_limit=params["CLAHE"])
-
-        # reduce noise in the image before detecting edges
-        blurred = cv2.GaussianBlur(img_enhanced, kernel_gauss, 0)
-
-        # turn image into float array
-        blurred_float = blurred.astype(np.float32) / 255.0
-        edges = edgeDetector.detectEdges(blurred_float) * 255.0
-        if threadName:
-            print("%s : Filtering out salt & pepper grain of %s" % (threadName, data.split("\\")[-1]))
-        edges_8u = np.asarray(edges, np.uint8)
-        filterOutSaltPepperNoise(edges_8u)
-
-        if threadName:
-            print("%s : Extracting largest coherent contour of %s" % (threadName, data.split("\\")[-1]))
-        contour = findSignificantContour(edges_8u)
-        # Draw the contour on the original image
-        contourImg = np.copy(src)
-        cv2.drawContours(contourImg, [contour], 0, (0, 255, 0), 2, cv2.LINE_AA, maxLevel=1)
-        # cv2.imwrite(data[:-4] + '_contour.png', contourImg)
-
-        mask = np.zeros_like(edges_8u)
-        cv2.fillPoly(mask, [contour], 255)
-
-        # calculate sure foreground area by dilating the mask
-        mapFg = cv2.erode(mask, np.ones((5, 5), np.uint8), iterations=10)
-
-        # mark inital mask as "probably background"
-        # and mapFg as sure foreground
-        trimap = np.copy(mask)
-        trimap[mask == 0] = cv2.GC_BGD
-        trimap[mask == 255] = cv2.GC_PR_BGD
-        trimap[mapFg == 255] = cv2.GC_FGD
-
-        # visualize trimap
-        trimap_print = np.copy(trimap)
-        trimap_print[trimap_print == cv2.GC_PR_BGD] = 128
-        trimap_print[trimap_print == cv2.GC_FGD] = 255
-        # cv2.imwrite(data[:-4] + '_trimap.png', trimap_print)
-
-        if threadName:
-            print("%s : Creating mask from contour of %s" % (threadName, data.split("\\")[-1]))
-        # run grabcut
-        bgdModel = np.zeros((1, 65), np.float64)
-        fgdModel = np.zeros((1, 65), np.float64)
-        rect = (0, 0, mask.shape[0] - 1, mask.shape[1] - 1)
-        cv2.grabCut(src, trimap, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_MASK)
-
-        # create mask again
-        mask2 = np.where(
-            (trimap == cv2.GC_FGD) | (trimap == cv2.GC_PR_FGD),
-            255,
-            0
-        ).astype('uint8')
-
-        contour2 = findSignificantContour(mask2)
-        mask3 = np.zeros_like(mask2)
-        cv2.fillPoly(mask3, [contour2], 255)
-
-        # blended alpha cut-out
-        mask3 = np.repeat(mask3[:, :, np.newaxis], 3, axis=2)
-        mask4 = cv2.GaussianBlur(mask3, (3, 3), 0)
-        alpha = mask4.astype(float) * 1.1  # making blend stronger
-        alpha[mask3 > 0] = 255
-        alpha[alpha > 255] = 255
-        alpha = alpha.astype(float)
-
-        foreground = np.copy(src).astype(float)
-        foreground[mask4 == 0] = 0
-        background = np.ones_like(foreground, dtype=float) * 255
-
-        # Normalize the alpha mask to keep intensity between 0 and 1
-        alpha = alpha / 255.0
-        # Multiply the foreground with the alpha matte
-        foreground = cv2.multiply(alpha, foreground)
-        # Multiply the background with ( 1 - alpha )
-        background = cv2.multiply(1.0 - alpha, background)
-        # Add the masked foreground and background.
-        cutout = cv2.add(foreground, background)
-
-        cv2.imwrite(data[:-4] + '_contour.png', cutout)
-        cutout = cv2.imread(data[:-4] + '_contour.png')
-
-        used_platform = platform.system()
-
-        if used_platform == "Linux":
-            os.system("rm " + data[:-4] + '_contour.png')
-        else:
-            os.system("del " + data[:-4] + '_contour.png')
-
-        # cutout = cv2.imread(source, 1)  # TEMPORARY
-
-        cutout_blurred = cv2.GaussianBlur(cutout, (5, 5), 0)
-
-        gray = cv2.cvtColor(cutout_blurred, cv2.COLOR_BGR2GRAY)
-        # threshed = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        #                                  cv2.THRESH_BINARY_INV, blockSize=501,C=2)
-
-        # front and back light
-        # lower_gray = np.array([175, 175, 175])  # [R value, G value, B value]
-        # upper_gray = np.array([215, 215, 215])
-        # front light only
-        min_rgb = float(params["mask_thresh_min"])
-        max_rgb = float(params["mask_thresh_max"])
-        lower_gray = np.array([min_rgb, min_rgb, min_rgb])  # [R value, G value, B value]
-        upper_gray = np.array([max_rgb, max_rgb, max_rgb])
-
-        mask = cv2.bitwise_not(cv2.inRange(cutout_blurred, lower_gray, upper_gray) + cv2.inRange(gray, 254, 255))
-
-        # binarise
-        ret, image_bin = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY_INV)
-        image_bin[image_bin < 127] = 0
-        image_bin[image_bin > 127] = 1
-
-        #cv2.imwrite(data[:-4] + '_threshed.png', 1 - image_bin, [cv2.IMWRITE_PNG_BILEVEL, 1])
-
-        print("cleaning up thresholding result, using connected component labelling of %s"
-            % (data.split("\\")[-1]))
-
-        # remove black artifacts
-        blobs_labels = measure.label(cv2.GaussianBlur(image_bin, (5, 5), 0), background=0)
-
-        image_cleaned = remove_holes(blobs_labels, min_num_pixel=params["min_artifact_size_black"])
-
-        image_cleaned_inv = 1 - image_cleaned
-
-        # cv2.imwrite(data[:-4] + "_extracted_black_.png", image_cleaned_inv, [cv2.IMWRITE_PNG_BILEVEL, 1])
-
-        # remove white artifacts
-        blobs_labels_white = measure.label(image_cleaned_inv, background=0)
-
-        image_cleaned_white = remove_holes(blobs_labels_white, min_num_pixel=params["min_artifact_size_white"])
-
-        if not params["full_resolution"]:
-            # up-scaling masks to original resolution
-            image_cleaned_white = cv2.resize(image_cleaned_white,
-                                                (orig_res[1], orig_res[0]),
-                                                interpolation=cv2.INTER_AREA)
-        
-        out_mask = image_cleaned_white
 
     cv2.imwrite(data[:-4] + "_masked.png", out_mask, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
@@ -658,20 +493,16 @@ def createAlphaMask(data, edgeDetector, threadName=None, params = {
         cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
 
 
-def mask_images(input_paths, create_cutout, hf_st, hf_ft, edgeDetector):
-    # load pre-trained edge detector model
-    # edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
-    print("loaded edge detector...")
+def mask_images(input_paths, create_cutout, hf_st, hf_ft):
 
     params = {"create_cutout": create_cutout,
-              "full_resolution":False,
               "CLAHE": 1.0,
               "hsv_x_focus_masking": True,
               "hsv_x_saturation_threshold": hf_st,
               "hsv_x_focus_threshold": hf_ft}
 
     for img in input_paths:
-        createAlphaMask(img, edgeDetector, params=params)
+        createAlphaMask(img, params=params)
 
 if __name__ == "__main__":
 
@@ -679,8 +510,6 @@ if __name__ == "__main__":
 
     from scripts.write_meta_data import write_exif_to_img
     import scripts.project_manager as ymlRW
-
-    # edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(Path("scripts").joinpath("model.yml"))
 
     #TODO Add threading
     
@@ -695,14 +524,7 @@ if __name__ == "__main__":
     ap.add_argument("-sh","--sharpen", default=False, help="help=apply sharpening to final result [True / False] (False by default)")
     ap.add_argument("-c", "--create_cutout", default=False, 
                     help="create aditional cutout image that uses generated mask")
-    ap.add_argument("-min", "--mask_thresh_min", type=float,
-                    help="minimum RGB value of background for exclusion")
-    ap.add_argument("-max", "--mask_thresh_max", type=float,
-                    help="maximum RGB value of background for exclusion")
     ap.add_argument("-meta", "--addmetadata", default=True, help="add camera metadata to images in stacked folder [True/ Fasle]")
-    ap.add_argument("-fr", "--full_resolution", type=bool, default=False,
-                    help="enable to run masking on the full resolution image. By default all images are downscaled " +
-                         "to 1024 x 1024 and the generated masks are up-scaled to the original image resolution.")
     ap.add_argument("-cl", "--CLAHE", type=float, default=1.0,
                     help="set the clip-limit for Contrast Limited Adaptive Histogram Equilisation")
     ap.add_argument("-nc", "--nocrop", type=bool, default=False, help="save full image, including extapolated border data (False by default)")
@@ -990,14 +812,11 @@ if __name__ == "__main__":
             file_types = ["tif", "jpg"]
             all_image_paths = []
             for imagePath in sorted(paths.list_images(stacked_dir)):
-                # create an alpha mask for all TIF/JPG images in the source folder
-                if any(imagePath.lower().endswith(ft) for ft in file_types):
-                    all_image_paths.append(imagePath)
-                    print("added", imagePath, "to queue")
-
-            # load pre-trained edge detector model
-            edgeDetector = cv2.ximgproc.createStructuredEdgeDetection(str(Path("scripts").joinpath("model.yml")))
-            print("loaded edge detector...")
+                if "_cutout" not in imagePath:
+                    # create an alpha mask for all TIF/JPG images in the source folder
+                    if any(imagePath.lower().endswith(ft) for ft in file_types):
+                        all_image_paths.append(imagePath)
+                        print("added", imagePath, "to queue")
 
             # setup half as many threads as there are (virtual) CPUs
             exitFlag_alpha = 0

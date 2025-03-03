@@ -15,7 +15,6 @@ import platform
 from GUI.scAnt_GUI_mw import Ui_MainWindow  # importing main window of the GUI
 from GUI.scAnt_projectSettings_dlg import Ui_SettingsDialog
 from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
-from GUI.scAnt_justProcessing import Ui_PostDialog
 
 import scripts.project_manager as ymlRW
 from scripts.arduinoControl import ScannerController
@@ -122,14 +121,6 @@ class CameraDialog(QtWidgets.QDialog):
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
 
-class PostDialog(QtWidgets.QDialog):
-    def __init__(self):
-        super(PostDialog, self).__init__()
-        self.ui = Ui_PostDialog()
-        self.ui.setupUi(self)
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
-
 class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -150,7 +141,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         #Initialise Project Settings Dialog window
         self.settings_dialog = SettingsDialog()
         self.camera_dialog = CameraDialog()
-        self.post_dialog = PostDialog()
 
         self.configPath = ""
         self.name = "test_project"
@@ -284,9 +274,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             warning = "No Stepper Controller found!"
             self.log_info(warning)
             print(warning)
-        
-
-        self.ui.pushButton_openPostWindow.pressed.connect(self.open_post_settings)
 
         # FLIR settings
 
@@ -435,7 +422,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
 
-        self.post_dialog.ui.pushButton_processingOutput.pressed.connect(self.set_post_location)
         self.raw_location = str(Path.cwd().joinpath("test").joinpath("RAW"))
 
         # processing
@@ -450,10 +436,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
         self.maskImages = False
-        self.maskThreshMin = 215
-        self.maskThreshMax = 240
-        self.maskArtifactSizeBlack = 1000
-        self.maskArtifactSizeWhite = 2000
         self.masking_focus_threshold = 20
         self.masking_saturation_threshold = 70
         self.ui.checkBox_maskImages.stateChanged.connect(self.enable_masking)
@@ -461,7 +443,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.spinBox_maskingSaturationThreshold.valueChanged.connect(self.set_masking_saturation_threshold)
 
 
-        self.post_dialog.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
+        self.ui.pushButton_runPostProcessing.pressed.connect(self.run_post_processing)
 
         # once the scan has been started check if new sets of images are available for stacking
         self.timerStack = QtCore.QTimer(self)
@@ -723,8 +705,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def open_camera_settings(self):
         self.camera_dialog.show()
 
-    def open_post_settings(self):
-        self.post_dialog.show()
 
     def change_make(self):
         self.camera_dialog.ui.comboBox_model.clear()
@@ -1020,43 +1000,34 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.update_session_file()
         self.update_output_location()
 
-    def set_post_location(self):
-        
-        new_location = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose RAW images folder to process",
-                                                                  str(Path(basedir)))
-        if new_location:
-            self.raw_location = new_location
-
-        self.update_raw_location()
 
     def run_post_processing_threaded(self, progress_callback):
         config_present = False
         raw_folder_loc = self.raw_location
         parent = Path(raw_folder_loc).parent
+        self.write_config()
+
         for file in os.listdir(parent):
             if file.endswith(".yaml"):
                 config_present = True
                 config_file = file
         if config_present:
             config_location = parent.joinpath(config_file)
-
             config = ymlRW.read_config_file(config_location)
 
             focus_threshold = config["stacking"]["threshold"]
+            stack_images_check = config["stacking"]["stack_images"]
             sharpen = config["stacking"]["additional_sharpening"]
             exif = config["exif_data"]
             mask_images_check = config["masking"]["mask_images"]
             masking_focus_threshold = config["masking"]["masking_focus_threshold"]
             masking_saturation_threshold = config["masking"]["masking_saturation_threshold"]
 
-            if mask_images_check:
-                self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
-
             stacks = []
             stack = []
             prev_xy = ""
-            for i,file in enumerate(os.listdir(raw_folder_loc)):
-                print(file)
+            stacked_output = []
+            for i,file in enumerate(sorted(os.listdir(raw_folder_loc))):
 
                 xy_pos = file[:-10]
                 if xy_pos != prev_xy and i != 0:
@@ -1069,21 +1040,29 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             
             if len(stacks) == 0:
                 stacks.append(stack)
-
-            print(stacks)
-
+            
             for stack in stacks:
-                print(stack)
                 try:
-                    stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
-                                                sharpen=sharpen)
+                    if stack_images_check:
+                        stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
+                                                    sharpen=sharpen)
 
-                    write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
-
+                        write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
+                        print("stacked output!", stacked_output)
+                    else:
+                        current_file = stack[0][-32:-15]
+                        for path_name in os.listdir(self.output_location_folder.joinpath("stacked")):
+                            if current_file in path_name:
+                                stacked_output.append(str(self.output_location_folder.joinpath("stacked").joinpath(path_name)))
+                                break
+                    
                     if mask_images_check:
-                        mask_images(input_paths=stacked_output, 
-                                    create_cutout=True, 
-                                    hf_st=masking_saturation_threshold, hf_ft=masking_focus_threshold, edgeDetector=self.edgeDetector)
+                        if len(stacked_output) >= 1:
+                            mask_images(input_paths=stacked_output, 
+                                        create_cutout=True, 
+                                        hf_st=masking_saturation_threshold, hf_ft=masking_focus_threshold)
+                        else:
+                            print("Not enough images to mask!")
 
                         if self.createCutout:
                             write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
@@ -1186,15 +1165,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
                 # masking
                 self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
-                # self.maskThreshMin = config["masking"]["mask_thresh_min"]
-                # self.ui.spinBox_thresholdMin.setValue(self.maskThreshMin)
-                # self.maskThreshMax = config["masking"]["mask_thresh_max"]
-                # self.ui.spinBox_thresholdMax.setValue(self.maskThreshMax)
-                # self.maskArtifactSizeBlack = config["masking"]["min_artifact_size_black"]
-                # self.maskArtifactSizeWhite = config["masking"]["min_artifact_size_white"]
                 try:
-                    self.ui.doubleSpinBox_maskingFocusThreshold.setValue(config["masking"]["masking_focus_threshold"])
-                    self.ui.doubleSpinBox_maskingSaturationThreshold.setValue(config["masking"]["masking_saturation_threshold"])
+                    self.ui.spinBox_maskingFocusThreshold.setValue(config["masking"]["masking_focus_threshold"])
+                    self.ui.spinBox_maskingSaturationThreshold.setValue(config["masking"]["masking_saturation_threshold"])
                 except Exception:
                     print("No masking parameters found")
 
@@ -1237,6 +1210,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.set_project_title()
         self.output_location = self.settings_dialog.ui.lineEdit_outputLocation.text()
         self.output_location_folder = Path(self.output_location).joinpath(self.name)
+        self.raw_location = str(Path(self.output_location_folder).joinpath("RAW"))
     
         if self.settings_dialog.ui.checkBox_includePresets.checkState() and self.configPath:
             self.load_config()
@@ -1323,6 +1297,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.output_location = str(dir.parent.absolute())
                     self.name = file[:-12]
                     self.output_location_folder = Path(self.output_location).joinpath(self.name)  
+                    self.raw_location = str(Path(self.output_location_folder).joinpath("RAW"))
                     # self.update_output_location()
                     self.set_project_title()
                     self.configPath = ""
@@ -1359,9 +1334,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def update_output_location(self):
         self.settings_dialog.ui.lineEdit_outputLocation.setText(self.output_location)
-    
-    def update_raw_location(self):
-        self.post_dialog.ui.lineEdit_processingFolder.setText(self.raw_location)
 
     def enable_stacking(self, set_to=False):
         self.stackImages = self.ui.checkBox_stackImages.isChecked()
@@ -1532,7 +1504,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.checkBox_maskImages.setEnabled(True)
         self.ui.label_postProcessParam.setEnabled(True)
 
-        self.ui.pushButton_openPostWindow.setEnabled(True)
+        self.ui.pushButton_runPostProcessing.setEnabled(True)
+
+        self.ui.pushButton_runPostProcessing.setEnabled(True)
 
         self.ui.pushButton_openCameraInfo.setEnabled(True)
          
@@ -1548,7 +1522,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.enable_DSLR_inputs()
         
        
-    
+
     def disable_FLIR_inputs(self):
         self.ui.checkBox_exposureAuto.setEnabled(False)
         self.ui.doubleSpinBox_exposureTime.setEnabled(False)
@@ -1791,9 +1765,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # save configuration file
             self.write_config()
 
-            if self.maskImages:
-                self.edgeDetector = ximgproc.createStructuredEdgeDetection(str(Path.cwd().joinpath("scripts", "model.yml")))
-
             raw_loc = self.output_location_folder.joinpath("RAW")
             self.empty_at_start = (len(os.listdir(raw_loc)) == 0)
             # enable and show progress
@@ -1996,9 +1967,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.maskImages:
                 time.sleep(3)
-                mask_images(input_paths=stacked_output, min_rgb=self.maskThreshMin, max_rgb=self.maskThreshMax,
-                            min_bl=self.maskArtifactSizeBlack, min_wh=self.maskArtifactSizeWhite, create_cutout=True, 
-                            hf_st=self.masking_saturation_threshold, hf_ft=self.masking_focus_threshold, edgeDetector=self.edgeDetector)
+                mask_images(input_paths=stacked_output, create_cutout=True, 
+                            hf_st=self.masking_saturation_threshold, hf_ft=self.masking_focus_threshold)
 
                 if self.createCutout:
                     write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
