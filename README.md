@@ -14,12 +14,12 @@ All structural components of the scanner can be manufactured using 3D-printing a
 
 ## Updates
 - **scAnt 1.3** New faster [stacking method](https://github.com/PetteriAimonen/focus-stack) and updated GUI with added post-processing functionality. We alse combined post-processing steps into one file accessed through GUI and command line.
-- **scAnt 1.2** Significantly improved image capture speed for FLIR cameras. As this increases the hardware demand during scanning, it may be advisable to run stacking and masking separately (see [provided python cli scripts](https://github.com/evo-biomech/scAnt/tree/master/scripts)), instead of during scanning. We also updated the respective stacking, masking, and meta data scripts to accomodate a wider range of applications.
+- **scAnt 1.2** Significantly improved image capture speed for FLIR cameras. As this increases the hardware demand during scanning, it may be advisable to run stacking and masking separately (see [provided python cli scripts](https://github.com/evo-biomech/scAnt/tree/master/scripts)), instead of during scanning. We also updated the respective stacking, masking, and meta data scripts to accommodate a wider range of applications.
 - **scAnt 1.1** Now supports the use of **DSLR** cameras on **Windows 10**, in combination with [DigiCamControl](http://digicamcontrol.com/). Please refer to the [official documentation](http://digicamcontrol.com/cameras) to check whether your camera model is currently supported. **Ubuntu** support will be added soon. An updated version of the scanner construction files will be made available on our [Thingiverse](https://www.thingiverse.com/thing:4694713) page.  
 
 
 ## Installation
-**scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04** (newer releases of Ubuntu will likely work but have not been tested). The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras, and [Pololu USB Stepper drivers](https://www.pololu.com/category/212/tic-stepper-motor-controllers). We have now added support for **DSLR** cameras for **Windows** operating systems as well. Please refer to our [Thingiverse](https://www.thingiverse.com/thing:4694713) page for a full list of components.
+**scAnt** is supported by 64 bit versions of **Windows 10** and **Ubuntu 18.04** (newer releases of Ubuntu will likely work but have not been tested). The pipeline and GUI have been designed specifically for use with [FLIR Blackfly](https://www.flir.co.uk/products/blackfly-s-usb3/) cameras. We have now added support for most **DSLR** and **mirrorless** cameras as well. Please refer to our [Thingiverse](https://www.thingiverse.com/thing:4694713) page for a full list of components.
 
 The easiest way to get your scanner up and running is through installation of our pre-configured anaconda environment. If you have a version of conda installed you can run the following:
 
@@ -66,12 +66,12 @@ Additional drivers and libraries for the camera and stepper drivers need to be i
 
 ### Ubuntu 18.04
 
-**FLIR setup**
+**FLIR setup (If using another camera, skip to DSLR Setup)**
 
 ***
 
 **NOTE** The latest version (3.0 and above) of **Spinnaker** & **PySpin** causes the **scAnt** application to freeze for some capture commands. 
-For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
+For now, we recommend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
 
 ***
 
@@ -128,50 +128,15 @@ python Live_view_FLIR.py
 
 If a live preview of the camera appears for a few seconds and an example image is saved (within the GUI folder), all camera drivers and libraries have been installed correctly.
 
-**Stepper driver setup**
+**DSLR setup**
 
-1. The Pololu stepper drivers can be controlled and set up via a console. Download the drivers specific to your system from [pololu.com](https://www.pololu.com/docs/0J71/3.2), which also provides additional information regarding installation and a list of supported commands. All drivers are open-source, and the respective code can be found on [Pololu's Git](https://github.com/pololu/pololu-tic-software).
-
-2. Unpack the downloaded .tar.xy file and install the driver:
+Camera control is handled by gphoto in Ubuntu, it should be included in the original conda environment install. To test the camera functionality, run the gphoto control file:
 
 ```bash
-sudo pololu-tic-*/install.sh
+cd scant/GUI
+python camera_control_gphoto.py
 ```
-
-3. Next, **reboot** your computer to update your user privileges automatically, otherwise you will have to use **sudo** to access your USB stepper drivers.
-
-4. If one or all of the stepper controllers were previously plugged into your computer re-plug them, so they are recognised correctly by your computer. Now, open the terminal and run:
-
-```bash
-ticcmd --list
-```
-
-This should output a list of all connected USB stepper drivers.
-
-6. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. 
-
-Double check your end-stop cables are connected to the correct pins on the pololu-tic board:
-
-- **GND**: Black
-- **TX**: Green
-- **RX**: Red
-
-Then the setup should be:
-
-**for the Z-axis (camera slider)**
-
-![](images/stepper_set_up.png)
-
-The TX of the limit switch of the **Z-axis** (camera slider) needs to be set to *"limit switch forward"* and to *"limit switch reverse"* for the **X-axis** (gimbal).
-
-From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
-
-```python
-self.stepperX_ID = "XXXXXXXX"
-self.stepperY_ID = "YYYYYYYY"
-self.stepperZ_ID = "ZZZZZZZZ"
-```
-
+All being well, you should see the camera info displayed in the terminal and 5 images at different ISO values will be captured.
 
 **Image Processing**
 
@@ -190,22 +155,18 @@ sudo apt install libimage-exiftool-perl
 
 ### Windows 10
 
-#### FLIR setup
-
-(**Optional**: you only need to install the software required for your respective camera)
-
-(Instructions for using **DSLR** cameras in the section below. You can skip the **FLIR** installation section, if you are not planning on using **FLIR** cameras.) 
+#### FLIR setup (If using another camera, skip to DSLR Setup)
 
 ***
 
 **NOTE** The latest version (3.0 and above) of **Spinnaker** & **PySpin** causes the **scAnt** application to freeze for some capture commands. 
-For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
+For now, we recommend using a legacy version (1.29 - 2.7) of **Spinnaker** & **PySpin** to avoid this issue! These versions can be found under **FLIR Support / Spinnaker / archive**. In there, you will find both **Ubuntu** as well as **Windows** files, so be sure to double check you are using the version appropriate to your system and python installation.
 
 ***
 
 Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
 
-Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
+Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
 Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
 Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
@@ -235,7 +196,6 @@ If a live preview of the camera appears for a few seconds and an example image i
 
 #### DSLR setup
 
-(**Optional**: you only need to install the software required for your respective camera)
 To use scAnt with DSLR cameras, instead of FLIR machine vision cameras, you need to install [DigiCamControl](http://digicamcontrol.com/) from the following website:
 
 [digiCamControl Stable Version](http://digicamcontrol.com/download)
@@ -263,59 +223,26 @@ python Live_view_DSLR.py
 
 The script will launch an instance of **digiCamControl**, read the current camera settings, and capture three images at different ISO values.
 
-
-**Stepper driver setup**
-
-1. The Pololu stepper drivers can be controlled and set up via a console. Download the drivers specific to your system from [pololu.com](https://www.pololu.com/docs/0J71/3.1), which also provides additional information regarding installation and a list of supported commands. All drivers are open-source, and the respective code can be found on [Pololu's Git](https://github.com/pololu/pololu-tic-software).
-
-2. Unpack the downloaded pololu-tic-x.x.x-win.msi file and install the driver:
-* double click the file to start the installation
-* check "Add the bin directory to the **PATH environment variable**"
-
-3. If one or all of the stepper controllers were previously plugged into your computer re-plug them, so they are recognised correctly by your computer. Now, open the terminal and run:
-
-```bash
-ticcmd --list
-```
-
-This should output a list of all connected USB stepper drivers.
-
-4. To test which ID corresponds to which stepper, launch the **Tic Control Center** application and move the sliders. You can use this application to test each motor and set up turning speeds and assign pins for the connected endstops. 
-
-Double check your end-stop cables are connected to the correct pins on the pololu-tic board:
-
-- **GND**: Black
-- **TX**: Green
-- **RX**: Red
-
-Then the setup should be:
-
-**for the Z-axis (camera slider)**
-
-![](images/stepper_set_up.png)
-
-The TX of the limit switch of the **Z-axis** (camera slider) needs to be set to *"limit switch forward"* and to *"limit switch reverse"* for the **X-axis** (gimbal).
-
-From **/scripts**, open the **Scanner_Controller.py** script in an editor of choice and add the **IDs** of each the stepper to the corresponding axes:
-
-```python
-self.stepperX_ID = "XXXXXXXX"
-self.stepperY_ID = "YYYYYYYY"
-self.stepperZ_ID = "ZZZZZZZZ"
-```
-
 **Image Processing**
 
-A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each access to their source code, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/), as well as PetteriAimonen's [focus-stack](https://github.com/PetteriAimonen/focus-stack) documentation. For Windows, we provide a set of precombiled executable files of the required applications in **/external**.
+A number of open source tools are used for processing the RAW images captured by the scanner. For a detailed explanation of each access to their source code, refer to the official [hugin](http://hugin.sourceforge.net/docs/) and [exiftool](https://exiftool.org/), as well as PetteriAimonen's [focus-stack](https://github.com/PetteriAimonen/focus-stack) documentation. For Windows, we provide a set of precompiled executable files of the required applications in **/external**.
 
 ***
 
 ## Quick Start Guide
 
-After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI (python scAnt.py). While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Configuring the Camera**, **(2) configuring the Stepper Motors**, and **(3) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
+After the installation, the scanner hardware and connected camera can be fully controlled via the scAnt GUI (python scAnt.py). While there is no right or wrong order to configure each component and your workflow might depend on your exact hardware, we generally set up the scanner in 3 steps: **(1) Project Creation**,  **(2) Configuring the Camera**, **(3) Configuring the Stepper Motors**, and **(4) Configuring the Scanning Process**, i.e. saving the project as well as starting the scan.
 
-![](images/GUIScanTab.png)
-![](images/GUIPostProcess.png)
+![](images/GUI.png)
+
+**Project Creation**
+
+Before editing any presets you must chose to create a new scAnt project or open an existing one. In creating a new project, you can chose a location and a name  - as well as load presets from a previous project.
+
+<p align="center" width="100%">
+  <img width = "65%" src="images/ProjectSettingsWin.png" />
+</p>
+
 
 **Configuring the Camera**
 
@@ -331,7 +258,7 @@ From the first box in the Camera Settings box, **select your connected camera**.
 * **Start / Stop Live View** – displays the current video feed of the connected camera (when using DSLR cameras, an instance of DigiCamControl will be opened in an external window, and the camera live view is displayed there)
 * **Capture image** – An image will be captured with the current settings and saved to the output folder specified in the **Scanner Setup section**.
 
-1. Before picking your settings, you should first move the camera to a position where the specimen within the scanner is in focus and occupies as much of the field of view as possible while not extending beyond it. In the **Stepper Controller** section, you will first have to click "**Home X-Axis**" and "**Home Z-Axis**", which returns the motors to their zero positions. Afterwards, set the **X-Axis** to **190**, which moves the gimbal arm's pitch perpendicular to the ground. The position of the camera will depend on the used camera type and model. In our case, a value of ~ **-20000** will bring the specimen (partially) into focus. 
+1. Before picking your settings, you should first move the camera to a position where the specimen within the scanner is in focus and occupies as much of the field of view as possible while not extending beyond it. In the **Stepper Controller** section, you will first have to click "**Home X-Axis**" and "**Home Z-Axis**", which returns the motors to their zero positions. Afterwards, set the **X-Axis** to **190**, which moves the gimbal arm's pitch perpendicular to the ground. The position of the camera will depend on the used camera type and model. In our case, a value of ~ **3000** will bring the specimen (partially) into focus. 
 
 2. Turn on "**Start Live View**" and "**Highlight Exposure**" to display overexposed areas (red) and normalised colour curves on top of the live view image. 
 
@@ -339,7 +266,7 @@ From the first box in the Camera Settings box, **select your connected camera**.
 
 4. Correct the white balance of the image by adjusting the red and blue **Balance Ratio**, respectively. You can use the colour curves displayed in the **Live View** as a rough guide by aligning the blue and red curves with the green curve, as the neutrally grey background makes up the largest number of image pixels. If you cannot find suitable settings or the specimen appears discoloured, remove it from the illumination chamber, and calibrate the white balance only based on the background. For a finer colour calibration and correction, refer to the official [OpenCV documentation](https://docs.opencv.org/master/d1/dc1/tutorial_ccm_color_correction_model.html) or your camera's manufacturer.
 
-5. In the Post Processing tab, choose your camera's make and model if it hasn't automatically updated and fill in the lens and camera details (most importantly the focal length of your lens - the corresponding focal length in 35mm format should update automatically)
+5. Open up the camera info window using the "Add Camera & Lens Info" button, then choose your camera's make and model if it hasn't automatically updated. Also fill in the lens and camera details (most importantly the focal length of your lens - the corresponding focal length in 35mm format should update automatically)
 
 **Configuring the Stepper Motors**
 
@@ -353,19 +280,17 @@ The most critical parameters that need to be configured for the scan are the ste
 
 **Configuring the Scanning Process**
 
-1. Choose an **Output Folder** location by clicking the browse button in the **Scanner Setup** section. Or open an existing scAnt project using ctrl+o.
-2. Pick an easily identifiable name for your project, such as the species of your scanned specimen. When capturing an image, saving your configuration, or starting a scan, the GUI will generate a folder with your project name in the output folder you have chosen.
-3. Next, configure which processing steps you want to execute in parallel with the scan. The number of threads run in the background will be automatically determined based on the number of (virtual) threads your computer suppports.
+1. Configure which processing steps you want to execute in parallel with the scan. The number of threads run in the background will be automatically determined based on the number of (virtual) threads your computer supports.
 
 [OPTIONAL]
 
-All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or through the standalone script (processStack.py). You can also choose to run all post processing steps from the GUI by selecting a RAW image folder and hitting **Run Post Processing** in the Post Processing tab. The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
+All processing functions, including removing out of focus images, generating Extended Depth Of Field (EDOF) images, and generating alpha masks, can be run while capturing images or through the standalone script (processStack.py). You can also choose to run all post processing steps from the GUI by pressing **Run Post Processing Only** beneath the Post Processing section. This will run the post processing of the currently open project using parameters taken from the config. The default values shown in the GUI generally work well for most specimens with our setup. However, the following adjustments may aid in achieving the best quality for yours:
 
-4. Enabling **Stack images** will cause scAnt to automatically process the captured files into EDOF images. Information on the default stacking method can be found [here](https://github.com/PetteriAimonen/focus-stack).  The **Threshold (focus)** is a scalar value representing the Laplacian variance of each image required for it to be considered *"sharp enough for stacking"*. Simply put, this is used to discard images that appear entirely out of focus. This parameter is sensitive to image noise, resolution, and specimen size. Pay close attention to the messages **printed in the console**. To anticipate the results to some degree, you can use stacking option in the standalone script **(processStack.py)** to monitor the process.
+2. Enabling **Stack images** will cause scAnt to automatically process the captured files into EDOF images. Information on the default stacking method can be found [here](https://github.com/PetteriAimonen/focus-stack).  The **Threshold (focus)** is a scalar value representing the Laplacian variance of each image required for it to be considered *"sharp enough for stacking"*. Simply put, this is used to discard images that appear entirely out of focus. This parameter is sensitive to image noise, resolution, and specimen size. Pay close attention to the messages **printed in the console**. To anticipate the results to some degree, you can use stacking option in the standalone script **(processStack.py)** to monitor the process.
 
-5. Enabling **Mask Images** will generate an alpha mask for each stacked EDOF image. While the outline is extracted using a pretrained [random forest](https://docs.opencv.org/3.1.0/d0/da5/tutorial_ximgproc_prediction.html), the infill is removed using a simple adaptive thresholding step where pixels of a specific brightness are removed from the mask, before being cleaned up using [connected component labelling]( https://aishack.in/tutorials/connected-component-labelling/). The upper and lower bounds of the threshold need to be defined here. The easiest way to find suitable values is to capture an image of your specimen (in the Camera Settings section, click on **Capture image**) and open it in an image editor of your choice (*e.g. GIMP, MS Paint, Photoshop*). Use the **colour picker tool** to return the RGB value from various background locations, ideally close to the specimen.  Note the lowest and highest values out of all channels and fill them into the respective box. You could also do this with a system-wide color picking tool such as the one in [Microsoft PowerToys](https://learn.microsoft.com/en-us/windows/powertoys/), in which case the values can be selected from the live view in the GUI. Again, you can use the masking function of the standalone script **(processStack.py)** to verify your tests before conducting a full scan. 
+3. Enabling **Mask Images** will generate an alpha mask for each stacked EDOF image. This is created through thresholding the stacked image with a focus measure, as well as its saturation. These masks are combined, flood-filled, and the largest contour is found using connected component labelling. You can edit the threshold for focus and saturation in the GUI, so if the masks seem too restrictive/inclusive you can lower/raise these values as appropriate. Again, you can use the masking function of the standalone script **(processStack.py)** to verify your tests before conducting a full scan. 
 
-6. Once everything is set up to your liking, hit **Start Scan**, and grab a cup of coffee/tea/beer, depending on the time of day.
+4. Once everything is set up to your liking, hit **Start Scan**, and grab a cup of coffee/tea/beer, depending on the time of day.
 
 **Happy Scanning!**
 
@@ -375,7 +300,7 @@ All processing functions, including removing out of focus images, generating Ext
 
 **Add your camera to the sensor database**
 
-Within the directory of the downloaded Meshroom installation, go to the following folder and, if you can't find your camera, edit the file “**cameraSensors.db**” using any common text editor:
+Within the directory of the downloaded Meshroom installation, go to the following folder and check the file “**cameraSensors.db**” to see if your camera is listed:
 
 *…/Meshroom-2019.2.0/AliceVision/share/AliceVision/cameraSensors.db*
 
@@ -384,16 +309,11 @@ The entry should contain the following:
 ```bash
 Make;Model;SensorWidth
 ```
-Ensure to enter these details as they are listed in your project configuration file, thus, metadata of your stacked and masked images. There should be no spaces between the entries. If you are using the same FLIR camera as in the original **scAnt**, add the following line:
+Once these details have been checked, launch **Meshroom** and drag your images named *…cutout.tif* into **Meshroom**. If the metadata and added camera sensor are recognised, a **green aperture icon** should be displayed over all images.
 
-```bash
-FLIR;BFS-U3-200S6C-C;13.1
-```
-Adding the correct sensor width is crucial in computing the camera intrinsics, such as distortion parameters, object scale, and distances. Otherwise the camera alignment, during feature matching and structure-from-motion steps are likely to fail.
-
-Once these details have been added, launch **Meshroom** and drag your images named *…cutout.tif* into **Meshroom**. If the metadata and added camera sensor are recognised, a **green aperture icon** should be displayed over all images.
-
-![](images/meshroom_correctly_loaded.png)
+<p align="center" width="100%">
+  <img width = "65%" src="images/meshroom_correctly_loaded.png" />
+</p>
 
 If not all images are listed, or the aperture icon remains red / yellow, execute the helper script “batch_fix_meta_data.py” to fix any issues resulting from your images' exif files. 
 
