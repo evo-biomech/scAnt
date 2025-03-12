@@ -855,16 +855,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.set_compression(self.ui.comboBox_compression.currentText())
             self.log_info("Set compression to " + self.ui.comboBox_compression.currentText())
 
-    # def suggest_values(self):
-    #     try:
-    #         img = self.cam.live_view()
-    #         if self.ui.checkBox_suggestedValues.isChecked():
-    #             (min_val, max_val) = self.cam.suggest_values(img)
-    #             self.ui.spinBox_thresholdMin.setValue(min_val)
-    #             self.ui.spinBox_thresholdMax.setValue(max_val)
-    #     except:
-    #         print("No camera found!")
-
     def get_DSLR_file_ending(self):
         # first get the current compression setting
         compression_setting = self.cam.get_current_setting("compressionsetting")
@@ -1755,6 +1745,25 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.abortScan = True
             return
 
+        raw_loc = self.output_location_folder.joinpath("RAW")
+        self.empty_at_start = (len(os.listdir(raw_loc)) == 0)
+
+        if not self.empty_at_start and not self.scanInProgress:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setText("The RAW folder is not empty!")
+            msg.setInformativeText("Do you want to continue? This will overwrite existing images.")
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            retval = msg.exec_()
+            if retval == 65536: # Hex value associated with No button - 0x00010000
+                self.abortScan = True
+                return
+            else:
+                print("Deleting existing RAW images...")
+                self.delete_existing_images()
+            
+            
         # if the used camera is a DSLR, adjust the file ending.
         if self.camera_type == "DSLR":
             self.get_DSLR_file_ending()
@@ -1765,8 +1774,6 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             # save configuration file
             self.write_config()
 
-            raw_loc = self.output_location_folder.joinpath("RAW")
-            self.empty_at_start = (len(os.listdir(raw_loc)) == 0)
             # enable and show progress
             self.ui.progressBar_total.setEnabled(True)
             self.ui.label_progressTotal.setEnabled(True)
@@ -1899,6 +1906,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.reset_y()
         self.scanner.completedRotations = 0
         self.enable_editing()
+
+    def delete_existing_images(self):
+        raw_loc = self.output_location_folder.joinpath("RAW")
+        for file in os.listdir(raw_loc):
+            os.remove(raw_loc.joinpath(file))
+        self.empty_at_start = True
 
     """
     process captured images simultaneously
