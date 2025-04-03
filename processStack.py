@@ -471,26 +471,29 @@ def createAlphaMask(data, threadName=None, params = {
     cv2.imwrite(data[:-4] + "_masked.png", out_mask, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
     if params["create_cutout"]:
-        image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
-        cutout = cv2.imread(data)
-        # create the image with an alpha channel
-        # smooth masks prevent sharp features along the outlines from being falsely matched
-        """
-        smooth_mask = cv2.GaussianBlur(image_cleaned_white, (11, 11), 0)
-        rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
-        # assign the mask to the last channel of the image
-        rgba[:, :, 3] = smooth_mask
-        # save as lossless png
-        cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
-        """
+        create_cutout(data)
 
-        _, mask = cv2.threshold(cv2.cvtColor(image_cleaned_white, cv2.COLOR_BGR2GRAY), 240, 255, cv2.THRESH_BINARY)
-        print(cutout.shape)
-        img_jpg = cv2.bitwise_not(cv2.bitwise_not(cutout[:, :, :3], mask=mask))
+def create_cutout(data):
+    image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
+    cutout = cv2.imread(data)
+    # create the image with an alpha channel
+    # smooth masks prevent sharp features along the outlines from being falsely matched
+    """
+    smooth_mask = cv2.GaussianBlur(image_cleaned_white, (11, 11), 0)
+    rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
+    # assign the mask to the last channel of the image
+    rgba[:, :, 3] = smooth_mask
+    # save as lossless png
+    cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
+    """
 
-        print(img_jpg.shape)
-        img_jpg[np.where((img_jpg == [255, 255, 255]).all(axis=2))] = [0, 0, 0]
-        cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
+    _, mask = cv2.threshold(cv2.cvtColor(image_cleaned_white, cv2.COLOR_BGR2GRAY), 240, 255, cv2.THRESH_BINARY)
+    print(cutout.shape)
+    img_jpg = cv2.bitwise_not(cv2.bitwise_not(cutout[:, :, :3], mask=mask))
+
+    print(img_jpg.shape)
+    img_jpg[np.where((img_jpg == [255, 255, 255]).all(axis=2))] = [0, 0, 0]
+    cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
 
 
 def mask_images(input_paths, create_cutout, hf_st, hf_ft):
@@ -578,10 +581,11 @@ if __name__ == "__main__":
             metadata_check = False
         else:
             metadata_check = True
-        # if str(args["create_cutout"]).lower() == "true" or args["create_cutout"]:
-        #     cutout_check=True
-        # else:
-        #     cutout_check=False
+        if str(args["create_cutout"]).lower() == "true" or args["create_cutout"]:
+            cutout_check=True
+        else:
+            cutout_check=False
+        
         # if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
         #     sharpen = True
         # elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
@@ -612,15 +616,20 @@ if __name__ == "__main__":
             args["min_artifact_size_white"] = None
 
 
-        if args["hsv_x_saturation_threshold"]:
-            pass
-        else:
-            args["hsv_x_saturation_threshold"] = config["masking"]["masking_saturation_threshold"]
-        
-        if args["hsv_x_focus_threshold"]:
-            pass
-        else:
-            args["hsv_x_focus_threshold"] = config["masking"]["masking_focus_threshold"]
+        try:
+            if args["hsv_x_saturation_threshold"]:
+                pass
+            else:
+                args["hsv_x_saturation_threshold"] = config["masking"]["masking_saturation_threshold"]
+            
+            if args["hsv_x_focus_threshold"]:
+                pass
+            else:
+                args["hsv_x_focus_threshold"] = config["masking"]["masking_focus_threshold"]
+        except KeyError:
+            print("No thresholds found in config", "/n Using a value of 50 for both")
+            args["hsv_x_saturation_threshold"] = 50
+            args["hsv_x_focus_threshold"] = 50
         
 
 
@@ -855,6 +864,15 @@ if __name__ == "__main__":
 
             print("Masking Done")
 
+        #If create_cutout is True but no masking has taken place
+        if not mask_check and not stack_check and cutout_check:
+            for img in os.listdir(stacked_dir):
+                path_name = str(Path(stacked_dir).joinpath(img))
+                if os.path.isfile(path_name[:-4] + "_masked.png"):
+                    print(img, path_name)
+                    create_cutout(path_name)
+
+        
         if metadata_check:
 
             for img in os.listdir(str(stacked_dir)):
