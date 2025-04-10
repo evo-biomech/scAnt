@@ -2314,7 +2314,7 @@
           <double>1.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>6200.000000000000000</double>
+          <double>7000.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>50.000000000000000</double>
@@ -2360,7 +2360,7 @@
           <double>0.000000000000000</double>
          </property>
          <property name="maximum">
-          <double>6200.000000000000000</double>
+          <double>7000.000000000000000</double>
          </property>
          <property name="singleStep">
           <double>100.000000000000000</double>
@@ -2444,7 +2444,7 @@
           <number>0</number>
          </property>
          <property name="maximum">
-          <number>6200</number>
+          <number>7000</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>

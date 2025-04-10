@@ -1887,23 +1887,24 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 self.stackList.append(stackName)
                 self.scanner.completedStacks += 1
             self.scanner.completedRotations += 1
+        
         # return to default position
         # reset settings
-        self.log_info("Scan completed! Homing scanner...")
         if self.stackImages:
-            self.log_info("Stacking remaining images in queue...")
             self.postScanStacking = True
+            self.log_info("Stacking remaining images in queue...")
+
+        self.log_info("Scan completed! Homing scanner...")
         self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-start-50.png"))
         self.ui.action_runScan.setText("Run Scan!")
+        self.ui.action_runScan.setEnabled(True)
         self.enable_stepper_inputs()
         self.images_taken = 0
         self.saved_imgs = []
-        self.de_energise()
-        self.home_x()
-        self.home_z()
-        self.reset_y()
-        self.scanner.moveToPosition(1, self.ui.doubleSpinBox_yStep.value())
-        self.reset_y()
+        # self.de_energise()
+        # self.home_x()
+        # self.home_z()
+        # self.reset_y()
         self.scanner.completedRotations = 0
         self.enable_editing()
 
@@ -1953,7 +1954,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # additionally ensure that stacking is continued when capture finishes
         if self.postScanStacking:
-            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
+            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 1:
                 worker = Worker(self.process_stack)
                 self.activeThreads += 1
                 self.threadpool.start(worker)
