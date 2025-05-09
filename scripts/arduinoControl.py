@@ -64,6 +64,7 @@ class ScannerController:
     def deEnergise(self):
         print("De-engergising Steppers")
         self.ser.write("DEENERGISE     \n".encode("utf-8"))
+        self.ser.readline()
 
     def resume(self):
         print("Energising Steppers")

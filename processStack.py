@@ -158,7 +158,11 @@ def process_stack(data, output_folder, path_to_external, params):
 
     used_platform = platform.system()
 
-    output_path = str(output_folder.joinpath(stack_name)) + ".jpg"
+    if params["general"]["camera_type"] == "FLIR":
+        output_path = str(output_folder.joinpath(stack_name)) + ".tif"
+    else:
+        output_path = str(output_folder.joinpath(stack_name)) + ".jpg"
+    
     print(output_path)
 
     if params["new_focus_stack"]:
@@ -238,7 +242,7 @@ def process_stack(data, output_folder, path_to_external, params):
     return output_path
 
 
-def stack_images(input_paths, check_focus=False, threshold=0.0, sharpen=False):
+def stack_images(input_paths, check_focus=False, threshold=0.0, sharpen= False, camera_type="FLIR"):
     images = Path(input_paths[0]).parent
 
     all_image_paths = []
@@ -320,7 +324,8 @@ def stack_images(input_paths, check_focus=False, threshold=0.0, sharpen=False):
     stacked_images_paths = []
 
     parameters = {"sharpen": False,
-                  "new_focus_stack": True}
+                  "new_focus_stack": True,
+                  "general": {"camera_type" : camera_type}}
 
     for stack in stacks:
         stacked_images_paths.append(
@@ -518,8 +523,8 @@ if __name__ == "__main__":
     
     ap = argparse.ArgumentParser()
     ap.add_argument("-p", "--path", required=True, help="Path to scAnt project")
-    ap.add_argument("-s", "--stacking", default=True, help="stack RAW images [True / False] (True by default)")
-    ap.add_argument("-m", "--masking", default=True, help="mask stacked images [True / False] (True by default)")
+    ap.add_argument("-s", "--stacking",  help="stack RAW images [True / False]")
+    ap.add_argument("-m", "--masking", default=True, help="mask stacked images [True / False]")
     ap.add_argument("-f", "--focus_check", default=False,
                     help="check whether out-of-focus images should be discarded before stacking [True / False] (False by default)")
     ap.add_argument("-t", "--threshold", type=float,
@@ -565,14 +570,22 @@ if __name__ == "__main__":
             focus_threshold = float(config["stacking"]["threshold"])
 
         #parse boolean args
-        if str(args["stacking"]).lower() == "false" or not args["stacking"]:
-            stack_check=False
+        if args["stacking"] is not None:
+            if str(args["stacking"]).lower() == "false":
+                stack_check=False
+            else:
+                stack_check=True
         else:
-            stack_check=True
-        if str(args["masking"]).lower() == "false" or not args["masking"]:
-            mask_check=False
+            stack_check = config["stacking"]["stack_images"]
+
+        if args["masking"] is not None:
+            if str(args["masking"]).lower() == "false":
+                mask_check=False
+            else:
+                mask_check=True
         else:
-            mask_check=True
+            mask_check = config["masking"]["mask_images"]
+        
         if str(args["focus_check"]).lower() == "false" or not args["focus_check"]:
             focus_check=False
         else:
@@ -585,15 +598,7 @@ if __name__ == "__main__":
             cutout_check=True
         else:
             cutout_check=False
-        
-        # if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
-        #     sharpen = True
-        # elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
-        #     sharpen = False
-        # else:
-        #     sharpen = config["stacking"]["additional_sharpening"]
 
-        # stack_method = config["stacking"]["stacking_method"]
         exif = config["exif_data"]
         
         try:
@@ -631,7 +636,6 @@ if __name__ == "__main__":
             args["hsv_x_saturation_threshold"] = 50
             args["hsv_x_focus_threshold"] = 50
         
-
 
         if stack_check:
 
@@ -730,15 +734,6 @@ if __name__ == "__main__":
                 current_stack_name = usable_images[0][:-15]
                 print("Created stack:", current_stack_name)
 
-                """
-                # only needed when using hugin-enfuse
-                
-                if not os.path.exists(output_folder.joinpath(current_stack_name)):
-                    os.makedirs(output_folder.joinpath(current_stack_name))
-                    print("made corresponding temporary folder!")
-                else:
-                    print("corresponding temporary folder already exists!")
-                """
 
                 path_num = 0
                 for path in usable_images:
@@ -798,18 +793,6 @@ if __name__ == "__main__":
             for t in threads:
                 t.join()
             print("Exiting Main Stacking Thread")
-
-            """
-            # only needed with hugin-enfuse, so disabled for new experimental stacking
-            print("Deleting temporary folders")
-
-            for stack in stacks:
-                stack_name = stack.split(" ")[1]
-                stack_name = Path(stack_name).name[:-15]
-                os.rmdir(output_folder.joinpath(stack_name))
-                print("removed  ...", stack_name)
-            
-            """
 
             print("Stacking finalised!")
             print("Time elapsed:", time.time() - start)
