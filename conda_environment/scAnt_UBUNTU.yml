@@ -17,7 +17,7 @@ dependencies:
     - pyqtdarktheme
   - numpy
   - matplotlib
-  - opencv=4.1.0
+  - opencv
   - pyqt
   - imutils
   - pillow

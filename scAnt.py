@@ -719,6 +719,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.cam.set_black_level(float(value))
 
     def update_live_view(self, progress_callback):
+
         while self.liveView and self.camera_type == "FLIR":
             try:
                 img = self.cam.live_view()
@@ -735,10 +736,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 live_img_pixmap = QtGui.QPixmap.fromImage(live_img)
 
                 # Setup pixmap with the acquired image
-                live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.width(),
-                                                         self.ui.label_liveView.height(),
-                                                         QtCore.Qt.KeepAspectRatio)
-                
+                live_img_scaled = live_img_pixmap.scaled(self.ui.label_liveView.size(),
+                                                        QtCore.Qt.KeepAspectRatio)
                 # Set the pixmap onto the label
                 self.ui.label_liveView.setPixmap(live_img_scaled)
                 # Align the label to center
