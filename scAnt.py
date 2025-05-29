@@ -992,76 +992,10 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
     def run_post_processing_threaded(self, progress_callback):
-        config_present = False
-        raw_folder_loc = self.raw_location
-        parent = Path(raw_folder_loc).parent
-        self.write_config()
-
-        for file in os.listdir(parent):
-            if file.endswith(".yaml"):
-                config_present = True
-                config_file = file
-        if config_present:
-            config_location = parent.joinpath(config_file)
-            config = ymlRW.read_config_file(config_location)
-
-            focus_threshold = config["stacking"]["threshold"]
-            stack_images_check = config["stacking"]["stack_images"]
-            sharpen = config["stacking"]["additional_sharpening"]
-            exif = config["exif_data"]
-            mask_images_check = config["masking"]["mask_images"]
-            masking_focus_threshold = config["masking"]["masking_focus_threshold"]
-            masking_saturation_threshold = config["masking"]["masking_saturation_threshold"]
-
-            stacks = []
-            stack = []
-            prev_xy = ""
-            stacked_output = []
-            for i,file in enumerate(sorted(os.listdir(raw_folder_loc))):
-
-                xy_pos = file[:-10]
-                if xy_pos != prev_xy and i != 0:
-                    stacks.append(stack)    
-                    stack = []
-
-
-                stack.append(str(Path(raw_folder_loc).joinpath(file)))
-                prev_xy = xy_pos
-            
-            if len(stacks) == 0:
-                stacks.append(stack)
-            
-            for stack in stacks:
-                try:
-                    if stack_images_check:
-                        stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
-                                                    sharpen=sharpen)
-
-                        write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
-                        print("stacked output!", stacked_output)
-                    else:
-                        current_file = stack[0][-32:-15]
-                        for path_name in os.listdir(self.output_location_folder.joinpath("stacked")):
-                            if current_file in path_name:
-                                stacked_output.append(str(self.output_location_folder.joinpath("stacked").joinpath(path_name)))
-                                break
-                    
-                    if mask_images_check:
-                        if len(stacked_output) >= 1:
-                            mask_images(input_paths=stacked_output, 
-                                        create_cutout=True, 
-                                        hf_st=masking_saturation_threshold, hf_ft=masking_focus_threshold)
-                        else:
-                            print("Not enough images to mask!")
-
-                        if self.createCutout:
-                            write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
-                except Exception as e:
-                    print(e)
-            print("Post Processing Completed")
-            
-        else:
-            print("No config file found!")
+         command_call = "python processStack.py -p " + str(self.output_location_folder)
+         print(command_call)
+         subprocess.run(command_call, stdout=sys.stdout, stderr=subprocess.STDOUT)
+    
     
     def run_post_processing(self):
         worker = Worker(self.run_post_processing_threaded)
@@ -1954,7 +1888,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # additionally ensure that stacking is continued when capture finishes
         if self.postScanStacking:
-            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 1:
+            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
                 worker = Worker(self.process_stack)
                 self.activeThreads += 1
                 self.threadpool.start(worker)
@@ -1975,7 +1909,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         try:
 
             stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
-                                          sharpen=self.stackSharpen)
+                                          sharpen=self.stackSharpen, camera_type=self.camera_type)
 
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
