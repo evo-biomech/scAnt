@@ -70,7 +70,7 @@ void setup() {
     // start communication
   Serial.begin(9600);
 
-  TCB1_CTRLA = 0b00000011;  // pin D3
+  TCB1_CTRLA = 0b00000011;  // pin D3 8-bit 31.25 kHz PWM
 
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, HIGH);

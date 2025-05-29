@@ -563,6 +563,8 @@ if __name__ == "__main__":
 
         config = ymlRW.read_config_file(config_location)
 
+        args["general"] = config["general"]
+
         #Read important post processing parameters - if not defined from cmd
         if args["threshold"] is not None:
             focus_threshold = float(args["threshold"])
