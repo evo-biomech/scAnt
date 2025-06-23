@@ -1518,7 +1518,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.homed_X and self.homed_Z:
                 if not self.xMoving and not self.yMoving and not self.zMoving:
-                    self.ui.action_runScan.setIcon("GUI\icons\icons8-stop-48.png")
+                    self.ui.action_runScan.setIcon(QtGui.QIcon("GUI\icons\icons8-stop-48.png"))
                     self.scanInProgress = True
                     self.changeInputState()
                     self.abortScan = False
