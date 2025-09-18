@@ -384,6 +384,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.doubleSpinBox_yMin.valueChanged.connect(self.set_scanner_range)
             self.ui.doubleSpinBox_yStep.valueChanged.connect(self.set_scanner_range)
             self.ui.doubleSpinBox_yMax.valueChanged.connect(self.set_scanner_range)
+            self.ui.spinBox_rotationOffset.valueChanged.connect(self.set_scanner_range)
             self.ui.doubleSpinBox_zMin.valueChanged.connect(self.set_scanner_range)
             self.ui.doubleSpinBox_zStep.valueChanged.connect(self.set_scanner_range)
             self.ui.doubleSpinBox_zMax.valueChanged.connect(self.set_scanner_range)
@@ -487,6 +488,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.scanner.setScanRange(stepper=2, min=self.ui.doubleSpinBox_zMin.value(),
                                   max=self.ui.doubleSpinBox_zMax.value() + self.ui.doubleSpinBox_zStep.value(),
                                   step=self.ui.doubleSpinBox_zStep.value())
+        self.y_offset = self.ui.spinBox_rotationOffset.value()
 
     def update_display_x(self):
         pos = self.ui.horizontalSlider_xAxis.value()
@@ -1340,6 +1342,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def enable_stepper_inputs(self):
         if self.editing_enabled:
+            print("HERE")
             # self.ui.horizontalSlider_xAxis.setEnabled(True)
             self.ui.horizontalSlider_yAxis.setEnabled(True)
             # self.ui.horizontalSlider_zAxis.setEnabled(True)
@@ -1367,6 +1370,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.ui.label_setRangeXMin.setEnabled(True)
             self.ui.label_setRangeYMax.setEnabled(True)
             self.ui.label_setRangeYStep.setEnabled(True)
+            self.ui.label_rotationOffset.setEnabled(True)
+            self.ui.spinBox_rotationOffset.setEnabled(True)
             self.ui.label_setRangeYMin.setEnabled(True)
             self.ui.label_setRangeZMax.setEnabled(True)
             self.ui.label_setRangeZStep.setEnabled(True)
@@ -1636,6 +1641,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ui.doubleSpinBox_zMin.setEnabled(enableInputs)
         self.ui.doubleSpinBox_xStep.setEnabled(enableInputs)
         self.ui.doubleSpinBox_yStep.setEnabled(enableInputs)
+        self.ui.spinBox_rotationOffset.setEnabled(enableInputs)
         self.ui.doubleSpinBox_zStep.setEnabled(enableInputs)
         self.ui.doubleSpinBox_xMax.setEnabled(enableInputs)
         self.ui.doubleSpinBox_yMax.setEnabled(enableInputs)
@@ -1752,12 +1758,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.images_to_take = len(self.scanner.scan_pos[0]) * len(self.scanner.scan_pos[1]) * len(
             self.scanner.scan_pos[2])
         print(self.scanner.scan_pos)
-        for posX in self.scanner.scan_pos[0]:
-
+        for iX, posX in enumerate(self.scanner.scan_pos[0]):
             self.scanner.moveToPosition(0, posX)
             self.posX = posX
             progress_callback.emit(self.progress)
             for posY in self.scanner.scan_pos[1]:
+                posY += iX * self.y_offset
                 self.scanner.moveToPosition(1, posY + self.scanner.completedRotations * self.scanner.stepper_maxPos[1])
                 self.posY = posY
                 progress_callback.emit(self.progress)
