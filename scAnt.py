@@ -125,7 +125,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super(scAnt_mainWindow, self).__init__()
-
+        
+        print("Setting up scAnt Main Window...")
         self.setWindowIcon(QtGui.QIcon(str(Path.cwd().joinpath("images", "scAnt_icon.png"))))
 
         self.liveView = False
@@ -138,6 +139,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         self.ui.setupUi(self)
 
+        print("Initialising Project Settings Dialog window...")
         #Initialise Project Settings Dialog window
         self.settings_dialog = SettingsDialog()
         self.camera_dialog = CameraDialog()
@@ -159,12 +161,14 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.path_to_external = Path.cwd().joinpath("external")
 
 
+        print("Loading camera makes...")
         #Add camera makes to combobox
         with open(self.path_to_external.joinpath("cameraMakes.txt"), "r") as f:
             self.makes = [make[:-1] for make in f.readlines()]
 
         self.camera_dialog.ui.comboBox_make.addItems(self.makes)
 
+        print("Loading camera models...")
         # start thread pool
         self.threadpool = QtCore.QThreadPool()
 
@@ -176,6 +180,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         self.ActiveSavingProcess = False
 
         # Find FLIR cameras, if attached
+        print("Searching for FLIR cameras...")
         try:
             from GUI.Live_view_FLIR import customFLIR
             self.FLIR = customFLIR()
@@ -206,6 +211,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             self.disable_FLIR_inputs()
 
         # If on Windows, try to find DSLR cameras via DigiCamControl
+        print("Searching for DSLR cameras...")
         if platform.system() == "Windows":
             try:
                 # TODO add support for the selection of multiple connected DSLR cameras
@@ -1966,6 +1972,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication([])
     app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     qdarktheme.setup_theme("light")
+    print("Starting scAnt Application...")
     application = scAnt_mainWindow()
 
     application.show()
