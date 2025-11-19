@@ -209,6 +209,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             print(message)
             self.FLIR_found = False
             self.disable_FLIR_inputs()
+        except Exception as e:
+            print(f"Error while initialising FLIR camera: {str(e)}")
 
         # If on Windows, try to find DSLR cameras via DigiCamControl
         print("Searching for DSLR cameras...")
