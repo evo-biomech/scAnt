@@ -181,36 +181,29 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # Find FLIR cameras, if attached
         print("Searching for FLIR cameras...")
-        # try:
-        from GUI.Live_view_FLIR import customFLIR
-        self.FLIR = customFLIR()
-        # camera needs to be initialised before use (self.cam.initialise_camera)
-        # all detected FLIR cameras are listed in self.cam.device_names
-        # by default, use the first camera found in the list
-        self.cam = self.FLIR
-        self.cam.initialise_camera(select_cam=0)
-        # now retrieve the name of all found FLIR cameras and add them to the camera selection
-        for cam in self.cam.device_names:
-            self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
-        self.camera_type = "FLIR"
-        # cam.device_names contains both model and serial number
-        self.camera_model = self.cam.device_names[0][0]
-        self.FLIR_found = True
-        self.FLIR_image_queue = []
-        # except IndexError:
-        #     message = "No FLIR camera found!"
-        #     self.log_info(message)
-        #     print(message)
-        #     self.FLIR_found = False
-        #     self.disable_FLIR_inputs()
-        # except ModuleNotFoundError:
-        #     message = "PYSPIN has not been installed - Disabling FLIR camera inputs"
-        #     self.log_info(message)
-        #     print(message)
-        #     self.FLIR_found = False
-        #     self.disable_FLIR_inputs()
-        # except Exception as e:
-        #     print(f"Error while initialising FLIR camera: {str(e)}")
+        try:
+            # import FLIR support if available
+            from GUI.Live_view_FLIR import customFLIR
+            # create instance but initialise on a background thread to avoid blocking the UI
+            self.FLIR = customFLIR()
+            self.cam = self.FLIR
+            # initialise camera in background to avoid stalls on some systems
+            try:
+                worker = Worker(self.init_FLIR_threaded)
+                worker.signals.finished.connect(self.finished_FLIR_init)
+                self.threadpool.start(worker)
+                # mark as not yet confirmed until init completes
+                self.FLIR_found = False
+                self.FLIR_image_queue = []
+            except Exception as e_worker:
+                self.log_info(f"Failed to start FLIR initialisation worker: {e_worker}")
+                self.FLIR_found = False
+                self.FLIR = None
+        except Exception as e:
+            # Import failed or FLIR support unavailable; disable FLIR inputs gracefully
+            self.log_info(f"No FLIR support available or failed to import: {e}")
+            self.FLIR_found = False
+            self.FLIR = None
 
         # If on Windows, try to find DSLR cameras via DigiCamControl
         print("Searching for DSLR cameras...")
@@ -709,13 +702,47 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def finished_DCC_launch(self):
         self.log_info("Launched DCC and retrieved camera settings")
         self.enable_DSLR_inputs()
-
-    #Camera Info
-
+    
     def open_camera_settings(self):
         self.camera_dialog.show()
+    
+    def launch_DCC_threaded(self, progress_callback):
+        self.cam.initialise_camera()
+        self.DSLR_initialised = True
 
+    def finished_DCC_launch(self):
+        self.log_info("Launched DCC and retrieved camera settings")
+        self.enable_DSLR_inputs()
 
+    def init_FLIR_threaded(self, progress_callback):
+        # run FLIR camera initialisation off the main thread
+        try:
+            # select first camera by default (this method can block, so it's threaded)
+            self.cam.initialise_camera(select_cam=0)
+        except Exception as e:
+            # re-raise so Worker.error signaling can capture it (or simply print)
+            print(f"FLIR initialisation failed in background thread: {e}")
+            raise
+
+    def finished_FLIR_init(self):
+        # called when the FLIR init worker finishes
+        try:
+            # now populate camera selection and mark FLIR as available
+            for cam in self.cam.device_names:
+                self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
+            self.camera_type = "FLIR"
+            # cam.device_names contains both model and serial number
+            self.camera_model = self.cam.device_names[0][0]
+            self.FLIR_found = True
+            self.FLIR_image_queue = []
+        except Exception as e:
+            # if anything goes wrong here, disable FLIR inputs and report
+            self.log_info(f"Error while initialising FLIR camera: {e}")
+            self.FLIR_found = False
+            try:
+                self.disable_FLIR_inputs()
+            except Exception:
+                pass
     def change_make(self):
         self.camera_dialog.ui.comboBox_model.clear()
         self.make = self.camera_dialog.ui.comboBox_make.currentText()
