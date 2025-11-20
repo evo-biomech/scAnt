@@ -181,36 +181,36 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
         # Find FLIR cameras, if attached
         print("Searching for FLIR cameras...")
-        try:
-            from GUI.Live_view_FLIR import customFLIR
-            self.FLIR = customFLIR()
-            # camera needs to be initialised before use (self.cam.initialise_camera)
-            # all detected FLIR cameras are listed in self.cam.device_names
-            # by default, use the first camera found in the list
-            self.cam = self.FLIR
-            self.cam.initialise_camera(select_cam=0)
-            # now retrieve the name of all found FLIR cameras and add them to the camera selection
-            for cam in self.cam.device_names:
-                self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
-            self.camera_type = "FLIR"
-            # cam.device_names contains both model and serial number
-            self.camera_model = self.cam.device_names[0][0]
-            self.FLIR_found = True
-            self.FLIR_image_queue = []
-        except IndexError:
-            message = "No FLIR camera found!"
-            self.log_info(message)
-            print(message)
-            self.FLIR_found = False
-            self.disable_FLIR_inputs()
-        except ModuleNotFoundError:
-            message = "PYSPIN has not been installed - Disabling FLIR camera inputs"
-            self.log_info(message)
-            print(message)
-            self.FLIR_found = False
-            self.disable_FLIR_inputs()
-        except Exception as e:
-            print(f"Error while initialising FLIR camera: {str(e)}")
+        # try:
+        from GUI.Live_view_FLIR import customFLIR
+        self.FLIR = customFLIR()
+        # camera needs to be initialised before use (self.cam.initialise_camera)
+        # all detected FLIR cameras are listed in self.cam.device_names
+        # by default, use the first camera found in the list
+        self.cam = self.FLIR
+        self.cam.initialise_camera(select_cam=0)
+        # now retrieve the name of all found FLIR cameras and add them to the camera selection
+        for cam in self.cam.device_names:
+            self.ui.comboBox_selectCamera.addItem(str(cam[0] + " ID: " + cam[1]))
+        self.camera_type = "FLIR"
+        # cam.device_names contains both model and serial number
+        self.camera_model = self.cam.device_names[0][0]
+        self.FLIR_found = True
+        self.FLIR_image_queue = []
+        # except IndexError:
+        #     message = "No FLIR camera found!"
+        #     self.log_info(message)
+        #     print(message)
+        #     self.FLIR_found = False
+        #     self.disable_FLIR_inputs()
+        # except ModuleNotFoundError:
+        #     message = "PYSPIN has not been installed - Disabling FLIR camera inputs"
+        #     self.log_info(message)
+        #     print(message)
+        #     self.FLIR_found = False
+        #     self.disable_FLIR_inputs()
+        # except Exception as e:
+        #     print(f"Error while initialising FLIR camera: {str(e)}")
 
         # If on Windows, try to find DSLR cameras via DigiCamControl
         print("Searching for DSLR cameras...")
