@@ -183,10 +183,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         print("Searching for FLIR cameras...")
         try:
             # import FLIR support if available
-            from GUI.Live_view_FLIR import customFLIR
-            # create instance but initialise on a background thread to avoid blocking the UI
-            self.FLIR = customFLIR()
-            self.cam = self.FLIR
+            # from GUI.Live_view_FLIR import customFLIR
+
             # initialise camera in background to avoid stalls on some systems
             try:
                 worker = Worker(self.init_FLIR_threaded)
@@ -718,6 +716,9 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # run FLIR camera initialisation off the main thread
         try:
             # select first camera by default (this method can block, so it's threaded)
+            from GUI.Live_view_FLIR import customFLIR
+            self.FLIR = customFLIR()
+            self.cam = self.FLIR
             self.cam.initialise_camera(select_cam=0)
         except Exception as e:
             # re-raise so Worker.error signaling can capture it (or simply print)
