@@ -16,13 +16,18 @@ class customFLIR():
 
     def __init__(self):
 
-        # Retrieve singleton reference to system object
-        self.system = PySpin.System.GetInstance()
+        try:
+            print("Initialising FLIR Camera...")
+            # Retrieve singleton reference to system object
+            self.system = PySpin.System.GetInstance()
 
-        # Get current library version
-        version = self.system.GetLibraryVersion()
-        print('Spinnaker library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
-
+            print("System instance retrieved...")
+            print(self.system)
+            # Get current library version
+            version = self.system.GetLibraryVersion()
+            print('Spinnaker library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
+        except:
+            print("Error while initialising FLIR camera system")
         try:
             # Retrieve list of cameras from the system
             self.cam_list = self.system.GetCameras()
