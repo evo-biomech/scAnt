@@ -270,7 +270,6 @@ if __name__ == "__main__":
 
     # print("\nDemo completed successfully!")
     scAnt.flash()
-    scAnt.moveToPosition(stepper=0, pos=800)
     
 
 
