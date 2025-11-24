@@ -23,28 +23,35 @@ class customFLIR():
         version = self.system.GetLibraryVersion()
         print('Spinnaker library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
 
-        # Retrieve list of cameras from the system
-        self.cam_list = self.system.GetCameras()
+        try:
+            # Retrieve list of cameras from the system
+            self.cam_list = self.system.GetCameras()
+            print("cam_list" + str(self.cam_list))
+            # get all serial numbers of connected and support FLIR cameras
+            self.device_names = []
+            print("all devices" + str(self.device_names))
 
-        # get all serial numbers of connected and support FLIR cameras
-        self.device_names = []
+            for id, cam in enumerate(self.cam_list):
+                nodemap = cam.GetTLDeviceNodeMap()
 
-        for id, cam in enumerate(self.cam_list):
-            nodemap = cam.GetTLDeviceNodeMap()
+                print(nodemap)
+                # Retrieve device serial number
+                node_device_serial_number = PySpin.CStringPtr(nodemap.GetNode("DeviceSerialNumber"))
+                node_device_model = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
 
-            # Retrieve device serial number
-            node_device_serial_number = PySpin.CStringPtr(nodemap.GetNode("DeviceSerialNumber"))
-            node_device_model = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
+                if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
+                    self.device_names.append([node_device_model.GetValue(), node_device_serial_number.GetValue()])
 
-            if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
-                self.device_names.append([node_device_model.GetValue(), node_device_serial_number.GetValue()])
+                print("Detected", self.device_names[id][0], "with Serial ID", self.device_names[id][1])
 
-            print("Detected", self.device_names[id][0], "with Serial ID", self.device_names[id][1])
+            # by default, use the first camera in the retrieved list
+            self.cam = self.cam_list[0]
 
-        # by default, use the first camera in the retrieved list
-        self.cam = self.cam_list[0]
-
-        num_cameras = self.cam_list.GetSize()
+            num_cameras = self.cam_list.GetSize()
+        
+        except Exception as e:
+            print("Error while connecting to FLIR camera: " + str(e))
+            num_cameras = 0
 
         print('Number of cameras detected: %d' % num_cameras)
 
