@@ -273,6 +273,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
             warning = "No Stepper Controller found!"
             self.log_info(warning)
             print(warning)
+        except Exception as e:
+            print(e)
 
         # FLIR settings
 
