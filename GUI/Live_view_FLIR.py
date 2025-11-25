@@ -3,108 +3,113 @@ import platform
 import numpy as np
 import time
 
-# as the PySpin class seems to be written differently for the windows library it needs to be imported as follows:
-used_plattform = platform.system()
-
-if used_plattform == "Linux":
-    import PySpin
-else:
-    from PySpin import PySpin  # to run on windows
+# NOTE: import of the PySpin/Spinnaker bindings can sometimes block or hang
+# depending on the process working directory, environment, or loaded DLLs.
+# Defer importing PySpin until we actually initialise the camera so that
+# creating a `customFLIR()` instance is lightweight and won't freeze GUI
+# applications that import this module (for example `scAnt.py`).
 
 
 class customFLIR():
 
     def __init__(self):
+        # Lightweight constructor: do not import or initialise Spinnaker here
+        # because importing PySpin can block in some environments. Instead
+        # defer loading until initialise_camera() is called.
+        self.PySpin = None
+        self._spinnaker_loaded = False
+        self.system = None
+        self.cam_list = None
+        self.cam = None
+        self.device_names = []
+        print("customFLIR instance created (Spinnaker not yet loaded)")
 
+    def _ensure_spinnaker(self):
+        """Import the PySpin/Spinnaker module and set up the system instance.
+
+        This is performed lazily to avoid import-time hangs in applications
+        that import this module but don't immediately need camera access.
+        """
+        if self._spinnaker_loaded:
+            return True
+
+        used_platform = platform.system()
         try:
-            print("Initialising FLIR Camera...")
+            if used_platform == "Linux":
+                import PySpin as _PySpin
+            else:
+                # On Windows the PySpin package exposes the PySpin module
+                # name in different ways; import it generically and keep a
+                # reference on self so other methods can use it.
+                from PySpin import PySpin as _PySpinClass
+                # wrap to keep API consistent
+                class _WinPySpinWrapper:
+                    # provide attributes expected by code that uses `PySpin`
+                    def __getattr__(self, name):
+                        return getattr(_PySpinClass, name)
+                _PySpin = _WinPySpinWrapper()
+
+            self.PySpin = _PySpin
             # Retrieve singleton reference to system object
-            self.system = PySpin.System.GetInstance()
-
-            print("System instance retrieved...")
-            print(self.system)
-            # Get current library version
-            version = self.system.GetLibraryVersion()
-            print('Spinnaker library version: %d.%d.%d.%d' % (version.major, version.minor, version.type, version.build))
-        except:
-            print("Error while initialising FLIR camera system")
-        try:
-            # Retrieve list of cameras from the system
-            self.cam_list = self.system.GetCameras()
-            print("cam_list" + str(self.cam_list))
-            # get all serial numbers of connected and support FLIR cameras
-            self.device_names = []
-            print("all devices" + str(self.device_names))
-
-            for id, cam in enumerate(self.cam_list):
-                nodemap = cam.GetTLDeviceNodeMap()
-
-                print(nodemap)
-                # Retrieve device serial number
-                node_device_serial_number = PySpin.CStringPtr(nodemap.GetNode("DeviceSerialNumber"))
-                node_device_model = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
-
-                if PySpin.IsAvailable(node_device_serial_number) and PySpin.IsReadable(node_device_serial_number):
-                    self.device_names.append([node_device_model.GetValue(), node_device_serial_number.GetValue()])
-
-                print("Detected", self.device_names[id][0], "with Serial ID", self.device_names[id][1])
-
-            # by default, use the first camera in the retrieved list
-            self.cam = self.cam_list[0]
-
-            num_cameras = self.cam_list.GetSize()
-        
+            self.system = self.PySpin.System.GetInstance()
+            self._spinnaker_loaded = True
+            return True
         except Exception as e:
-            print("Error while connecting to FLIR camera: " + str(e))
-            num_cameras = 0
-
-        print('Number of cameras detected: %d' % num_cameras)
-
-        # Finish if there are no cameras
-        if num_cameras == 0:
-            # Clear camera list before releasing system
-            self.cam_list.Clear()
-
-            # Release system instance
-            self.system.ReleaseInstance()
-
-            print('Not enough cameras!')
-            input('Done! Press Enter to exit...')
+            print(f"Error loading Spinnaker/PySpin: {e}")
             return False
-
-        print("\nExecute CustomFLIR.initialise_camera and pass the number of the listed camera, "
-              "in case more than one has been detected!\n")
 
     def initialise_camera(self, select_cam=0):
-        # overwrite the selected cam at initialisation if desired
-        self.cam = self.cam_list[select_cam]
-        # initialise camera, apply settings and begin acquisition
-        # Initialize camera
-        self.cam.Init()
-
-        # Set acquisition mode to continuous
-        if self.cam.AcquisitionMode.GetAccessMode() != PySpin.RW:
-            print('Unable to set acquisition mode to continuous. Aborting...')
+        # Lazy-load the PySpin module and initialise the system/camera list
+        if not self._ensure_spinnaker():
             return False
 
-        # always retrieve the newest captured image for the live view
-        self.cam.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestOnly)
-        self.cam.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
-        print('Acquisition mode set to continuous...')
+        try:
+            # Retrieve list of cameras from the system if not already retrieved
+            if self.cam_list is None:
+                self.cam_list = self.system.GetCameras()
+                # get all serial numbers of connected and support FLIR cameras
+                self.device_names = []
+                for id, cam in enumerate(self.cam_list):
+                    nodemap = cam.GetTLDeviceNodeMap()
+                    node_device_serial_number = self.PySpin.CStringPtr(nodemap.GetNode("DeviceSerialNumber"))
+                    node_device_model = self.PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
+                    if self.PySpin.IsAvailable(node_device_serial_number) and self.PySpin.IsReadable(node_device_serial_number):
+                        self.device_names.append([node_device_model.GetValue(), node_device_serial_number.GetValue()])
+                        print("Detected", self.device_names[id][0], "with Serial ID", self.device_names[id][1])
 
-        self.set_gain(gain=1.83)
-        self.set_gamma(gamma=0.8)
-        self.set_white_balance(red=1.58, blue=1.79)
-        self.configure_exposure(exposure_time_to_set=90000)
+            # overwrite the selected cam at initialisation if desired
+            self.cam = self.cam_list[select_cam]
 
-        # Begin Acquisition of image stream
-        self.cam.BeginAcquisition()
+            # initialise camera, apply settings and begin acquisition
+            # Initialize camera
+            self.cam.Init()
 
-        nodemap = self.cam.GetTLDeviceNodeMap()
-        name = PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
-        if name.GetValue() == "Blackfly S BFS-U3-51S5C":
-            self.cam.ExposureMode.SetValue(1)
-            self.cam.ExposureMode.SetValue(0)
+            # Set acquisition mode to continuous
+            if self.cam.AcquisitionMode.GetAccessMode() != self.PySpin.RW:
+                print('Unable to set acquisition mode to continuous. Aborting...')
+                return False
+
+            # always retrieve the newest captured image for the live view
+            self.cam.TLStream.StreamBufferHandlingMode.SetValue(self.PySpin.StreamBufferHandlingMode_NewestOnly)
+            self.cam.AcquisitionMode.SetValue(self.PySpin.AcquisitionMode_Continuous)
+            print('Acquisition mode set to continuous...')
+
+            self.set_gain(gain=1.83)
+            self.set_gamma(gamma=0.8)
+            self.set_white_balance(red=1.58, blue=1.79)
+            self.configure_exposure(exposure_time_to_set=90000)
+
+            # Begin Acquisition of image stream
+            self.cam.BeginAcquisition()
+
+            nodemap = self.cam.GetTLDeviceNodeMap()
+            name = self.PySpin.CStringPtr(nodemap.GetNode("DeviceModelName"))
+            if name.GetValue() == "Blackfly S BFS-U3-51S5C":
+                self.cam.ExposureMode.SetValue(1)
+                self.cam.ExposureMode.SetValue(0)
+        except Exception as e:
+            print("Error while initialising FLIR camera: " + str(e))
+            return False
 
 
     def deinitialise_camera(self):
@@ -130,26 +135,23 @@ class customFLIR():
         try:
             result = True
 
-            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
+            if self.cam.ExposureAuto.GetAccessMode() != self.PySpin.RW:
                 print('Unable to disable automatic exposure. Aborting...')
                 return False
 
-            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
+            self.cam.ExposureAuto.SetValue(self.PySpin.ExposureAuto_Off)
             print('Automatic exposure disabled...')
 
-            if self.cam.ExposureTime.GetAccessMode() != PySpin.RW:
+            if self.cam.ExposureTime.GetAccessMode() != self.PySpin.RW:
                 print('Unable to set exposure time. Aborting...')
                 return False
 
             # Ensure desired exposure time does not exceed the maximum
-            # 90000  # with grey backdrop and full illumination
-            # 200751  # with grey backdrop and half illumination
             exposure_time_to_set = min(self.cam.ExposureTime.GetMax(), exposure_time_to_set)
             self.cam.ExposureTime.SetValue(exposure_time_to_set)
             print('Shutter time set to %s us...\n' % exposure_time_to_set)
 
-
-        except PySpin.SpinnakerException as ex:
+        except Exception as ex:
             print('Error: %s' % ex)
             result = False
 
@@ -182,17 +184,17 @@ class customFLIR():
         return new_img 
     
     def set_gain(self, gain=1.83):
-        self.cam.GainAuto.SetValue(PySpin.GainAuto_Off)
+        self.cam.GainAuto.SetValue(self.PySpin.GainAuto_Off)
         self.cam.Gain.SetValue(gain)
 
     def set_gamma(self, gamma=0.8):
         self.cam.Gamma.SetValue(gamma)
 
     def set_white_balance(self, red=1.58, blue=1.79):
-        self.cam.BalanceWhiteAuto.SetValue(PySpin.BalanceWhiteAuto_Off)
-        self.cam.BalanceRatioSelector.SetValue(PySpin.BalanceRatioSelector_Red)
+        self.cam.BalanceWhiteAuto.SetValue(self.PySpin.BalanceWhiteAuto_Off)
+        self.cam.BalanceRatioSelector.SetValue(self.PySpin.BalanceRatioSelector_Red)
         self.cam.BalanceRatio.SetValue(red)
-        self.cam.BalanceRatioSelector.SetValue(PySpin.BalanceRatioSelector_Blue)
+        self.cam.BalanceRatioSelector.SetValue(self.PySpin.BalanceRatioSelector_Blue)
         self.cam.BalanceRatio.SetValue(blue)
 
     def set_black_level(self, level):
@@ -218,15 +220,15 @@ class customFLIR():
             # Automatic exposure is turned on in order to return the camera to its
             # default state.
 
-            if self.cam.ExposureAuto.GetAccessMode() != PySpin.RW:
+            if self.cam.ExposureAuto.GetAccessMode() != self.PySpin.RW:
                 print('Unable to enable automatic exposure (node retrieval). Non-fatal error...')
                 return False
 
-            self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
+            self.cam.ExposureAuto.SetValue(self.PySpin.ExposureAuto_Continuous)
 
             print('Automatic exposure enabled...')
 
-        except PySpin.SpinnakerException as ex:
+        except Exception as ex:
             print('Error: %s' % ex)
             result = False
 
@@ -250,15 +252,15 @@ class customFLIR():
             # Automatic exposure is turned on in order to return the camera to its
             # default state.
 
-            if self.cam.GainAuto.GetAccessMode() != PySpin.RW:
+            if self.cam.GainAuto.GetAccessMode() != self.PySpin.RW:
                 print('Unable to enable automatic gain (node retrieval). Non-fatal error...')
                 return False
 
-            self.cam.GainAuto.SetValue(PySpin.GainAuto_Continuous)
+            self.cam.GainAuto.SetValue(self.PySpin.GainAuto_Continuous)
 
             print('Automatic gain enabled...')
 
-        except PySpin.SpinnakerException as ex:
+        except Exception as ex:
             print('Error: %s' % ex)
             result = False
 
@@ -282,12 +284,12 @@ class customFLIR():
             result = True
             nodemap = self.cam.GetTLDeviceNodeMap()
 
-            node_device_information = PySpin.CCategoryPtr(nodemap.GetNode('DeviceInformation'))
+            node_device_information = self.PySpin.CCategoryPtr(nodemap.GetNode('DeviceInformation'))
 
-            if PySpin.IsAvailable(node_device_information) and PySpin.IsReadable(node_device_information):
+            if self.PySpin.IsAvailable(node_device_information) and self.PySpin.IsReadable(node_device_information):
                 features = node_device_information.GetFeatures()
                 for feature in features:
-                    node_feature = PySpin.CValuePtr(feature)
+                    node_feature = self.PySpin.CValuePtr(feature)
                     """
                     print('%s: %s' % (node_feature.GetName(),
                                       node_feature.ToString() if PySpin.IsReadable(node_feature) else 'Node not readable'))
@@ -295,8 +297,8 @@ class customFLIR():
             else:
                 print('Device control information not available.')
 
-        except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex.message)
+        except Exception as ex:
+            print('Error: %s' % ex)
             return False
 
         return result
@@ -314,7 +316,6 @@ class customFLIR():
         resized = None
 
         try:
-
             try:
                 # Retrieve next received image and ensure image completion
                 image_result = self.cam.GetNextImage()
@@ -328,7 +329,7 @@ class customFLIR():
                     height = image_result.GetHeight()
 
                     # convert from FLIR format to OpenCV np array
-                    img_conv = image_result.Convert(PySpin.PixelFormat_BGR8, PySpin.HQ_LINEAR)
+                    img_conv = image_result.Convert(self.PySpin.PixelFormat_BGR8, self.PySpin.HQ_LINEAR)
 
                     scale_percent = 15  # percent of original size
                     width = int(width * scale_percent / 100)
@@ -347,10 +348,10 @@ class customFLIR():
                     # Release image
                     image_result.Release()
 
-            except PySpin.SpinnakerException as ex:
+            except Exception as ex:
                 print('Error: %s' % ex)
 
-        except PySpin.SpinnakerException as ex:
+        except Exception as ex:
             print('Error: %s' % ex)
 
         return resized
@@ -386,10 +387,10 @@ class customFLIR():
                 image_result.Release()
 
 
-            except PySpin.SpinnakerException as ex:
+            except Exception as ex:
                 print('Error: %s' % ex)
 
-        except PySpin.SpinnakerException as ex:
+        except Exception as ex:
             print('Error: %s' % ex)
 
     def exit_cam(self):
