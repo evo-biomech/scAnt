@@ -21,7 +21,7 @@ class ScannerController:
         ports = serial.tools.list_ports.comports()
         for port, desc, _ in ports:
             print(port, desc)
-            ard_desc = ["USB-SERIAL CH340", "USB2.0-Ser!", "Arduino"]
+            ard_desc = ["USB-SERIAL CH340", "USB2.0-Ser!", "Arduino", "USB Serial Device"]
             ard_desc = [s.lower() for s in ard_desc]
             if any(findall("|".join(ard_desc), desc.lower())):
                 com = port
