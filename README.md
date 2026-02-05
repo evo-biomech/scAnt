@@ -74,10 +74,10 @@ For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk/?model=Spinnaker%20SDK&vertical=machine%20vision&segment=iis)
 
-Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
-Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
+Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
+Once you have created an account head to the bottom of the download page to the section **Archive** and download the **2.7.0.128** version for your respective operating system. _(We are in the process of providing support for later Spinnaker & Spinview versions, see [#30](https://github.com/evo-biomech/scAnt/issues/30))_
 Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
 Unpack all files in a folder of your choice. Then proceed with the following steps:
@@ -202,9 +202,11 @@ For now, we reccomend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk/?model=Spinnaker%20SDK&vertical=machine%20vision&segment=iis)
 
-Spinnaker has recently moved their API and criver files into a new repository and you will need to create an account in order to access them.
+Once you have created an account head to the bottom of the download page to the section **Archive** and download the **2.7.0.128** version for your respective operating system. _(We are in the process of providing support for later Spinnaker & Spinview versions, see [#30](https://github.com/evo-biomech/scAnt/issues/30))_
+
+Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
 Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
 Unpack the folder and you should find both the Spinakker API installation, as well as the required python package inside.
 
