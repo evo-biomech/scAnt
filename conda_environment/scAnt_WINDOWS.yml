@@ -13,7 +13,7 @@ dependencies:
   - pip
   - pip:
     - pyqtdarktheme
-  - numpy
+  - numpy<2.0.0
   - matplotlib
   - opencv
   - pyqt
