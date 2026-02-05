@@ -13,6 +13,19 @@ from GUI.scAnt_projectSettings_dlg import Ui_Dialog
 from GUI.scAnt_cameraSettings_dlg import Ui_CameraDialog
 import qdarktheme
 
+print("scAnt version 1.3.0")
+
+# On Windows, report the conda env Library\bin path and check for libiomp5md.dll
+if os.name == "nt":
+    conda_lib_bin = Path(sys.prefix).joinpath("Library", "bin")
+    print(f"Conda Library\\bin path: {conda_lib_bin}")
+    dll_path = conda_lib_bin.joinpath("libiomp5md.dll")
+    if dll_path.exists():
+        print(f"libiomp5md.dll found at: {dll_path}")
+        print("Removing the dll to avoid conflicts with other applications...")
+        os.remove(dll_path)
+        print("libiomp5md.dll removed successfully.")
+
 import scripts.project_manager as ymlRW
 from scripts.Scanner_Controller import ScannerController
 from processStack import getThreads, stack_images, mask_images
