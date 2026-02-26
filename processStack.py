@@ -737,16 +737,14 @@ if __name__ == "__main__":
             metadata_check = False
         else:
             metadata_check = True
-        # if str(args["create_cutout"]).lower() == "true" or args["create_cutout"]:
-        #     cutout_check=True
-        # else:
-        #     cutout_check=False
-        # if str(args["sharpen"]).lower() == "true" or args["sharpen"]:
-        #     sharpen = True
-        # elif str(args["sharpen"]).lower() == "false" or not args["sharpen"]:
-        #     sharpen = False
-        # else:
-        #     sharpen = config["stacking"]["additional_sharpening"]
+        if str(args["create_cutout"]).lower() == "true" or args["create_cutout"] is True:
+            args["create_cutout"] = True
+        else:
+            args["create_cutout"] = False
+        if str(args["sharpen"]).lower() == "true" or args["sharpen"] is True:
+            args["sharpen"] = True
+        else:
+            args["sharpen"] = False
 
         # stack_method = config["stacking"]["stacking_method"]
         exif = config["exif_data"]
@@ -1002,10 +1000,15 @@ if __name__ == "__main__":
             for img in os.listdir(str(stacked_dir)):
                 print(img)
                 if img[-4:] == ".tif" or img[-4:] == ".jpg":
-                    img_tif = cv2.imread(str(stacked_dir.joinpath(img)), cv2.IMREAD_UNCHANGED)
+                    img_path = str(stacked_dir.joinpath(img))
+                    img_data = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                    cv2.imwrite(img_path, img_data)
+                    write_exif_to_img(img_path=img_path, custom_exif_dict=exif)
 
-                    cv2.imwrite(str(stacked_dir.joinpath(img)), img_tif)
-                    write_exif_to_img(img_path=str(stacked_dir.joinpath(img)), custom_exif_dict=exif)
+                # Also write EXIF metadata to cutout images if they were generated
+                if args["create_cutout"] and img.endswith("_cutout.jpg"):
+                    cutout_path = str(stacked_dir.joinpath(img))
+                    write_exif_to_img(img_path=cutout_path, custom_exif_dict=exif)
         print("All images processed!\nExiting Main Thread")
         exit()
         
