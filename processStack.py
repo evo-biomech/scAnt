@@ -264,8 +264,11 @@ def stack_images(input_paths, check_focus, threshold=10.0, sharpen=False):
         for path in usable_images:
             print(path)
     else:
+        # FIX: return empty list instead of exit() — exit() kills the worker thread without
+        # returning control to the caller, so activeThreads is never decremented, which
+        # permanently blocks all further stacking attempts (see issue #31)
         print("No images suitable for focus stacking found!")
-        exit()
+        return []
 
     path_to_external = Path(basedir).joinpath("external")
     output_folder = images.parent.joinpath("stacked")
