@@ -4,6 +4,8 @@ import sys
 import traceback
 import os
 import cgitb
+import queue
+import threading
 from math import floor
 from pathlib import Path
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -443,7 +445,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         # run no more than 3 stacking threads simultaneously but no less than 1
         self.postScanStacking = False
         self.activeThreads = 0
-        self.stackList = []
+        # FIX: use thread-safe queue.Queue instead of a plain list to prevent race conditions
+        # when the scan thread, timer callback, and worker threads access it concurrently (issue #31)
+        self.stackQueue = queue.Queue()
+        # FIX: lock to protect activeThreads counter from concurrent read/write corruption (issue #31)
+        self._threadCountLock = threading.Lock()
 
     """
     Stepper Control
@@ -956,6 +962,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 try:
                     stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=focus_threshold,
                                                 sharpen=sharpen)
+
+                    # FIX: guard against empty return from stack_images (issue #31)
+                    if not stacked_output:
+                        print("WARNING: stacking returned no output for", stack)
+                        continue
 
                     write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=exif)
 
@@ -1611,7 +1622,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     time.sleep(2)
 
 
-                self.stackList.append(stackName)
+                self.stackQueue.put(stackName)
                 self.scanner.completedStacks += 1
             self.scanner.completedRotations += 1
         # return to default position
@@ -1634,6 +1645,22 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     process captured images simultaneously
     """
 
+    def _spawnStackWorker(self):
+        """
+        FIX: Dequeue the stack here in the timer callback (which runs on the main/GUI thread)
+        rather than inside the worker thread. This ensures only one thread touches the queue
+        consumer side, eliminating the race where two workers could pop the same item or cause
+        an IndexError. The stack data is passed as an argument to the worker. (issue #31)
+        """
+        try:
+            stack = self.stackQueue.get_nowait()
+        except queue.Empty:
+            return
+        with self._threadCountLock:
+            self.activeThreads += 1
+        worker = Worker(self.processStack, stack)
+        self.threadpool.start(worker)
+
     def checkActiveStackThreads(self):
         # prevent multiple simultaneous saving processes
         if not self.ActiveSavingProcess:
@@ -1642,7 +1669,7 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                     self.ActiveSavingProcess = True
                     """
                     first check for any queued captured images and save them to the drive
-                    create a local copy of the queue to not overwrite the external queue 
+                    create a local copy of the queue to not overwrite the external queue
                     and not allow further entries while processing.
                     """
                     temp_FLIR_image_queue = self.FLIR_image_queue.copy()
@@ -1661,24 +1688,26 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                         self.FLIR_image_queue.remove(img)
 
             if self.stackImages:
-                if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
-                    worker = Worker(self.processStack)
-                    self.activeThreads += 1
-                    self.threadpool.start(worker)
+                with self._threadCountLock:
+                    can_spawn = self.activeThreads < self.maxStackThreads
+                if can_spawn and not self.stackQueue.empty():
+                    self._spawnStackWorker()
 
             self.ActiveSavingProcess = False
 
         # additionally ensure that stacking is continued when capture finishes
         if self.postScanStacking:
-            if self.activeThreads < self.maxStackThreads and len(self.stackList) > 0:
-                worker = Worker(self.processStack)
-                self.activeThreads += 1
-                self.threadpool.start(worker)
+            with self._threadCountLock:
+                can_spawn = self.activeThreads < self.maxStackThreads
+            if can_spawn and not self.stackQueue.empty():
+                self._spawnStackWorker()
 
-    def processStack(self, progress_callback):
-        stack = self.stackList[0]
-        del self.stackList[0]
-
+    def processStack(self, stack, progress_callback):
+        """
+        FIX: stack is now passed in as an argument instead of being popped from a shared list.
+        activeThreads is decremented in a finally block so it is always reached, even if
+        stack_images() raises or the old exit() path was hit. (issue #31)
+        """
         if not self.postScanStacking + self.empty_at_start:
             while self.saved_imgs != self.images_taken:
                 pass
@@ -1690,6 +1719,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         try:
             stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
                                           sharpen=self.stackSharpen)
+
+            # FIX: guard against empty return from stack_images (e.g. no usable images found)
+            if not stacked_output:
+                print("WARNING: stacking returned no output for", stack)
+                return
 
             write_exif_to_img(img_path=stacked_output[0], custom_exif_dict=self.exif)
 
@@ -1704,7 +1738,12 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         except Exception as e:
             print(e)
 
-        self.activeThreads -= 1
+        finally:
+            # FIX: always decrement activeThreads, even on exception — previously this line
+            # could be skipped if exit() was called in stack_images or if an unhandled
+            # exception occurred before reaching it, permanently blocking the queue (issue #31)
+            with self._threadCountLock:
+                self.activeThreads -= 1
 
     def closeEvent(self, event):
         # de-energise steppers, if connected
