@@ -16,57 +16,60 @@ import queue
 import threading
 import time
 
-from scripts.hsv_x_focus_masking import detect_subject
+from scripts.masking import detect_subject, create_cutout as create_cutout_rgba, METHODS as MASKING_METHODS, DEFAULT_METHOD as DEFAULT_MASKING_METHOD
 
 basedir = os.path.dirname(__file__)
 
-class FocusCheckingThread(threading.Thread):
-    def __init__(self, threadID, name, q):
-        threading.Thread.__init__(self)
+class _WorkerThread(threading.Thread):
+    """Base worker thread that drains a queue until a stop event is set.
+
+    Subclasses override _process_item(item) to do actual work.
+    Each item is wrapped in try/except so a single failure never kills the
+    thread or blocks the queue.
+    """
+    daemon = True
+
+    def __init__(self, threadID, name, q, stop_event):
+        super().__init__()
         self.threadID = threadID
         self.name = name
         self.q = q
+        self._stop_event = stop_event
 
     def run(self):
         print("Starting " + self.name)
-        process_data(self.name, self.q)
+        while not self._stop_event.is_set():
+            try:
+                item = self.q.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            try:
+                self._process_item(item)
+            except Exception as e:
+                print("ERROR in %s processing %s: %s" % (self.name, item, e))
+            finally:
+                self.q.task_done()
         print("Exiting " + self.name)
 
+    def _process_item(self, item):
+        raise NotImplementedError
 
-class StackingThread(threading.Thread):
-    def __init__(self, threadID, name, q):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        self.q = q
 
-    def run(self):
-        print("Starting " + self.name)
-        process_stack_threaded(self.name, self.q)
-        print("Exiting " + self.name)
+class FocusCheckingThread(_WorkerThread):
+    def _process_item(self, data):
+        print("%s processing %s" % (self.name, data))
+        checkFocus_threaded(images.joinpath(data))
 
-def process_data(threadName, q):
-    while not exitFlag:
-        queueLock.acquire()
-        if not workQueue.empty():
-            data = q.get()
-            queueLock.release()
-            print("%s processing %s" % (threadName, data))
-            checkFocus_threaded(images.joinpath(data))
-        else:
-            queueLock.release()
 
-class AlphaExtractionThread(threading.Thread):
-    def __init__(self, threadID, name, q):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        self.q = q
+class StackingThread(_WorkerThread):
+    def _process_item(self, data):
+        process_stack(data, output_folder, path_to_external, args)
 
-    def run(self):
-        print("Starting " + self.name)
-        createAlphaMask_threaded(self.name, self.q)
-        print("Exiting " + self.name)
+
+class AlphaExtractionThread(_WorkerThread):
+    def _process_item(self, data):
+        print("%s : extracting alpha of %s" % (self.name, data.split("\\")[-1]))
+        createAlphaMask(data, threadName=self.name, params=args)
 
 def getThreads():
     """ Returns the number of available threads on a posix/win based system """
@@ -141,16 +144,7 @@ def checkFocus(image_path, threshold, usable_images, rejected_images):
 
     return usable_images, rejected_images
 
-def process_stack_threaded(name, q):
-    while not exitFlag_stacking:
-        queueLock.acquire()
-        if not workQueue_stacking.empty():
-            data = q.get()
-            queueLock.release()
 
-            process_stack(data, output_folder, path_to_external, args)
-        else:
-            queueLock.release()
 
 def process_stack(data, output_folder, path_to_external, params):
     path_names = data.split(" ")[1:]
@@ -444,74 +438,44 @@ def apply_local_contrast(img, grid_size=(7, 7), clip_limit=1.0):
 
     return cv2.cvtColor(np.array(sharpened), cv2.COLOR_GRAY2RGB)
 
-def createAlphaMask_threaded(threadName, q):
-    while not exitFlag_alpha:
-        queueLock_alpha.acquire()
-        if not workQueue_alpha.empty():
-            data = q.get()
-            queueLock_alpha.release()
-            print("%s : extracting alpha of %s" % (threadName, data.split("\\")[-1]))
 
-            createAlphaMask(data, threadName=threadName, params=args)
-
-        else:
-            queueLock_alpha.release()
-
-
-def createAlphaMask(data, threadName=None, params = {
-    "create_cutout":True,
-    "CLAHE":1.0,
-    "hsv_x_focus_masking": True
-}):
+def createAlphaMask(data, threadName=None, params=None):
     """
-    create alpha mask for the image located in path
-    :img_path: image location
-    :create_cutout: additionally save final image with as the stacked image with the mask as an alpha layer
-    :return: writes image to same location as input
+    Create alpha mask for the image located in path.
+    :data: image location
+    :params: dict with masking parameters including 'mask_method'
+    :return: writes mask image to same location as input
     """
-    src = cv2.imread(data, 1)
+    if params is None:
+        params = {"create_cutout": True, "mask_method": DEFAULT_MASKING_METHOD}
 
-    if params["hsv_x_focus_masking"]:
-        print("INFO: Using HSV-based focus masking")
-        out_mask = detect_subject(data, 
-                                  saturation_threshold=params["hsv_x_saturation_threshold"], 
-                                  focus_threshold=params["hsv_x_focus_threshold"], 
-                                  gaussian_kernel_size=3, 
-                                  cleanup_kernel_size=3)
+    method = params.get("mask_method", DEFAULT_MASKING_METHOD)
+    print("INFO: Using '%s' masking method" % method)
+
+    # Build method-specific kwargs
+    kwargs = {}
+    if method == "hsv_focus":
+        kwargs["saturation_threshold"] = params.get("hsv_x_saturation_threshold", 30)
+        kwargs["focus_threshold"] = params.get("hsv_x_focus_threshold", 20)
+        kwargs["gaussian_kernel_size"] = 3
+        kwargs["cleanup_kernel_size"] = 3
+    elif method in ("adaptive", "grabcut"):
+        kwargs["threshold_multiplier"] = params.get("mask_threshold", 0.5)
+
+    out_mask = detect_subject(data, method=method, **kwargs)
 
     cv2.imwrite(data[:-4] + "_masked.png", out_mask, [cv2.IMWRITE_PNG_BILEVEL, 1])
 
-    if params["create_cutout"]:
-        create_cutout(data)
-
-def create_cutout(data):
-    image_cleaned_white = cv2.imread(data[:-4] + "_masked.png")
-    cutout = cv2.imread(data)
-    # create the image with an alpha channel
-    # smooth masks prevent sharp features along the outlines from being falsely matched
-    """
-    smooth_mask = cv2.GaussianBlur(image_cleaned_white, (11, 11), 0)
-    rgba = cv2.cvtColor(cutout, cv2.COLOR_RGB2RGBA)
-    # assign the mask to the last channel of the image
-    rgba[:, :, 3] = smooth_mask
-    # save as lossless png
-    cv2.imwrite(data[:-4] + '_cutout.tif', rgba)
-    """
-
-    _, mask = cv2.threshold(cv2.cvtColor(image_cleaned_white, cv2.COLOR_BGR2GRAY), 240, 255, cv2.THRESH_BINARY)
-    print(cutout.shape)
-    img_jpg = cv2.bitwise_not(cv2.bitwise_not(cutout[:, :, :3], mask=mask))
-
-    print(img_jpg.shape)
-    img_jpg[np.where((img_jpg == [255, 255, 255]).all(axis=2))] = [0, 0, 0]
-    cv2.imwrite(data[:-4] + '_cutout.jpg', img_jpg)
+    if params.get("create_cutout", False):
+        create_cutout_rgba(data)
 
 
-def mask_images(input_paths, create_cutout, hf_st, hf_ft):
+def mask_images(input_paths, create_cutout, mask_method=DEFAULT_MASKING_METHOD,
+                mask_threshold=0.5, hf_st=30, hf_ft=20):
 
     params = {"create_cutout": create_cutout,
-              "CLAHE": 1.0,
-              "hsv_x_focus_masking": True,
+              "mask_method": mask_method,
+              "mask_threshold": mask_threshold,
               "hsv_x_saturation_threshold": hf_st,
               "hsv_x_focus_threshold": hf_ft}
 
@@ -545,8 +509,11 @@ if __name__ == "__main__":
     ap.add_argument("-ex", "--new_focus_stack", type=bool, default=True, help="Use new stacking method")
     ap.add_argument("-fr_align", "--full_resolution_align", type=bool, default=False, help="Use full resolution images in alignment (default max 2048 px)")
     ap.add_argument("-jpg", "--jpgquality", help="Quality for saving in JPG format (0-100, default 95)")
-    ap.add_argument("-hf", "--hsv_x_focus_masking", type=bool, default=True,
-                    help="Use HSV-based focus masking for subject detection")
+    ap.add_argument("-mm", "--mask_method", type=str, default=None,
+                    choices=MASKING_METHODS,
+                    help="Masking method: %s (default: %s)" % (", ".join(MASKING_METHODS), DEFAULT_MASKING_METHOD))
+    ap.add_argument("-mt", "--mask_threshold", type=float, default=None,
+                    help="Threshold multiplier for adaptive/grabcut methods (0.1-1.0, default 0.5). Lower keeps more foreground.")
     ap.add_argument("-hf_st", "--hsv_x_saturation_threshold", type=int, help="HSV-based masking saturation threshold")
     ap.add_argument("-hf_ft", "--hsv_x_focus_threshold", type=int, help="HSV-based masking focus threshold")
 
@@ -630,18 +597,34 @@ if __name__ == "__main__":
             args["min_artifact_size_white"] = None
 
 
+        # Masking method
+        try:
+            if args["mask_method"] is None:
+                args["mask_method"] = config["masking"].get("mask_method", DEFAULT_MASKING_METHOD)
+        except KeyError:
+            if args["mask_method"] is None:
+                args["mask_method"] = DEFAULT_MASKING_METHOD
+
+        # Threshold multiplier for adaptive/grabcut
+        try:
+            if args["mask_threshold"] is None:
+                args["mask_threshold"] = config["masking"].get("mask_threshold", 0.5)
+        except KeyError:
+            if args["mask_threshold"] is None:
+                args["mask_threshold"] = 0.5
+
         try:
             if args["hsv_x_saturation_threshold"]:
                 pass
             else:
                 args["hsv_x_saturation_threshold"] = config["masking"]["masking_saturation_threshold"]
-            
+
             if args["hsv_x_focus_threshold"]:
                 pass
             else:
                 args["hsv_x_focus_threshold"] = config["masking"]["masking_focus_threshold"]
         except KeyError:
-            print("No thresholds found in config", "/n Using a value of 50 for both")
+            print("No thresholds found in config", "\nUsing a value of 50 for both")
             args["hsv_x_saturation_threshold"] = 50
             args["hsv_x_focus_threshold"] = 50
         
@@ -650,16 +633,8 @@ if __name__ == "__main__":
 
             all_image_paths = os.listdir(images)
 
-            # setup as many threads as there are (virtual) CPUs
-            exitFlag = 0
             num_virtual_cores = getThreads()
-            threadList = createThreadList(num_virtual_cores)
             print("Found", num_virtual_cores, "(virtual) cores...")
-            queueLock = threading.Lock()
-
-            workQueue = queue.Queue(len(all_image_paths))
-            threads = []
-            threadID = 1
 
             # create list of image paths classified as in-focus or blurry
             usable_images = []
@@ -670,33 +645,31 @@ if __name__ == "__main__":
             """
 
             if focus_check:
-                
-                # Create new threads
+                focus_queue = queue.Queue()
+                focus_stop = threading.Event()
+
+                threadList = createThreadList(num_virtual_cores)
+                threads = []
+                threadID = 1
                 for tName in threadList:
-                    thread = FocusCheckingThread(threadID, tName, workQueue)
+                    thread = FocusCheckingThread(threadID, tName, focus_queue, focus_stop)
                     thread.start()
                     threads.append(thread)
                     threadID += 1
 
                 cv2.ocl.setUseOpenCL(True)
 
-                # Fill the queue
-                queueLock.acquire()
                 for path in all_image_paths:
-                    workQueue.put(path)
-                queueLock.release()
+                    focus_queue.put(path)
 
-                # Wait for queue to empty
-                while not workQueue.empty():
-                    pass
+                # Block until every item has been processed (task_done called)
+                focus_queue.join()
 
-                # Notify threads it's time to exit
-                exitFlag = 1
-
-                # Wait for all threads to complete
+                # Signal threads to exit and wait for them
+                focus_stop.set()
                 for t in threads:
                     t.join()
-                print("Exiting Main Thread")
+                print("Focus checking complete")
 
                 cv2.destroyAllWindows()
             else:
@@ -766,42 +739,28 @@ if __name__ == "__main__":
             ### Alignment and stacking of images ###
             """
 
-            # setup as many threads as there are (virtual) CPUs
-            exitFlag_stacking = 0
             # only use a fourth of the number of CPUs for stacking as hugin and enfuse utilise multi core processing in part
+            stacking_queue = queue.Queue()
+            stacking_stop = threading.Event()
             threadList_stacking = createThreadList(int(min([num_virtual_cores / 4, 3])))
             print("Using", len(threadList_stacking), "threads for stacking...")
-            queueLock = threading.Lock()
 
-            # define paths to all images and set the maximum number of items in the queue equivalent to the number of images
-            workQueue_stacking = queue.Queue(len(stacks))
             threads = []
             threadID = 1
-
-            # Create new threads
             for tName in threadList_stacking:
-                thread = StackingThread(threadID, tName, workQueue_stacking)
+                thread = StackingThread(threadID, tName, stacking_queue, stacking_stop)
                 thread.start()
                 threads.append(thread)
                 threadID += 1
 
-            # Fill the queue with stacks
-            queueLock.acquire()
             for stack in stacks:
-                workQueue_stacking.put(stack)
-            queueLock.release()
+                stacking_queue.put(stack)
 
-            # Wait for queue to empty
-            while not workQueue_stacking.empty():
-                pass
+            stacking_queue.join()
 
-            # Notify threads it's time to exit
-            exitFlag_stacking = 1
-
-            # Wait for all threads to complete
+            stacking_stop.set()
             for t in threads:
                 t.join()
-            print("Exiting Main Stacking Thread")
 
             print("Stacking finalised!")
             print("Time elapsed:", time.time() - start)
@@ -819,38 +778,26 @@ if __name__ == "__main__":
                         all_image_paths.append(imagePath)
                         print("added", imagePath, "to queue")
 
-            # setup half as many threads as there are (virtual) CPUs
-            exitFlag_alpha = 0
+            alpha_queue = queue.Queue()
+            alpha_stop = threading.Event()
             num_virtual_cores = getThreads()
-            threadList_alpha = createThreadList(int(num_virtual_cores/4))
-            print("Found", num_virtual_cores, "(virtual) cores...")
-            queueLock_alpha = threading.Lock()
+            threadList_alpha = createThreadList(int(num_virtual_cores / 4))
+            print("Using", len(threadList_alpha), "threads for masking...")
 
-            workQueue_alpha = queue.Queue(len(all_image_paths))
-
-            # Create new threads
             threads = []
             threadID = 1
             for tName in threadList_alpha:
-                thread = AlphaExtractionThread(threadID, tName, workQueue_alpha)
+                thread = AlphaExtractionThread(threadID, tName, alpha_queue, alpha_stop)
                 thread.start()
                 threads.append(thread)
                 threadID += 1
 
-            # Fill the queue
-            queueLock_alpha.acquire()
             for path in all_image_paths:
-                workQueue_alpha.put(path)
-            queueLock_alpha.release()
+                alpha_queue.put(path)
 
-            # Wait for queue to empty
-            while not workQueue_alpha.empty():
-                pass
+            alpha_queue.join()
 
-            # Notify threads it's time to exit
-            exitFlag_alpha = 1
-
-            # Wait for all threads to complete
+            alpha_stop.set()
             for t in threads:
                 t.join()
 
@@ -862,7 +809,7 @@ if __name__ == "__main__":
                 path_name = str(Path(stacked_dir).joinpath(img))
                 if os.path.isfile(path_name[:-4] + "_masked.png"):
                     print(img, path_name)
-                    create_cutout(path_name)
+                    create_cutout_rgba(path_name)
 
         
         if metadata_check:

@@ -439,9 +439,13 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
 
         self.maskImages = False
+        self.masking_method = "adaptive"
+        self.masking_threshold = 0.5
         self.masking_focus_threshold = 20
         self.masking_saturation_threshold = 70
         self.ui.checkBox_maskImages.stateChanged.connect(self.enable_masking)
+        self.ui.comboBox_maskMethod.currentTextChanged.connect(self.set_masking_method)
+        self.ui.doubleSpinBox_maskThreshold.valueChanged.connect(self.set_masking_threshold)
         self.ui.spinBox_maskingFocusThreshold.valueChanged.connect(self.set_masking_focus_threshold)
         self.ui.spinBox_maskingSaturationThreshold.valueChanged.connect(self.set_masking_saturation_threshold)
 
@@ -1012,6 +1016,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
              "-t", str(self.stackFocusThreshold),
              "-sh", str(self.stackSharpen),
              "-c", str(self.createCutout),
+             "-mm", str(self.masking_method),
+             "-mt", str(self.masking_threshold),
              "-hf_st", str(self.masking_saturation_threshold),
              "-hf_ft", str(self.masking_focus_threshold),
          ]
@@ -1113,6 +1119,11 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                 # masking
                 self.ui.checkBox_maskImages.setChecked(config["masking"]["mask_images"])
                 try:
+                    method = config["masking"].get("mask_method", "adaptive")
+                    idx = self.ui.comboBox_maskMethod.findText(method)
+                    if idx >= 0:
+                        self.ui.comboBox_maskMethod.setCurrentIndex(idx)
+                    self.ui.doubleSpinBox_maskThreshold.setValue(config["masking"].get("mask_threshold", 0.5))
                     self.ui.spinBox_maskingFocusThreshold.setValue(config["masking"]["masking_focus_threshold"])
                     self.ui.spinBox_maskingSaturationThreshold.setValue(config["masking"]["masking_saturation_threshold"])
                 except Exception:
@@ -1214,6 +1225,8 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
                                'display_focus_check': self.stackDisplayFocus,
                                'additional_sharpening': self.stackSharpen},
                   'masking': {'mask_images': self.ui.checkBox_maskImages.isChecked(),
+                              'mask_method': self.ui.comboBox_maskMethod.currentText(),
+                              'mask_threshold': self.ui.doubleSpinBox_maskThreshold.value(),
                               'masking_focus_threshold': self.ui.spinBox_maskingFocusThreshold.value(),
                               'masking_saturation_threshold': self.ui.spinBox_maskingSaturationThreshold.value()},
                     "flash": {"flash_length": self.ui.spinBox_flashLength.value(),
@@ -1303,22 +1316,41 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
     def enable_masking(self, set_to=False):
         self.maskImages = self.ui.checkBox_maskImages.isChecked()
 
-        # self.ui.label_thresholdMasking.setEnabled(self.maskImages)
-        # self.ui.label_thresholdMaskingMin.setEnabled(self.maskImages)
-        # self.ui.label_thresholdMaskingMax.setEnabled(self.maskImages)
-        # self.ui.spinBox_thresholdMin.setEnabled(self.maskImages)
-        # self.ui.spinBox_thresholdMax.setEnabled(self.maskImages)
-        # self.ui.label_suggestedValues.setEnabled(self.maskImages)
-        # self.ui.checkBox_suggestedValues.setEnabled(self.maskImages)
-        self.ui.label_maskingFocusThreshold.setEnabled(self.maskImages)
-        self.ui.label_maskingSaturationThreshold.setEnabled(self.maskImages)
-        self.ui.spinBox_maskingFocusThreshold.setEnabled(self.maskImages)
-        self.ui.spinBox_maskingSaturationThreshold.setEnabled(self.maskImages)
-        
-    
+        self.ui.label_maskMethod.setEnabled(self.maskImages)
+        self.ui.comboBox_maskMethod.setEnabled(self.maskImages)
+        self._update_masking_widgets()
+
+    def _update_masking_widgets(self):
+        """Show/hide method-specific threshold widgets based on selected method."""
+        is_hsv = self.masking_method == "hsv_focus"
+        is_adaptive_or_gc = self.masking_method in ("adaptive", "grabcut")
+
+        # HSV-specific widgets
+        self.ui.label_maskingFocusThreshold.setVisible(is_hsv)
+        self.ui.label_maskingSaturationThreshold.setVisible(is_hsv)
+        self.ui.spinBox_maskingFocusThreshold.setVisible(is_hsv)
+        self.ui.spinBox_maskingSaturationThreshold.setVisible(is_hsv)
+        self.ui.label_maskingFocusThreshold.setEnabled(self.maskImages and is_hsv)
+        self.ui.label_maskingSaturationThreshold.setEnabled(self.maskImages and is_hsv)
+        self.ui.spinBox_maskingFocusThreshold.setEnabled(self.maskImages and is_hsv)
+        self.ui.spinBox_maskingSaturationThreshold.setEnabled(self.maskImages and is_hsv)
+
+        # Adaptive/GrabCut threshold multiplier widget
+        self.ui.label_maskThreshold.setVisible(is_adaptive_or_gc)
+        self.ui.doubleSpinBox_maskThreshold.setVisible(is_adaptive_or_gc)
+        self.ui.label_maskThreshold.setEnabled(self.maskImages and is_adaptive_or_gc)
+        self.ui.doubleSpinBox_maskThreshold.setEnabled(self.maskImages and is_adaptive_or_gc)
+
+    def set_masking_method(self, method):
+        self.masking_method = method
+        self._update_masking_widgets()
+
+    def set_masking_threshold(self):
+        self.masking_threshold = self.ui.doubleSpinBox_maskThreshold.value()
+
     def set_masking_focus_threshold(self):
         self.masking_focus_threshold = self.ui.spinBox_maskingFocusThreshold.value()
-    
+
     def set_masking_saturation_threshold(self):
         self.masking_saturation_threshold = self.ui.spinBox_maskingSaturationThreshold.value()
     
@@ -1942,20 +1974,24 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
         stack_images() raises or returns empty. (issue #31)
         """
         if not self.postScanStacking and self.empty_at_start:
+            # Wait for all images in this stack to be saved to disk, with timeout
+            max_wait = 300  # seconds
+            waited = 0
             while not all(e in self.saved_imgs for e in stack):
-                pass
+                time.sleep(0.5)
+                waited += 0.5
+                if waited >= max_wait:
+                    print("WARNING: Timed out waiting for images to save for stack:", stack)
+                    break
 
         time.sleep(1)
-        # stack images
         print("\nSTACKING: \n\n", stack)
-        # using try / except to continue stacking with other images in case an error occurs
 
         try:
-
-            stacked_output = stack_images(input_paths=stack, check_focus = self.thresholdImages, threshold=self.stackFocusThreshold,
+            stacked_output = stack_images(input_paths=stack, check_focus=self.thresholdImages,
+                                          threshold=self.stackFocusThreshold,
                                           sharpen=self.stackSharpen, camera_type=self.camera_type)
 
-            # Guard against empty return from stack_images (e.g. no usable images found)
             if not stacked_output:
                 print("WARNING: stacking returned no output for", stack)
                 return
@@ -1964,19 +2000,24 @@ class scAnt_mainWindow(QtWidgets.QMainWindow):
 
             if self.maskImages:
                 time.sleep(3)
-                mask_images(input_paths=stacked_output, create_cutout=True,
-                            hf_st=self.masking_saturation_threshold, hf_ft=self.masking_focus_threshold)
+                try:
+                    mask_images(input_paths=stacked_output, create_cutout=True,
+                                mask_method=self.masking_method,
+                                mask_threshold=self.masking_threshold,
+                                hf_st=self.masking_saturation_threshold, hf_ft=self.masking_focus_threshold)
+                except Exception as mask_err:
+                    print("ERROR: Masking failed for %s: %s" % (stacked_output, mask_err))
 
                 if self.createCutout:
-                    write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
+                    try:
+                        write_exif_to_img(img_path=str(stacked_output[0])[:-4] + '_cutout.jpg', custom_exif_dict=self.exif)
+                    except Exception as exif_err:
+                        print("ERROR: EXIF write failed for cutout: %s" % exif_err)
 
         except Exception as e:
-            print(e)
+            print("ERROR: Stacking failed for %s: %s" % (stack, e))
 
         finally:
-            # Always decrement activeThreads, even on exception — previously this line
-            # could be skipped if exit() was called in stack_images or if an unhandled
-            # exception occurred before reaching it, permanently blocking the queue (issue #31)
             with self._threadCountLock:
                 self.activeThreads -= 1
 
