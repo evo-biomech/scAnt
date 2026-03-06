@@ -15,7 +15,10 @@ import argparse
 import queue
 import threading
 import time
+
 from scripts.hsv_x_focus_masking import detect_subject
+
+basedir = os.path.dirname(__file__)
 
 class FocusCheckingThread(threading.Thread):
     def __init__(self, threadID, name, q):
@@ -267,10 +270,13 @@ def stack_images(input_paths, check_focus=False, threshold=0.0, sharpen= False, 
         for path in usable_images:
             print(path)
     else:
+        # return empty list instead of exit() — exit() kills the worker thread without
+        # returning control to the caller, so activeThreads is never decremented, which
+        # permanently blocks all further stacking attempts (see issue #31)
         print("No images suitable for focus stacking found!")
-        exit()
+        return []
 
-    path_to_external = Path.cwd().joinpath("external")
+    path_to_external = Path(basedir).joinpath("external")
     output_folder = images.parent.joinpath("stacked")
 
     if not os.path.exists(output_folder):
@@ -596,10 +602,11 @@ if __name__ == "__main__":
             metadata_check = False
         else:
             metadata_check = True
-        if str(args["create_cutout"]).lower() == "true" or args["create_cutout"]:
+        if str(args["create_cutout"]).lower() == "true" or args["create_cutout"] is True:
             cutout_check=True
         else:
             cutout_check=False
+        args["create_cutout"] = cutout_check
 
         exif = config["exif_data"]
         
@@ -708,11 +715,11 @@ if __name__ == "__main__":
                 print("No images suitable for focus stacking found!")
                 exit()
 
-            # as the script can be executed from the parent or "scripts" directory check where the external files are located
-            path_to_external = Path.cwd().joinpath("external")
+            # Check where the external files are located
+            path_to_external = Path(basedir).joinpath("external")
             print(path_to_external)
             if not os.path.exists(path_to_external):
-                path_to_external = Path.cwd().parent.joinpath("external")
+                path_to_external = Path(basedir).parent.joinpath("external")
 
             output_folder = images.parent.joinpath("stacked")
 
@@ -862,11 +869,17 @@ if __name__ == "__main__":
 
             for img in os.listdir(str(stacked_dir)):
                 print(img)
-                if img[-4:] == ".tif" or img[-4:] == ".jpg":
-                    img_tif = cv2.imread(str(stacked_dir.joinpath(img)), cv2.IMREAD_UNCHANGED)
+                # Only write EXIF to stacked images if stacking was actually run
+                if stack_check and (img[-4:] == ".tif" or img[-4:] == ".jpg") and "_cutout" not in img and "_masked" not in img:
+                    img_path = str(stacked_dir.joinpath(img))
+                    img_data = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                    cv2.imwrite(img_path, img_data)
+                    write_exif_to_img(img_path=img_path, custom_exif_dict=exif)
 
-                    cv2.imwrite(str(stacked_dir.joinpath(img)), img_tif)
-                    write_exif_to_img(img_path=str(stacked_dir.joinpath(img)), custom_exif_dict=exif)
+                # Write EXIF metadata to cutout images if they were generated
+                if cutout_check and img.endswith("_cutout.jpg"):
+                    cutout_path = str(stacked_dir.joinpath(img))
+                    write_exif_to_img(img_path=cutout_path, custom_exif_dict=exif)
         print("All images processed!\nExiting Main Thread")
         exit()
         

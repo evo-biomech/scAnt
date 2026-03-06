@@ -8,16 +8,22 @@ except ModuleNotFoundError:
     from project_manager import read_config_file
 import os
 
+basedir = os.path.dirname(os.path.dirname(__file__))
 
 # follow installation guide for Ubuntu or use executable directly under Windows (located in "/external")
 # sudo apt install libimage-exiftool-perl
 
-def show_me_what_you_got(img_path):
+def _get_exiftool_path():
     if platform.system() == "Linux":
-        exifToolPath = "exiftool"
-    else:
-        exifToolPath = str(Path.cwd().joinpath("external", "exiftool.exe"))
-        # for Windows user have to specify the Exif tool exe path for metadata extraction.
+        return "exiftool"
+    exif_path = str(Path(basedir).joinpath("external", "exiftool.exe"))
+    if not os.path.isfile(exif_path):
+        exif_path = str(Path(basedir).parent.joinpath("external", "exiftool.exe"))
+    return exif_path
+
+
+def show_me_what_you_got(img_path):
+    exifToolPath = _get_exiftool_path()
 
     infoDict = {}  # Creating the dict to get the metadata tags
     ''' use Exif tool to get the metadata '''
@@ -33,13 +39,7 @@ def show_me_what_you_got(img_path):
 
 
 def write_exif_to_img(img_path, custom_exif_dict):
-    if platform.system() == "Linux":
-        exifToolPath = "exiftool"
-    else:
-        exifToolPath = str(Path.cwd().joinpath("external", "exiftool.exe"))
-        # for Windows user have to specify the Exif tool exe path for metadata extraction.
-        if not os.path.isfile(exifToolPath):
-            exifToolPath = str(Path.cwd().parent.joinpath("external", "exiftool.exe"))
+    exifToolPath = _get_exiftool_path()
 
     complete_command = [exifToolPath, img_path, "-overwrite_original_in_place"]
     for key in custom_exif_dict:
@@ -49,7 +49,7 @@ def write_exif_to_img(img_path, custom_exif_dict):
 
     print(complete_command)
 
-    subprocess.Popen(complete_command)
+    subprocess.run(complete_command)
 
 
 def get_default_values():
