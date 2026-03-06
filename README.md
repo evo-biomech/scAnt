@@ -75,7 +75,7 @@ For now, we recommend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk/?model=Spinnaker+SDK&vertical=machine+vision&segment=iis)
 
 Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
 Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
@@ -164,7 +164,7 @@ For now, we recommend using a legacy version (1.29 - 2.7) of **Spinnaker** & **P
 
 ***
 
-Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.flir.co.uk/products/spinnaker-sdk/?vertical=machine+vision&segment=iis)
+Download the drivers and python bindings for **Spinnaker & Pyspin** from the official FLIR page: [FLIR - Spinnaker & PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk/?model=Spinnaker+SDK&vertical=machine+vision&segment=iis)
 
 Spinnaker has recently moved their API and driver files into a new repository and you will need to create an account in order to access them.
 Once you have created an account head to the bottom of the download page to the section **Previous Versions** and download the **2.7.0.128** version for your respective operating system.
